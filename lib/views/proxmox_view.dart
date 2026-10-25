@@ -39,107 +39,113 @@ class _ProxmoxViewState extends State<ProxmoxView> {
 
     return DefaultTabController(
       length: 3,
-      child: Column(
-        children: [
-          if (vm.servers.isNotEmpty) _buildServerSelector(context, vm),
-          
-          // Modern Segmented TabBar
-          Container(
-            color: AppTheme.background,
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: Container(
-              height: 45,
-              decoration: BoxDecoration(
-                color: AppTheme.surfaceBackground,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppTheme.borderSubtle),
-              ),
-              child: TabBar(
-                indicatorSize: TabBarIndicatorSize.tab,
-                indicator: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  color: AppTheme.statusTeal.withValues(alpha: 0.15),
-                  border: Border.all(
-                    color: AppTheme.statusTeal.withValues(alpha: 0.5),
+      child: NestedScrollView(
+        // headerSliverBuilder membuat bagian header bisa di-scroll bersama konten
+        headerSliverBuilder: (context, innerBoxIsScrolled) {
+          return [
+            SliverToBoxAdapter(
+              child: Column(
+                children: [
+                  if (vm.servers.isNotEmpty) _buildServerSelector(context, vm),
+                  
+                  // Modern Segmented TabBar
+                  Container(
+                    color: AppTheme.background,
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                    child: Container(
+                      height: 45,
+                      decoration: BoxDecoration(
+                        color: AppTheme.surfaceBackground,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppTheme.borderSubtle),
+                      ),
+                      child: TabBar(
+                        indicatorSize: TabBarIndicatorSize.tab,
+                        indicator: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          color: AppTheme.statusTeal.withValues(alpha: 0.15),
+                          border: Border.all(
+                            color: AppTheme.statusTeal.withValues(alpha: 0.5),
+                          ),
+                        ),
+                        labelColor: AppTheme.statusTeal,
+                        unselectedLabelColor: Colors.white54,
+                        dividerColor: Colors.transparent,
+                        labelStyle: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                          letterSpacing: 0.5,
+                        ),
+                        tabs: [
+                          Tab(text: 'NODE (${vm.filteredNodes.length})'),
+                          Tab(
+                            text: 'VM & LXC (${vm.filteredVms.length + vm.filteredLxcs.length})',
+                          ),
+                          Tab(text: 'STORAGE (${vm.filteredStorages.length})'),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
-                labelColor: AppTheme.statusTeal,
-                unselectedLabelColor: Colors.white54,
-                dividerColor: Colors.transparent,
-                labelStyle: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 11,
-                  letterSpacing: 0.5,
-                ),
-                tabs: [
-                  Tab(text: 'NODE (${vm.filteredNodes.length})'),
-                  Tab(
-                    text: 'VM & LXC (${vm.filteredVms.length + vm.filteredLxcs.length})',
+
+                  // Kolom Input Pencarian Global
+                  Container(
+                    color: AppTheme.background,
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: vm.setSearchQuery,
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      cursorColor: AppTheme.statusTeal,
+                      decoration: InputDecoration(
+                        hintText: 'Cari node, VM, LXC, atau storage...',
+                        hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
+                        prefixIcon: const Icon(Icons.search_rounded, color: Colors.white54, size: 20),
+                        suffixIcon: vm.searchQuery.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear, color: Colors.white54, size: 18),
+                                onPressed: _clearSearch,
+                                tooltip: 'Hapus pencarian',
+                              )
+                            : null,
+                        filled: true,
+                        fillColor: AppTheme.surfaceBackground,
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 11, horizontal: 14),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: AppTheme.borderSubtle),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: AppTheme.statusTeal, width: 1.2),
+                        ),
+                      ),
+                    ),
                   ),
-                  Tab(text: 'STORAGE (${vm.filteredStorages.length})'),
                 ],
               ),
             ),
-          ),
-
-          // Kolom Input Pencarian Global untuk Semua Opsi (Node, VM & LXC, Storage)
-          Container(
-            color: AppTheme.background,
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: TextField(
-              controller: _searchController,
-              onChanged: vm.setSearchQuery,
-              style: const TextStyle(color: Colors.white, fontSize: 13),
-              cursorColor: AppTheme.statusTeal,
-              decoration: InputDecoration(
-                hintText: 'Cari node, VM, LXC, atau storage...',
-                hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
-                prefixIcon: const Icon(Icons.search_rounded, color: Colors.white54, size: 20),
-                suffixIcon: vm.searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, color: Colors.white54, size: 18),
-                        onPressed: _clearSearch,
-                        tooltip: 'Hapus pencarian',
-                      )
-                    : null,
-                filled: true,
-                fillColor: AppTheme.surfaceBackground,
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(vertical: 11, horizontal: 14),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppTheme.borderSubtle),
+          ];
+        },
+        body: vm.isLoading && vm.servers.isEmpty
+            ? const Center(
+                child: CircularProgressIndicator(
+                  color: AppTheme.statusTeal,
+                  strokeWidth: 2.5,
                 ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppTheme.statusTeal, width: 1.2),
-                ),
-              ),
-            ),
-          ),
-          
-          Expanded(
-            child: vm.isLoading && vm.servers.isEmpty
-                ? const Center(
-                    child: CircularProgressIndicator(
-                      color: AppTheme.statusTeal,
-                      strokeWidth: 2.5,
-                    ),
+              )
+            : vm.errorMessage != null && vm.servers.isEmpty
+                ? ErrorStateBox(
+                    message: vm.errorMessage!,
+                    onRetry: () => vm.fetchProxmoxData(showLoading: true),
                   )
-                : vm.errorMessage != null && vm.servers.isEmpty
-                    ? ErrorStateBox(
-                        message: vm.errorMessage!,
-                        onRetry: () => vm.fetchProxmoxData(showLoading: true),
-                      )
-                    : TabBarView(
-                        children: [
-                          _buildNodesTab(context, vm),
-                          _buildGuestsTab(context, vm),
-                          _buildStoragesTab(context, vm),
-                        ],
-                      ),
-          ),
-        ],
+                : TabBarView(
+                    children: [
+                      _buildNodesTab(context, vm),
+                      _buildGuestsTab(context, vm),
+                      _buildStoragesTab(context, vm),
+                    ],
+                  ),
       ),
     );
   }
@@ -391,7 +397,6 @@ class _ProxmoxViewState extends State<ProxmoxView> {
           ),
           const SizedBox(height: 20),
           
-          // Bagian Load & Network yang sudah diperbaiki menjadi vertikal
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -436,7 +441,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        '↓ ${node.rxIn}  •  ↑ ${node.txOut}',
+                        '↓ ${node.rxIn} • ↑ ${node.txOut}',
                         style: const TextStyle(
                           color: AppTheme.statusTeal,
                           fontSize: 11,
