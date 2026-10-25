@@ -13,7 +13,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('mymomox'), findsOneWidget);
+    expect(find.text('ProxView'), findsOneWidget);
     expect(find.text('OTENTIKASI 3-FAKTOR'), findsOneWidget);
     expect(find.text('HUBUNGKAN PERANGKAT'), findsOneWidget);
   });

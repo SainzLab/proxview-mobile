@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/theme/app_theme.dart';
+import 'common_widgets.dart';
 
 class SplashView extends StatelessWidget {
   const SplashView({super.key});
@@ -13,28 +14,46 @@ class SplashView extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(22),
               decoration: BoxDecoration(
-                color: AppTheme.surfaceBackground,
+                color: AppTheme.cardBackground,
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.white12),
+                border: Border.all(color: AppTheme.statusTeal.withValues(alpha: 0.35)),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.statusTeal.withValues(alpha: 0.15),
+                    blurRadius: 24,
+                    spreadRadius: 2,
+                  ),
+                ],
               ),
-              child: const Icon(Icons.dns_rounded, color: Colors.white, size: 48),
+              child: const CustomPaint(
+                size: Size(42, 28),
+                painter: PulseLogoPainter(
+                  color: AppTheme.statusTeal,
+                  strokeWidth: 3.5,
+                ),
+              ),
             ),
             const SizedBox(height: 24),
             const Text(
-              'mymomox',
+              'ProxView',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 28,
                 fontWeight: FontWeight.w900,
-                letterSpacing: 2.0,
+                letterSpacing: 1.0,
               ),
             ),
             const SizedBox(height: 8),
             const Text(
-              'ViewMox Mobile Monitoring & Incident Response',
-              style: TextStyle(color: Colors.white54, fontSize: 12, letterSpacing: 1.1),
+              'MONITORING & INCIDENT RESPONSE',
+              style: TextStyle(
+                color: Colors.white54,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.8,
+              ),
             ),
             const SizedBox(height: 36),
             const SizedBox(

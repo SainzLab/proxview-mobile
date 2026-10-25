@@ -45,11 +45,10 @@ class _LoginViewState extends State<LoginView> {
     final serverUrl = _serverUrlController.text.trim();
 
     if (username.isEmpty || password.isEmpty || token.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Username, Password, dan API Token (64-hex) wajib diisi!'),
-          backgroundColor: AppTheme.statusDown,
-        ),
+      AppFeedback.showSnackBar(
+        context,
+        message: 'Username, Password, dan API Token (64-hex) wajib diisi.',
+        isWarning: true,
       );
       return;
     }
@@ -63,11 +62,10 @@ class _LoginViewState extends State<LoginView> {
     );
 
     if (!ok && mounted && authVm.errorMessage != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(authVm.errorMessage!),
-          backgroundColor: AppTheme.statusDown,
-        ),
+      AppFeedback.showSnackBar(
+        context,
+        message: authVm.errorMessage!,
+        isError: true,
       );
     }
   }
@@ -88,33 +86,46 @@ class _LoginViewState extends State<LoginView> {
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                       decoration: BoxDecoration(
-                        color: AppTheme.surfaceBackground,
+                        color: AppTheme.cardBackground,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: Colors.white12),
+                        border: Border.all(color: AppTheme.statusTeal.withValues(alpha: 0.35)),
                       ),
-                      child: const Icon(Icons.dns_rounded, color: Colors.white, size: 32),
+                      child: const CustomPaint(
+                        size: Size(32, 22),
+                        painter: PulseLogoPainter(
+                          color: AppTheme.statusTeal,
+                          strokeWidth: 3.0,
+                        ),
+                      ),
                     ),
                     const SizedBox(width: 16),
-                    const Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'mymomox',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 26,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1.5,
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'ProxView',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 26,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.5,
+                            ),
                           ),
-                        ),
-                        SizedBox(height: 2),
-                        Text(
-                          'ProxView / ViewMox Mobile Client',
-                          style: TextStyle(color: Colors.white54, fontSize: 12),
-                        ),
-                      ],
+                          SizedBox(height: 3),
+                          Text(
+                            'MONITORING PROXMOX & JARINGAN',
+                            style: TextStyle(
+                              color: Colors.white54,
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1.4,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -134,7 +145,7 @@ class _LoginViewState extends State<LoginView> {
                     child: Row(
                       children: [
                         const Icon(
-                          Icons.error_outline,
+                          Icons.error_outline_rounded,
                           color: AppTheme.statusDown,
                           size: 20,
                         ),
@@ -155,125 +166,139 @@ class _LoginViewState extends State<LoginView> {
                   const SizedBox(height: 20),
                 ],
 
-                const SectionTitle(
-                  title: 'OTENTIKASI 3-FAKTOR',
-                  icon: Icons.verified_user_outlined,
-                ),
-                const SizedBox(height: 16),
-
-                CustomTextField(
-                  controller: _usernameController,
-                  label: 'Username',
-                  hint: 'Contoh: sainzlab',
-                  icon: Icons.person_outline,
-                ),
-                const SizedBox(height: 16),
-
-                CustomTextField(
-                  controller: _passwordController,
-                  label: 'Password',
-                  hint: 'Masukkan password akun',
-                  icon: Icons.lock_outline,
-                  obscureText: _obscurePassword,
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                      color: Colors.white38,
-                      size: 20,
-                    ),
-                    onPressed: () {
-                      setState(() => _obscurePassword = !_obscurePassword);
-                    },
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppTheme.cardBackground,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppTheme.borderSubtle),
                   ),
-                ),
-                const SizedBox(height: 16),
-
-                CustomTextField(
-                  controller: _tokenController,
-                  label: 'API Token (Web Admin)',
-                  hint: '64 karakter hex token dari Web Admin',
-                  icon: Icons.vpn_key_outlined,
-                ),
-                const SizedBox(height: 16),
-
-                InkWell(
-                  onTap: () => setState(() => _showServerConfig = !_showServerConfig),
-                  borderRadius: BorderRadius.circular(8),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 6),
-                    child: Row(
-                      children: [
-                        Icon(
-                          _showServerConfig
-                              ? Icons.keyboard_arrow_up
-                              : Icons.keyboard_arrow_down,
-                          color: AppTheme.statusTeal,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 6),
-                        const Text(
-                          'Konfigurasi Endpoint Server ViewMox',
-                          style: TextStyle(
-                            color: AppTheme.statusTeal,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                if (_showServerConfig) ...[
-                  const SizedBox(height: 10),
-                  CustomTextField(
-                    controller: _serverUrlController,
-                    label: 'Base URL Server ViewMox',
-                    hint: 'http(s)://ip-domain-atau-localhost:port',
-                    icon: Icons.dns_outlined,
-                    keyboardType: TextInputType.url,
-                  ),
-                ],
-
-                const SizedBox(height: 32),
-
-                SizedBox(
-                  width: double.infinity,
-                  height: 54,
-                  child: ElevatedButton(
-                    onPressed: authVm.isLoading ? null : _submitLogin,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: Colors.black,
-                      disabledBackgroundColor: Colors.white24,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SectionTitle(
+                        title: 'OTENTIKASI 3-FAKTOR',
+                        icon: Icons.verified_user_outlined,
                       ),
-                    ),
-                    child: authVm.isLoading
-                        ? const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(
-                              color: Colors.black,
-                              strokeWidth: 2.5,
-                            ),
-                          )
-                        : const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                      const SizedBox(height: 16),
+
+                      CustomTextField(
+                        controller: _usernameController,
+                        label: 'Username',
+                        hint: 'Contoh: sainzlab',
+                        icon: Icons.person_outline_rounded,
+                      ),
+                      const SizedBox(height: 16),
+
+                      CustomTextField(
+                        controller: _passwordController,
+                        label: 'Password',
+                        hint: 'Masukkan password akun',
+                        icon: Icons.lock_outline_rounded,
+                        obscureText: _obscurePassword,
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                            color: Colors.white38,
+                            size: 20,
+                          ),
+                          onPressed: () {
+                            setState(() => _obscurePassword = !_obscurePassword);
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      CustomTextField(
+                        controller: _tokenController,
+                        label: 'API Token (Web Admin)',
+                        hint: '64 karakter hex token dari Web Admin',
+                        icon: Icons.vpn_key_outlined,
+                      ),
+                      const SizedBox(height: 16),
+
+                      InkWell(
+                        onTap: () => setState(() => _showServerConfig = !_showServerConfig),
+                        borderRadius: BorderRadius.circular(8),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          child: Row(
                             children: [
-                              Icon(Icons.login_rounded, size: 20),
-                              SizedBox(width: 10),
-                              Text(
-                                'HUBUNGKAN PERANGKAT',
+                              Icon(
+                                _showServerConfig
+                                    ? Icons.keyboard_arrow_up_rounded
+                                    : Icons.keyboard_arrow_down_rounded,
+                                color: AppTheme.statusTeal,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 6),
+                              const Text(
+                                'Konfigurasi Endpoint Server',
                                 style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1.4,
-                                  fontSize: 14,
+                                  color: AppTheme.statusTeal,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ],
                           ),
+                        ),
+                      ),
+
+                      if (_showServerConfig) ...[
+                        const SizedBox(height: 10),
+                        CustomTextField(
+                          controller: _serverUrlController,
+                          label: 'Base URL Server API',
+                          hint: 'http(s)://ip-domain-atau-localhost:port',
+                          icon: Icons.dns_outlined,
+                          keyboardType: TextInputType.url,
+                        ),
+                      ],
+
+                      const SizedBox(height: 28),
+
+                      SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: ElevatedButton(
+                          onPressed: authVm.isLoading ? null : _submitLogin,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.statusTeal,
+                            foregroundColor: Colors.black,
+                            disabledBackgroundColor: Colors.white12,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          child: authVm.isLoading
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.black,
+                                    strokeWidth: 2.5,
+                                  ),
+                                )
+                              : const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.login_rounded, size: 20),
+                                    SizedBox(width: 10),
+                                    Text(
+                                      'HUBUNGKAN PERANGKAT',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 1.2,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],

@@ -23,10 +23,6 @@ class _NetworkTargetsViewState extends State<NetworkTargetsView>
 
   static const List<String> _filters = ['ALL', 'ICMP', 'TCP'];
 
-  static const Color _emeraldColor = Color(0xFF10B981);
-  static const Color _roseColor = Color(0xFFF43F5E);
-  static const Color _cardBgColor = Color(0xFF0D1117);
-
   @override
   void initState() {
     super.initState();
@@ -95,99 +91,53 @@ class _NetworkTargetsViewState extends State<NetworkTargetsView>
       );
     }
 
-    return RefreshIndicator(
-      color: Colors.black,
-      backgroundColor: Colors.white,
-      onRefresh: () => vm.fetchTargets(showLoading: false),
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        children: [
-          // Filter Protocol TabBar (disesuaikan persis seperti logs_view.dart)
-          _buildFilterTabs(vm),
-          const SizedBox(height: 12),
-
-          // Kolom Input Pencarian Target
-          TextField(
+    return Column(
+      children: [
+        Container(
+          color: AppTheme.background,
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          child: _buildFilterTabs(vm),
+        ),
+        Container(
+          color: AppTheme.background,
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          child: AppSearchField(
             controller: _searchController,
             onChanged: (val) => vm.setSearchQuery(val),
-            style: const TextStyle(color: Colors.white, fontSize: 13),
-            cursorColor: AppTheme.statusTeal,
-            decoration: InputDecoration(
-              hintText: 'Cari target (nama, IP, port, protokol, status)...',
-              hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
-              prefixIcon: const Icon(Icons.search, color: Colors.white54, size: 20),
-              suffixIcon: vm.searchQuery.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear, color: Colors.white54, size: 18),
-                      onPressed: _clearSearch,
-                      tooltip: 'Hapus pencarian',
-                    )
-                  : null,
-              filled: true,
-              fillColor: _cardBgColor,
-              isDense: true,
-              contentPadding: const EdgeInsets.symmetric(vertical: 11, horizontal: 14),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppTheme.borderSubtle),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppTheme.statusTeal, width: 1.2),
-              ),
-            ),
+            onClear: _clearSearch,
+            hintText: 'Cari target (nama, IP, port, protokol, status)...',
+            hasText: vm.searchQuery.isNotEmpty,
           ),
-          const SizedBox(height: 16),
-
-          if (vm.targets.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 64),
-              child: Center(
-                child: Column(
-                  children: [
-                    Icon(
-                      vm.searchQuery.isNotEmpty ? Icons.search_off_rounded : Icons.router_outlined,
-                      size: 64,
-                      color: Colors.white12,
+        ),
+        Expanded(
+          child: RefreshIndicator(
+            color: Colors.black,
+            backgroundColor: AppTheme.statusTeal,
+            onRefresh: () => vm.fetchTargets(showLoading: false),
+            child: vm.targets.isEmpty
+                ? EmptyStateBox(
+                    icon: vm.searchQuery.isNotEmpty
+                        ? Icons.search_off_rounded
+                        : Icons.router_outlined,
+                    message: vm.searchQuery.isNotEmpty
+                        ? 'Tidak ada target yang cocok dengan "${vm.searchQuery}".'
+                        : 'Tidak ada target monitoring jaringan.',
+                    onAction: vm.searchQuery.isNotEmpty ? _clearSearch : null,
+                    actionLabel: vm.searchQuery.isNotEmpty ? 'Hapus Pencarian' : null,
+                  )
+                : ListView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(
+                      parent: BouncingScrollPhysics(),
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      vm.searchQuery.isNotEmpty
-                          ? 'Tidak ada target yang cocok dengan "${vm.searchQuery}".'
-                          : 'Tidak ada target monitoring.',
-                      style: const TextStyle(color: Colors.white54, fontSize: 14),
-                    ),
-                    if (vm.searchQuery.isNotEmpty) ...[
-                      const SizedBox(height: 16),
-                      TextButton.icon(
-                        onPressed: _clearSearch,
-                        icon: const Icon(Icons.close, size: 16, color: AppTheme.statusTeal),
-                        label: const Text(
-                          'Hapus Pencarian',
-                          style: TextStyle(color: AppTheme.statusTeal, fontSize: 13, fontWeight: FontWeight.w600),
-                        ),
-                        style: TextButton.styleFrom(
-                          backgroundColor: AppTheme.statusTeal.withValues(alpha: 0.1),
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            side: BorderSide(color: AppTheme.statusTeal.withValues(alpha: 0.3)),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            )
-          else
-            ...vm.targets.map((target) => _buildTargetCard(context, target)),
-
-          const SizedBox(height: 40),
-        ],
-      ),
+                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    padding: const EdgeInsets.all(16),
+                    itemCount: vm.targets.length,
+                    itemBuilder: (context, index) =>
+                        _buildTargetCard(context, vm.targets[index]),
+                  ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -210,49 +160,25 @@ class _NetworkTargetsViewState extends State<NetworkTargetsView>
   }
 
   Widget _buildFilterTabs(NetworkViewModel vm) {
-    return Container(
-      height: 45,
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceBackground,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.borderSubtle),
-      ),
-      child: TabBar(
-        controller: _tabController,
-        indicatorSize: TabBarIndicatorSize.tab,
-        indicator: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          color: AppTheme.statusTeal.withValues(alpha: 0.15),
-          border: Border.all(
-            color: AppTheme.statusTeal.withValues(alpha: 0.5),
-          ),
-        ),
-        labelColor: AppTheme.statusTeal,
-        unselectedLabelColor: Colors.white54,
-        dividerColor: Colors.transparent,
-        labelStyle: const TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: 11,
-          letterSpacing: 0.5,
-        ),
-        onTap: (index) {
-          final newFilter = _filters[index];
-          if (vm.protocolFilter != newFilter) {
-            vm.setProtocolFilter(newFilter);
-          }
-        },
-        tabs: [
-          Tab(text: 'SEMUA (${_countFor(vm, 'ALL')})'),
-          Tab(text: 'ICMP (${_countFor(vm, 'ICMP')})'),
-          Tab(text: 'TCP (${_countFor(vm, 'TCP')})'),
-        ],
-      ),
+    return SegmentedTabBar(
+      controller: _tabController,
+      onTap: (index) {
+        final newFilter = _filters[index];
+        if (vm.protocolFilter != newFilter) {
+          vm.setProtocolFilter(newFilter);
+        }
+      },
+      tabs: [
+        Tab(text: 'SEMUA (${_countFor(vm, 'ALL')})'),
+        Tab(text: 'ICMP (${_countFor(vm, 'ICMP')})'),
+        Tab(text: 'TCP (${_countFor(vm, 'TCP')})'),
+      ],
     );
   }
 
   Widget _buildTargetCard(BuildContext context, NetworkTargetModel target) {
     final isUp = target.isUp;
-    final statusColor = isUp ? _emeraldColor : _roseColor;
+    final statusColor = isUp ? AppTheme.statusTeal : AppTheme.statusDown;
     final icon = target.protocol.toUpperCase().contains('TCP')
         ? Icons.settings_ethernet_rounded
         : Icons.network_ping_rounded;
@@ -261,13 +187,17 @@ class _NetworkTargetsViewState extends State<NetworkTargetsView>
       padding: const EdgeInsets.only(bottom: 12),
       child: InkWell(
         onTap: () => _showTargetHistorySheet(context, target),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: _cardBgColor,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppTheme.borderSubtle),
+            color: AppTheme.cardBackground,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isUp
+                  ? AppTheme.borderSubtle
+                  : AppTheme.statusDown.withValues(alpha: 0.4),
+            ),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.2),
@@ -287,8 +217,8 @@ class _NetworkTargetsViewState extends State<NetworkTargetsView>
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: statusColor.withValues(alpha: 0.15),
-                          shape: BoxShape.circle,
+                          color: statusColor.withValues(alpha: 0.14),
+                          borderRadius: BorderRadius.circular(10),
                         ),
                         child: Icon(icon, size: 16, color: statusColor),
                       ),
@@ -297,9 +227,9 @@ class _NetworkTargetsViewState extends State<NetworkTargetsView>
                         target.protocol.toUpperCase(),
                         style: const TextStyle(
                           color: Colors.white70,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.2,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.0,
                         ),
                       ),
                     ],
@@ -312,7 +242,7 @@ class _NetworkTargetsViewState extends State<NetworkTargetsView>
                 target.name,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 17,
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -327,7 +257,7 @@ class _NetworkTargetsViewState extends State<NetworkTargetsView>
               ],
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 14),
-                child: Divider(color: Colors.white10, height: 1),
+                child: Divider(color: AppTheme.borderSubtle, height: 1),
               ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -342,7 +272,7 @@ class _NetworkTargetsViewState extends State<NetworkTargetsView>
                             : target.ipAddress,
                         style: const TextStyle(
                           color: Colors.white70,
-                          fontSize: 13,
+                          fontSize: 12.5,
                           fontFamily: 'monospace',
                         ),
                       ),
@@ -351,15 +281,15 @@ class _NetworkTargetsViewState extends State<NetworkTargetsView>
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: statusColor.withValues(alpha: 0.3)),
+                      color: statusColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: statusColor.withValues(alpha: 0.35)),
                     ),
                     child: Text(
                       target.lastLatency,
                       style: TextStyle(
                         color: statusColor,
-                        fontSize: 12,
+                        fontSize: 11.5,
                         fontFamily: 'monospace',
                         fontWeight: FontWeight.bold,
                       ),
@@ -396,21 +326,15 @@ class _TargetHistoryBottomSheet extends StatefulWidget {
 class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
   Timer? _historyTimer;
 
-  static const Color _emeraldColor = Color(0xFF10B981);
-  static const Color _roseColor = Color(0xFFF43F5E);
-  static const Color _cardBgColor = Color(0xFF0D1117);
-
   @override
   void initState() {
     super.initState();
-    // Fetch awal data riwayat latency setelah frame pertama selesai dibangun
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         context.read<NetworkViewModel>().fetchTargetHistory(widget.target.id, showLoading: true);
       }
     });
 
-    // Polling realtime update riwayat latency selama bottom sheet dibuka
     final intervalSec = widget.target.checkInterval > 0 ? widget.target.checkInterval : 5;
     _historyTimer = Timer.periodic(Duration(seconds: intervalSec), (_) {
       if (mounted) {
@@ -428,33 +352,16 @@ class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
   @override
   Widget build(BuildContext context) {
     final target = widget.target;
-    final statusColor = target.isUp ? _emeraldColor : _roseColor;
+    final statusColor = target.isUp ? AppTheme.statusTeal : AppTheme.statusDown;
 
     return Consumer<NetworkViewModel>(
       builder: (context, vm, _) {
         final points = vm.historyFor(target.id);
-        return Container(
-          padding: const EdgeInsets.all(24),
-          decoration: const BoxDecoration(
-            color: _cardBgColor,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            border: Border(top: BorderSide(color: Colors.white12)),
-          ),
+        return BottomSheetContainer(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 24),
-                  decoration: BoxDecoration(
-                    color: Colors.white24,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -475,7 +382,7 @@ class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
                           '${target.protocol.toUpperCase()} • ${target.ipAddress}${target.port != null ? ":${target.port}" : ""}',
                           style: const TextStyle(
                             color: Colors.white54,
-                            fontSize: 13,
+                            fontSize: 12.5,
                             fontFamily: 'monospace',
                           ),
                         ),
@@ -486,35 +393,35 @@ class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
                   StatusBadge(label: target.status, color: statusColor),
                 ],
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.black38,
+                  color: AppTheme.surfaceBackground,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white10),
+                  border: Border.all(color: AppTheme.borderSubtle),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _buildThresholdInfo('Warning', '${target.latencyWarning} ms', AppTheme.statusWarning),
-                    _buildThresholdInfo('Critical', '${target.latencyCritical} ms', AppTheme.statusCritical),
-                    _buildThresholdInfo('Interval', '${target.checkInterval}s', Colors.white54),
+                    _buildThresholdInfo('Batas Warning', '${target.latencyWarning} ms', AppTheme.statusWarning),
+                    _buildThresholdInfo('Batas Critical', '${target.latencyCritical} ms', AppTheme.statusCritical),
+                    _buildThresholdInfo('Interval Cek', '${target.checkInterval}s', Colors.white70),
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Expanded(
                     child: Text(
-                      'RIWAYAT LATENCY',
+                      'GRAFIK RIWAYAT LATENCY (MS)',
                       style: TextStyle(
-                        color: Colors.white54,
+                        color: Colors.white70,
                         fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.0,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -544,7 +451,7 @@ class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
                         ? const Center(
                             child: Text(
                               'Belum ada riwayat latency.',
-                              style: TextStyle(color: Colors.white38),
+                              style: TextStyle(color: Colors.white38, fontSize: 12),
                             ),
                           )
                         : _buildLatencyChart(points),
@@ -569,7 +476,7 @@ class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
       children: [
         Text(
           label,
-          style: const TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.bold),
+          style: const TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 4),
         Text(
@@ -583,14 +490,11 @@ class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
   Widget _buildLatencyChart(List<TargetLatencyPointModel> points) {
     if (points.isEmpty) return const SizedBox.shrink();
 
-    // 1. Cari nilai latency tertinggi untuk mengatur batas atas grafik (maxY)
     double maxLatency = 0;
     for (final p in points) {
       if (p.latencyMs > maxLatency) maxLatency = p.latencyMs;
     }
-    // Tambahkan ruang di atas grafik sebesar +20% agar spike tidak mentok ke atap
     final double maxY = maxLatency == 0 ? 100.0 : (maxLatency * 1.2).ceilToDouble();
-    // Atur interval grid secara dinamis (dibagi 4-5 baris)
     final double gridInterval = (maxY / 4) <= 0 ? 1.0 : (maxY / 4);
 
     final spots = List.generate(
@@ -607,10 +511,10 @@ class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
         lineTouchData: LineTouchData(
           handleBuiltInTouches: true,
           touchTooltipData: LineTouchTooltipData(
-            getTooltipColor: (touchedSpot) => const Color(0xFF161B22),
-            tooltipBorder: const BorderSide(color: Colors.white24, width: 1),
-            tooltipRoundedRadius: 8,
-            tooltipPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            getTooltipColor: (_) => AppTheme.surfaceBackground,
+            tooltipBorder: const BorderSide(color: AppTheme.borderHighlight, width: 1),
+            tooltipRoundedRadius: 10,
+            tooltipPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             getTooltipItems: (touchedSpots) {
               return touchedSpots.map((spot) {
                 final idx = spot.x.toInt();
@@ -623,18 +527,19 @@ class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                     fontSize: 11,
-                    height: 1.3,
+                    fontFamily: 'monospace',
+                    height: 1.35,
                   ),
                   children: [
                     if (point != null && point.status.isNotEmpty)
                       TextSpan(
-                        text: ' • ${point.status}',
+                        text: ' • ${point.status.toUpperCase()}',
                         style: TextStyle(
                           color: point.status.toUpperCase() == 'UP'
-                              ? _emeraldColor
-                              : _roseColor,
+                              ? AppTheme.statusTeal
+                              : AppTheme.statusDown,
                           fontSize: 10,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
                   ],
@@ -657,21 +562,41 @@ class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
         titlesData: FlTitlesData(
           topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
           rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          bottomTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          // Sumbu Y: Menampilkan angka murni (0, 10, 20, 30...)
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 26,
+              interval: (points.length / 4).clamp(1, 20).toDouble(),
+              getTitlesWidget: (val, _) {
+                final idx = val.toInt();
+                if (idx < 0 || idx >= points.length) return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    Formatters.formatTimeSeconds(points[idx].time),
+                    style: const TextStyle(
+                      color: Colors.white38,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
           leftTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
-              reservedSize: 32,
+              reservedSize: 44,
               interval: gridInterval,
               getTitlesWidget: (val, _) => Padding(
                 padding: const EdgeInsets.only(right: 6),
                 child: Text(
-                  val.toInt().toString(),
+                  '${val.toInt()} ms',
                   textAlign: TextAlign.right,
                   style: const TextStyle(
-                    color: Colors.white38, 
-                    fontSize: 10, 
+                    color: Colors.white38,
+                    fontSize: 9.5,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -687,7 +612,6 @@ class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
             color: AppTheme.statusTeal,
             barWidth: 2.5,
             isStrokeCapRound: true,
-            // Titik dot lingkaran pada tiap titik data sesuai referensi gambar
             dotData: FlDotData(
               show: true,
               getDotPainter: (spot, percent, barData, index) {
@@ -699,13 +623,11 @@ class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
                 );
               },
             ),
-            // Shadow glowing lembut pada garis
             shadow: Shadow(
-              color: AppTheme.statusTeal.withValues(alpha: 0.4),
+              color: AppTheme.statusTeal.withValues(alpha: 0.35),
               blurRadius: 6,
               offset: const Offset(0, 2),
             ),
-            // Gradient fill di bawah kurva grafik
             belowBarData: BarAreaData(
               show: true,
               gradient: LinearGradient(
@@ -713,7 +635,7 @@ class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
                 end: Alignment.bottomCenter,
                 colors: [
                   AppTheme.statusTeal.withValues(alpha: 0.22),
-                  AppTheme.statusTeal.withValues(alpha: 0.02),
+                  AppTheme.statusTeal.withValues(alpha: 0.0),
                 ],
               ),
             ),

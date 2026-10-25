@@ -98,74 +98,27 @@ class _LogsViewState extends State<LogsView> {
           Container(
             color: AppTheme.background,
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: Container(
-              height: 45,
-              decoration: BoxDecoration(
-                color: AppTheme.surfaceBackground,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppTheme.borderSubtle),
-              ),
-              child: TabBar(
-                indicatorSize: TabBarIndicatorSize.tab,
-                indicator: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  color: AppTheme.statusTeal.withValues(alpha: 0.15),
-                  border: Border.all(
-                    color: AppTheme.statusTeal.withValues(alpha: 0.5),
-                  ),
-                ),
-                labelColor: AppTheme.statusTeal,
-                unselectedLabelColor: Colors.white54,
-                dividerColor: Colors.transparent,
-                labelStyle: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 11,
-                  letterSpacing: 0.5,
-                ),
-                tabs: [
-                  Tab(text: 'TASKS (${filteredTasks.length})'),
-                  Tab(text: 'CLUSTER (${filteredCluster.length})'),
-                  Tab(text: 'SISTEM (${filteredSystem.length})'),
-                ],
-              ),
+            child: SegmentedTabBar(
+              tabs: [
+                Tab(text: 'TASK (${filteredTasks.length})'),
+                Tab(text: 'CLUSTER (${filteredCluster.length})'),
+                Tab(text: 'AUDIT (${filteredSystem.length})'),
+              ],
             ),
           ),
           Container(
             color: AppTheme.background,
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: TextField(
+            child: AppSearchField(
               controller: _searchController,
               onChanged: (val) {
                 setState(() {
                   _searchQuery = val;
                 });
               },
-              style: const TextStyle(color: Colors.white, fontSize: 13),
-              cursorColor: AppTheme.statusTeal,
-              decoration: InputDecoration(
-                hintText: 'Cari log (tipe, node, user, status, pesan)...',
-                hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
-                prefixIcon: const Icon(Icons.search, color: Colors.white54, size: 20),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, color: Colors.white54, size: 18),
-                        onPressed: _clearSearch,
-                        tooltip: 'Hapus pencarian',
-                      )
-                    : null,
-                filled: true,
-                fillColor: AppTheme.surfaceBackground,
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(vertical: 11, horizontal: 14),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppTheme.borderSubtle),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppTheme.statusTeal, width: 1.2),
-                ),
-              ),
+              onClear: _clearSearch,
+              hintText: 'Cari log (tipe, node, user, status, pesan)...',
+              hasText: _searchQuery.isNotEmpty,
             ),
           ),
           Expanded(
@@ -205,55 +158,11 @@ class _LogsViewState extends State<LogsView> {
     IconData icon, {
     VoidCallback? onClearSearch,
   }) {
-    return ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      children: [
-        const SizedBox(height: 100),
-        Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 60, color: Colors.white12),
-              const SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32),
-                child: Text(
-                  message,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white38,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-              if (onClearSearch != null) ...[
-                const SizedBox(height: 16),
-                TextButton.icon(
-                  onPressed: onClearSearch,
-                  icon: const Icon(Icons.close, size: 16, color: AppTheme.statusTeal),
-                  label: const Text(
-                    'Hapus Pencarian',
-                    style: TextStyle(
-                      color: AppTheme.statusTeal,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  style: TextButton.styleFrom(
-                    backgroundColor: AppTheme.statusTeal.withValues(alpha: 0.1),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      side: BorderSide(color: AppTheme.statusTeal.withValues(alpha: 0.3)),
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ],
+    return EmptyStateBox(
+      icon: icon,
+      message: message,
+      onAction: onClearSearch,
+      actionLabel: onClearSearch != null ? 'Hapus Pencarian' : null,
     );
   }
 
@@ -264,28 +173,28 @@ class _LogsViewState extends State<LogsView> {
   ) {
     return RefreshIndicator(
       color: Colors.black,
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.statusTeal,
       onRefresh: () => vm.fetchLogs(showLoading: false),
       child: NotificationListener<ScrollNotification>(
         onNotification: (ScrollNotification scrollInfo) {
-          // Deteksi ketika user scroll mentok ke bawah
           if (!vm.isLoadingMore &&
               scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 50) {
-            // TODO: Pastikan metode ini ada di LogViewModel Anda
-            // vm.loadMoreTasks(); 
+            // Pagination hook
           }
           return false;
         },
         child: vm.taskLogs.isEmpty
-            ? _buildEmptyState('Tidak ada riwayat task Proxmox.', Icons.task_alt)
+            ? _buildEmptyState('Tidak ada riwayat task Proxmox.', Icons.task_alt_rounded)
             : tasks.isEmpty
                 ? _buildEmptyState(
                     'Tidak ada task yang cocok dengan "$_searchQuery".',
-                    Icons.search_off,
+                    Icons.search_off_rounded,
                     onClearSearch: _clearSearch,
                   )
                 : ListView.builder(
-                    physics: const AlwaysScrollableScrollPhysics(),
+                    physics: const AlwaysScrollableScrollPhysics(
+                      parent: BouncingScrollPhysics(),
+                    ),
                     keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                     padding: const EdgeInsets.all(16),
                     itemCount: tasks.length + (vm.isLoadingMore ? 1 : 0),
@@ -293,136 +202,154 @@ class _LogsViewState extends State<LogsView> {
                       if (index == tasks.length) {
                         return const Padding(
                           padding: EdgeInsets.symmetric(vertical: 20),
-                          child: Center(child: CircularProgressIndicator(color: AppTheme.statusTeal)),
+                          child: Center(
+                            child: CircularProgressIndicator(color: AppTheme.statusTeal),
+                          ),
                         );
                       }
 
                       final task = tasks[index];
-                  final isOk = task.isOk;
-                  final badgeLabel = isOk ? task.status : 'ERROR';
+                      final isOk = task.isOk;
+                      final badgeLabel = isOk ? task.status : 'ERROR';
+                      final statusColor = isOk ? AppTheme.statusTeal : AppTheme.statusDown;
 
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: InkWell(
-                      onTap: () => _showTaskTerminalSheet(context, task),
-                      borderRadius: BorderRadius.circular(14),
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: AppTheme.surfaceBackground,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: isOk
-                                ? AppTheme.borderSubtle
-                                : AppTheme.statusDown.withValues(alpha: 0.4),
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.2),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: InkWell(
+                          onTap: () => _showTaskTerminalSheet(context, task),
+                          borderRadius: BorderRadius.circular(16),
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: AppTheme.cardBackground,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
                                 color: isOk
-                                    ? AppTheme.statusTeal.withValues(alpha: 0.1)
-                                    : AppTheme.statusDown.withValues(alpha: 0.1),
-                                shape: BoxShape.circle,
+                                    ? AppTheme.borderSubtle
+                                    : AppTheme.statusDown.withValues(alpha: 0.4),
                               ),
-                              child: Icon(
-                                isOk ? Icons.check_circle_outline : Icons.error_outline,
-                                color: isOk ? AppTheme.statusTeal : AppTheme.statusDown,
-                                size: 22,
-                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.2),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    task.type,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 15,
-                                    ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: statusColor.withValues(alpha: 0.14),
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
-                                  const SizedBox(height: 6),
-                                  RichText(
-                                    text: TextSpan(
-                                      style: const TextStyle(
-                                        color: Colors.white60,
-                                        fontSize: 12,
-                                        height: 1.4,
-                                      ),
-                                      children: [
-                                        const TextSpan(text: 'Node: '),
-                                        TextSpan(
-                                          text: '${task.node}  ',
-                                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                                  child: Icon(
+                                    isOk
+                                        ? Icons.check_circle_outline_rounded
+                                        : Icons.error_outline_rounded,
+                                    color: statusColor,
+                                    size: 20,
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        task.type,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 15,
                                         ),
-                                        const TextSpan(text: '•  User: '),
-                                        TextSpan(
-                                          text: task.user,
-                                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      RichText(
+                                        text: TextSpan(
+                                          style: const TextStyle(
+                                            color: Colors.white60,
+                                            fontSize: 12,
+                                            height: 1.4,
+                                          ),
+                                          children: [
+                                            const TextSpan(text: 'Node: '),
+                                            TextSpan(
+                                              text: '${task.node}  ',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                            const TextSpan(text: '•  User: '),
+                                            TextSpan(
+                                              text: task.user,
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.access_time_rounded,
+                                            size: 12,
+                                            color: Colors.white38,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            Formatters.formatDateTime(task.startTime),
+                                            style: const TextStyle(
+                                              color: Colors.white54,
+                                              fontSize: 11,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      if (!isOk && task.status.toUpperCase() != 'ERROR') ...[
+                                        const SizedBox(height: 10),
+                                        Container(
+                                          width: double.infinity,
+                                          padding: const EdgeInsets.all(10),
+                                          decoration: BoxDecoration(
+                                            color: AppTheme.statusDown.withValues(alpha: 0.08),
+                                            borderRadius: BorderRadius.circular(8),
+                                            border: Border.all(
+                                              color: AppTheme.statusDown.withValues(alpha: 0.25),
+                                            ),
+                                          ),
+                                          child: Text(
+                                            task.status,
+                                            style: const TextStyle(
+                                              color: AppTheme.statusDown,
+                                              fontSize: 11,
+                                              fontFamily: 'monospace',
+                                            ),
+                                          ),
                                         ),
                                       ],
-                                    ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Row(
-                                    children: [
-                                      const Icon(Icons.access_time, size: 12, color: Colors.white38),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        Formatters.formatDateTime(task.startTime),
-                                        style: const TextStyle(color: Colors.white38, fontSize: 11),
-                                      ),
                                     ],
                                   ),
-                                  if (!isOk && task.status.toUpperCase() != 'ERROR') ...[
-                                    const SizedBox(height: 10),
-                                    Container(
-                                      width: double.infinity,
-                                      padding: const EdgeInsets.all(10),
-                                      decoration: BoxDecoration(
-                                        color: AppTheme.statusDown.withValues(alpha: 0.05),
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(color: AppTheme.statusDown.withValues(alpha: 0.2)),
-                                      ),
-                                      child: Text(
-                                        task.status,
-                                        style: TextStyle(
-                                          color: AppTheme.statusDown.withValues(alpha: 0.9),
-                                          fontSize: 11,
-                                          fontFamily: 'monospace',
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
+                                ),
+                                const SizedBox(width: 8),
+                                StatusBadge(
+                                  label: badgeLabel,
+                                  color: statusColor,
+                                  showDot: false,
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 8),
-                            StatusBadge(
-                              label: badgeLabel,
-                              color: isOk ? AppTheme.statusTeal : AppTheme.statusDown,
-                              showDot: false,
-                            ),
-                          ],
+                          ),
                         ),
-                      ),
-                    ),
-                  );
-                },
-              ),
+                      );
+                    },
+                  ),
       ),
     );
   }
@@ -441,29 +368,50 @@ class _LogsViewState extends State<LogsView> {
           future: terminalFuture,
           builder: (context, snapshot) {
             final lines = snapshot.data ?? [];
-            return Container(
+            return BottomSheetContainer(
               height: MediaQuery.of(context).size.height * 0.75,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: const Color(0xFF121212),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                border: Border.all(color: Colors.white10),
-              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppTheme.surfaceBackground,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppTheme.borderSubtle),
+                        ),
+                        child: const Icon(
+                          Icons.terminal_rounded,
+                          color: AppTheme.statusTeal,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
                       Expanded(
-                        child: Text(
-                          '${task.type.toUpperCase()} • ${task.node}',
-                          style: const TextStyle(
-                            color: Colors.white54,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                            fontFamily: 'monospace',
-                          ),
-                          overflow: TextOverflow.ellipsis,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              task.type.toUpperCase(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Node: ${task.node} • User: ${task.user}',
+                              style: const TextStyle(
+                                color: Colors.white54,
+                                fontSize: 12,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -487,26 +435,33 @@ class _LogsViewState extends State<LogsView> {
                             width: double.infinity,
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
-                              color: Colors.black,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.white10),
+                              color: AppTheme.background,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: AppTheme.borderSubtle),
                             ),
-                            child: ListView.builder(
-                              physics: const BouncingScrollPhysics(),
-                              itemCount: lines.length,
-                              itemBuilder: (context, idx) => Padding(
-                                padding: const EdgeInsets.only(bottom: 6),
-                                child: Text(
-                                  lines[idx],
-                                  style: const TextStyle(
-                                    color: Color(0xFF00FF00),
-                                    fontFamily: 'monospace',
-                                    fontSize: 11,
-                                    height: 1.4,
+                            child: lines.isEmpty
+                                ? const Center(
+                                    child: Text(
+                                      'Tidak ada output log untuk task ini.',
+                                      style: TextStyle(color: Colors.white38, fontSize: 12),
+                                    ),
+                                  )
+                                : ListView.builder(
+                                    physics: const BouncingScrollPhysics(),
+                                    itemCount: lines.length,
+                                    itemBuilder: (context, idx) => Padding(
+                                      padding: const EdgeInsets.only(bottom: 6),
+                                      child: Text(
+                                        lines[idx],
+                                        style: const TextStyle(
+                                          color: AppTheme.statusTeal,
+                                          fontFamily: 'monospace',
+                                          fontSize: 11.5,
+                                          height: 1.45,
+                                        ),
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              ),
-                            ),
                           ),
                   ),
                 ],
@@ -525,14 +480,13 @@ class _LogsViewState extends State<LogsView> {
   ) {
     return RefreshIndicator(
       color: Colors.black,
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.statusTeal,
       onRefresh: () => vm.fetchLogs(showLoading: false),
       child: NotificationListener<ScrollNotification>(
         onNotification: (ScrollNotification scrollInfo) {
           if (!vm.isLoadingMore &&
               scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 50) {
-            // TODO: Tambahkan metode loadMoreClusterLogs() di LogViewModel
-            // vm.loadMoreClusterLogs();
+            // Pagination hook
           }
           return false;
         },
@@ -541,11 +495,13 @@ class _LogsViewState extends State<LogsView> {
             : logs.isEmpty
                 ? _buildEmptyState(
                     'Tidak ada log cluster yang cocok dengan "$_searchQuery".',
-                    Icons.search_off,
+                    Icons.search_off_rounded,
                     onClearSearch: _clearSearch,
                   )
                 : ListView.builder(
-                    physics: const AlwaysScrollableScrollPhysics(),
+                    physics: const AlwaysScrollableScrollPhysics(
+                      parent: BouncingScrollPhysics(),
+                    ),
                     keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                     padding: const EdgeInsets.all(16),
                     itemCount: logs.length + (vm.isLoadingMore ? 1 : 0),
@@ -553,78 +509,91 @@ class _LogsViewState extends State<LogsView> {
                       if (index == logs.length) {
                         return const Padding(
                           padding: EdgeInsets.symmetric(vertical: 20),
-                          child: Center(child: CircularProgressIndicator(color: AppTheme.statusTeal)),
+                          child: Center(
+                            child: CircularProgressIndicator(color: AppTheme.statusTeal),
+                          ),
                         );
                       }
 
                       final log = logs[index];
-                  final isErr = log.isError;
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: isErr
-                          ? AppTheme.statusDown.withValues(alpha: 0.04)
-                          : AppTheme.surfaceBackground,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: isErr
-                            ? AppTheme.statusDown.withValues(alpha: 0.3)
-                            : AppTheme.borderSubtle,
-                      ),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
+                      final isErr = log.isError;
+                      final statusColor = isErr ? AppTheme.statusDown : AppTheme.statusRecovered;
+
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppTheme.cardBackground,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
                             color: isErr
-                                ? AppTheme.statusDown.withValues(alpha: 0.1)
-                                : Colors.white.withValues(alpha: 0.05),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            isErr ? Icons.warning_amber_rounded : Icons.info_outline,
-                            color: isErr ? AppTheme.statusDown : Colors.white70,
-                            size: 20,
+                                ? AppTheme.statusDown.withValues(alpha: 0.4)
+                                : AppTheme.borderSubtle,
                           ),
                         ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                log.msg,
-                                style: TextStyle(
-                                  color: isErr ? Colors.red.shade200 : Colors.white,
-                                  fontSize: 13,
-                                  height: 1.4,
-                                  fontWeight: isErr ? FontWeight.w600 : FontWeight.normal,
-                                ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(9),
+                              decoration: BoxDecoration(
+                                color: statusColor.withValues(alpha: 0.14),
+                                borderRadius: BorderRadius.circular(10),
                               ),
-                              const SizedBox(height: 10),
-                              Row(
+                              child: Icon(
+                                isErr
+                                    ? Icons.warning_amber_rounded
+                                    : Icons.info_outline_rounded,
+                                color: statusColor,
+                                size: 18,
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  _buildMiniChip(Icons.computer, log.node),
-                                  const SizedBox(width: 8),
-                                  _buildMiniChip(Icons.settings_applications, log.tag),
+                                  Text(
+                                    log.msg,
+                                    style: TextStyle(
+                                      color: isErr ? AppTheme.statusDown : Colors.white,
+                                      fontSize: 13,
+                                      height: 1.4,
+                                      fontWeight: isErr ? FontWeight.w600 : FontWeight.normal,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 6,
+                                    children: [
+                                      _buildMiniChip(Icons.computer_rounded, log.node),
+                                      _buildMiniChip(Icons.settings_applications_rounded, log.tag),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.access_time_rounded,
+                                        size: 12,
+                                        color: Colors.white38,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        Formatters.formatDateTime(log.time),
+                                        style: const TextStyle(color: Colors.white54, fontSize: 11),
+                                      ),
+                                    ],
+                                  ),
                                 ],
                               ),
-                              const SizedBox(height: 8),
-                              Text(
-                                Formatters.formatDateTime(log.time),
-                                style: const TextStyle(color: Colors.white38, fontSize: 11),
-                              ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  );
-                },
-              ),
+                      );
+                    },
+                  ),
       ),
     );
   }
@@ -636,14 +605,13 @@ class _LogsViewState extends State<LogsView> {
   ) {
     return RefreshIndicator(
       color: Colors.black,
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.statusTeal,
       onRefresh: () => vm.fetchLogs(showLoading: false),
       child: NotificationListener<ScrollNotification>(
         onNotification: (ScrollNotification scrollInfo) {
           if (!vm.isLoadingMore &&
               scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 50) {
-            // TODO: Tambahkan metode loadMoreSystemLogs() di LogViewModel
-            // vm.loadMoreSystemLogs();
+            // Pagination hook
           }
           return false;
         },
@@ -652,11 +620,13 @@ class _LogsViewState extends State<LogsView> {
             : logs.isEmpty
                 ? _buildEmptyState(
                     'Tidak ada log audit yang cocok dengan "$_searchQuery".',
-                    Icons.search_off,
+                    Icons.search_off_rounded,
                     onClearSearch: _clearSearch,
                   )
                 : ListView.builder(
-                    physics: const AlwaysScrollableScrollPhysics(),
+                    physics: const AlwaysScrollableScrollPhysics(
+                      parent: BouncingScrollPhysics(),
+                    ),
                     keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                     padding: const EdgeInsets.all(16),
                     itemCount: logs.length + (vm.isLoadingMore ? 1 : 0),
@@ -664,104 +634,114 @@ class _LogsViewState extends State<LogsView> {
                       if (index == logs.length) {
                         return const Padding(
                           padding: EdgeInsets.symmetric(vertical: 20),
-                          child: Center(child: CircularProgressIndicator(color: AppTheme.statusTeal)),
+                          child: Center(
+                            child: CircularProgressIndicator(color: AppTheme.statusTeal),
+                          ),
                         );
                       }
 
                       final item = logs[index];
-                  final color = AppTheme.severityColor(item.level);
+                      final color = AppTheme.severityColor(item.level);
 
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    decoration: BoxDecoration(
-                      color: AppTheme.surfaceBackground,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: AppTheme.borderSubtle),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(13),
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
                         decoration: BoxDecoration(
-                          border: Border(
-                            left: BorderSide(color: color, width: 4),
-                          ),
+                          color: AppTheme.cardBackground,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppTheme.borderSubtle),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(15),
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              border: Border(
+                                left: BorderSide(color: color, width: 4),
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Icon(Icons.shield_outlined, size: 14, color: color),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      item.source.toUpperCase(),
-                                      style: TextStyle(
-                                        color: color,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: 1.0,
-                                      ),
+                                    Row(
+                                      children: [
+                                        Icon(Icons.shield_outlined, size: 14, color: color),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          item.source.toUpperCase(),
+                                          style: TextStyle(
+                                            color: color,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                            letterSpacing: 0.8,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    StatusBadge(
+                                      label: item.level.toUpperCase(),
+                                      color: color,
+                                      showDot: false,
                                     ),
                                   ],
                                 ),
-                                StatusBadge(
-                                  label: item.level.toUpperCase(),
-                                  color: color,
-                                  showDot: false,
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              item.message,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                                height: 1.4,
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            Row(
-                              children: [
-                                const Icon(Icons.calendar_today_outlined, size: 12, color: Colors.white38),
-                                const SizedBox(width: 4),
+                                const SizedBox(height: 10),
                                 Text(
-                                  Formatters.formatDateTime(item.timestamp),
-                                  style: const TextStyle(color: Colors.white38, fontSize: 11),
+                                  item.message,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 13,
+                                    height: 1.4,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.access_time_rounded,
+                                      size: 12,
+                                      color: Colors.white38,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      Formatters.formatDateTime(item.timestamp),
+                                      style: const TextStyle(color: Colors.white54, fontSize: 11),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
-                          ],
+                          ),
                         ),
-                      ),
-                    ),
-                  );
-                },
-              ),
+                      );
+                    },
+                  ),
       ),
     );
   }
 
   Widget _buildMiniChip(IconData icon, String label) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
+        color: AppTheme.surfaceBackground,
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: AppTheme.borderSubtle),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 10, color: Colors.white54),
+          Icon(icon, size: 11, color: Colors.white54),
           const SizedBox(width: 4),
           Text(
             label,
-            style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w600),
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 10.5,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),

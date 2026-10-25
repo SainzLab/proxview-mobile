@@ -109,3 +109,46 @@ class IncidentTicketModel {
     );
   }
 }
+
+class IncidentStatsModel {
+  final int down;
+  final int critical;
+  final int warning;
+  final int progress;
+  final int resolved;
+  final int totalActive;
+  final int totalTickets;
+
+  const IncidentStatsModel({
+    required this.down,
+    required this.critical,
+    required this.warning,
+    required this.progress,
+    required this.resolved,
+    required this.totalActive,
+    required this.totalTickets,
+  });
+
+  factory IncidentStatsModel.fromJson(Map<String, dynamic> json) {
+    final down = (json['down'] as num?)?.toInt() ?? 0;
+    final critical = (json['critical'] as num?)?.toInt() ?? 0;
+    final warning = (json['warning'] as num?)?.toInt() ?? 0;
+    final progress = (json['progress'] as num?)?.toInt() ?? 0;
+    final resolved = (json['resolved'] as num?)?.toInt() ?? 0;
+    final totalActive =
+        (json['total_active'] as num?)?.toInt() ?? (down + critical + warning);
+    final totalTickets =
+        (json['total_tickets'] as num?)?.toInt() ?? (totalActive + resolved);
+
+    return IncidentStatsModel(
+      down: down,
+      critical: critical,
+      warning: warning,
+      progress: progress,
+      resolved: resolved,
+      totalActive: totalActive,
+      totalTickets: totalTickets,
+    );
+  }
+}
+

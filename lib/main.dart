@@ -68,7 +68,7 @@ class MyApp extends StatelessWidget {
         ),
       ],
       child: MaterialApp(
-        title: 'mymomox',
+        title: 'ProxView',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.darkTheme,
         home: const _AuthGate(),

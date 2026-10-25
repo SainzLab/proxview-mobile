@@ -10,9 +10,11 @@ class AlertIncidentViewModel extends ChangeNotifier {
   List<AlertModel> _activeAlerts = [];
   List<AlertModel> _historyAlerts = [];
   List<IncidentTicketModel> _incidents = [];
+  IncidentStatsModel? _incidentStats;
 
   bool _isLoading = false;
   bool _isSubmittingAction = false;
+  bool _isLoadingMore = false; 
   String? _errorMessage;
 
   final Map<int, String> _knownAlertSeverities = {};
@@ -24,8 +26,40 @@ class AlertIncidentViewModel extends ChangeNotifier {
   List<AlertModel> get activeAlerts => _activeAlerts;
   List<AlertModel> get historyAlerts => _historyAlerts;
   List<IncidentTicketModel> get incidents => _incidents;
+  IncidentStatsModel get incidentStats {
+    if (_incidentStats != null) return _incidentStats!;
+    int down = 0;
+    int critical = 0;
+    int warning = 0;
+    int progress = 0;
+    for (final a in _activeAlerts) {
+      final sev = a.severity.toUpperCase();
+      if (sev == 'DOWN') {
+        down++;
+      } else if (sev == 'CRITICAL') {
+        critical++;
+      } else if (sev == 'WARNING') {
+        warning++;
+      }
+      if (a.isBeingHandled) {
+        progress++;
+      }
+    }
+    final resolved = _historyAlerts.length;
+    final totalActive = _activeAlerts.length;
+    return IncidentStatsModel(
+      down: down,
+      critical: critical,
+      warning: warning,
+      progress: progress,
+      resolved: resolved,
+      totalActive: totalActive,
+      totalTickets: totalActive + resolved,
+    );
+  }
   bool get isLoading => _isLoading;
   bool get isSubmittingAction => _isSubmittingAction;
+  bool get isLoadingMore => _isLoadingMore; 
   String? get errorMessage => _errorMessage;
   AlertModel? get pendingEmergencyCall => _pendingEmergencyCall;
   int get activeAlertCount => _activeAlerts.length;
@@ -62,6 +96,9 @@ class AlertIncidentViewModel extends ChangeNotifier {
       _knownAlertSeverities.removeWhere((id, _) => !currentIds.contains(id));
 
       _activeAlerts = latest;
+      try {
+        _incidentStats = await _apiService.getIncidentStats();
+      } catch (_) {}
       notifyListeners();
     } catch (_) {
       // Abaikan error saat background polling
@@ -76,14 +113,24 @@ class AlertIncidentViewModel extends ChangeNotifier {
     }
 
     try {
+      final statsFuture = _apiService
+          .getIncidentStats()
+          .then<IncidentStatsModel?>((v) => v)
+          .catchError((_) => null);
+
       final results = await Future.wait([
         _apiService.getActiveAlerts(),
         _apiService.getAlertHistory(limit: 100),
         _apiService.getIncidents(),
+        statsFuture,
       ]);
       _activeAlerts = results[0] as List<AlertModel>;
       _historyAlerts = results[1] as List<AlertModel>;
       _incidents = results[2] as List<IncidentTicketModel>;
+      final fetchedStats = results[3] as IncidentStatsModel?;
+      if (fetchedStats != null) {
+        _incidentStats = fetchedStats;
+      }
 
       for (final a in _activeAlerts) {
         _knownAlertSeverities[a.id] = a.severity;
@@ -129,6 +176,56 @@ class AlertIncidentViewModel extends ChangeNotifier {
       return (success: false, message: e.toString());
     } finally {
       _isSubmittingAction = false;
+      notifyListeners();
+    }
+  }
+
+  // --- Fungsi Infinite Scroll / Load More ---
+
+  Future<void> loadMoreActiveAlerts() async {
+    if (_isLoadingMore) return;
+    _isLoadingMore = true;
+    notifyListeners();
+    
+    try {
+      // TODO: Ganti dengan pemanggilan API pagination Anda (contoh: offset)
+      await Future.delayed(const Duration(seconds: 1)); // Simulasi proses loading
+    } catch (e) {
+      debugPrint('Gagal load more active alerts: $e');
+    } finally {
+      _isLoadingMore = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> loadMoreIncidents() async {
+    if (_isLoadingMore) return;
+    _isLoadingMore = true;
+    notifyListeners();
+    
+    try {
+      // TODO: Ganti dengan pemanggilan API pagination Anda (contoh: offset)
+      await Future.delayed(const Duration(seconds: 1)); // Simulasi proses loading
+    } catch (e) {
+      debugPrint('Gagal load more incidents: $e');
+    } finally {
+      _isLoadingMore = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> loadMoreHistoryAlerts() async {
+    if (_isLoadingMore) return;
+    _isLoadingMore = true;
+    notifyListeners();
+    
+    try {
+      // TODO: Ganti dengan pemanggilan API pagination Anda (contoh: offset)
+      await Future.delayed(const Duration(seconds: 1)); // Simulasi proses loading
+    } catch (e) {
+      debugPrint('Gagal load more history alerts: $e');
+    } finally {
+      _isLoadingMore = false;
       notifyListeners();
     }
   }

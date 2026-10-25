@@ -10,6 +10,7 @@ import '../viewmodels/log_viewmodel.dart';
 import '../viewmodels/network_viewmodel.dart';
 import '../viewmodels/proxmox_viewmodel.dart';
 import 'alerts_incidents_view.dart';
+import 'common_widgets.dart';
 import 'emergency_call_view.dart';
 import 'sla_analytics_view.dart';
 import 'dashboard_view.dart';
@@ -33,12 +34,12 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
 
   static const List<String> _titles = [
     'Dashboard',
-    'Alert & Tiket',
-    'Proxmox Monitor',
-    'ICMP & TCP Monitor',
+    'Alert & Tiket Insiden',
+    'Cluster Proxmox',
+    'Target ICMP & TCP',
     'Analitik',
-    'Log & Audit',
-    'Settings',
+    'Log & Audit Sistem',
+    'Pengaturan',
   ];
 
   @override
@@ -142,9 +143,13 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
         backgroundColor: AppTheme.background,
         title: Row(
           children: [
-            Text(
-              _titles[_selectedIndex],
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+            Expanded(
+              child: Text(
+                _titles[_selectedIndex],
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),
@@ -206,23 +211,23 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
     final userInitial = userName.isNotEmpty ? userName[0].toUpperCase() : 'U';
 
     return Drawer(
-      backgroundColor: const Color(0xFF0B0D11), // Darker drawer background
+      backgroundColor: AppTheme.cardBackground,
       child: Column(
         children: [
           // Drawer Header with gradient
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.only(top: 44, bottom: 24, left: 24, right: 24),
+            padding: const EdgeInsets.only(top: 48, bottom: 24, left: 24, right: 24),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  AppTheme.statusTeal.withValues(alpha: 0.2),
-                  const Color(0xFF0B0D11),
+                  AppTheme.statusTeal.withValues(alpha: 0.18),
+                  AppTheme.cardBackground,
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              border: const Border(bottom: BorderSide(color: Colors.white10)),
+              border: const Border(bottom: BorderSide(color: AppTheme.borderSubtle)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -234,9 +239,9 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        CustomPaint(
-                          size: const Size(36, 24),
-                          painter: const _PulseLogoPainter(
+                        const CustomPaint(
+                          size: Size(36, 24),
+                          painter: PulseLogoPainter(
                             color: AppTheme.statusTeal,
                             strokeWidth: 3.2,
                           ),
@@ -248,7 +253,7 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
                             color: Colors.white,
                             fontSize: 24,
                             fontWeight: FontWeight.w900,
-                            letterSpacing: -0.2,
+                            letterSpacing: 0.2,
                           ),
                         ),
                       ],
@@ -257,10 +262,10 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
                     const Text(
                       'MONITORING PROXMOX',
                       style: TextStyle(
-                        color: Color(0xFF94A3B8), // slate 400
-                        fontSize: 10.5,
+                        color: Colors.white54,
+                        fontSize: 10,
                         fontWeight: FontWeight.w700,
-                        letterSpacing: 1.8,
+                        letterSpacing: 1.6,
                       ),
                     ),
                   ],
@@ -271,11 +276,11 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
                     children: [
                       CircleAvatar(
                         radius: 20,
-                        backgroundColor: Colors.white10,
+                        backgroundColor: AppTheme.statusTeal.withValues(alpha: 0.15),
                         child: Text(
                           userInitial,
                           style: const TextStyle(
-                            color: Colors.white,
+                            color: AppTheme.statusTeal,
                             fontWeight: FontWeight.bold,
                             fontSize: 18,
                           ),
@@ -297,11 +302,11 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
                             ),
                             const SizedBox(height: 4),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
                                 color: AppTheme.statusTeal.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(color: AppTheme.statusTeal.withValues(alpha: 0.3)),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: AppTheme.statusTeal.withValues(alpha: 0.35)),
                               ),
                               child: Text(
                                 user.role.toUpperCase(),
@@ -309,7 +314,7 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
                                   color: AppTheme.statusTeal,
                                   fontSize: 9,
                                   fontWeight: FontWeight.bold,
-                                  letterSpacing: 0.5,
+                                  letterSpacing: 0.6,
                                 ),
                               ),
                             ),
@@ -328,24 +333,24 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
               padding: const EdgeInsets.symmetric(vertical: 12),
               physics: const BouncingScrollPhysics(),
               children: [
-                _buildDrawerItem(Icons.dashboard_customize, 'Dashboard', 0),
+                _buildDrawerItem(Icons.dashboard_customize_rounded, _titles[0], 0),
                 _buildDrawerItem(
                   Icons.crisis_alert_rounded,
-                  'Alert & Tiket Insiden',
+                  _titles[1],
                   1,
                   badgeCount: activeAlerts,
                 ),
-                _buildDrawerItem(Icons.storage_rounded, 'Proxmox VE', 2),
-                _buildDrawerItem(Icons.router_rounded, 'Target ICMP & TCP', 3),
-                _buildDrawerItem(Icons.insert_chart_rounded, 'Analitik', 4),
+                _buildDrawerItem(Icons.dns_rounded, _titles[2], 2),
+                _buildDrawerItem(Icons.router_rounded, _titles[3], 3),
+                _buildDrawerItem(Icons.insert_chart_rounded, _titles[4], 4),
                 
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-                  child: Divider(color: Colors.white10, height: 1),
+                  child: Divider(color: AppTheme.borderSubtle, height: 1),
                 ),
                 
-                _buildDrawerItem(Icons.terminal_rounded, 'Log & Audit Sistem', 5),
-                _buildDrawerItem(Icons.settings_rounded, 'Settings', 6),
+                _buildDrawerItem(Icons.terminal_rounded, _titles[5], 5),
+                _buildDrawerItem(Icons.settings_rounded, _titles[6], 6),
               ],
             ),
           ),
@@ -365,8 +370,15 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
       decoration: BoxDecoration(
-        color: isSelected ? Colors.white.withValues(alpha: 0.08) : Colors.transparent,
+        color: isSelected
+            ? AppTheme.statusTeal.withValues(alpha: 0.12)
+            : Colors.transparent,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isSelected
+              ? AppTheme.statusTeal.withValues(alpha: 0.35)
+              : Colors.transparent,
+        ),
       ),
       child: ListTile(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -374,15 +386,15 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
         leading: Icon(
           icon,
           color: isSelected ? AppTheme.statusTeal : Colors.white54,
-          size: 22,
+          size: 21,
         ),
         title: Text(
           title,
           style: TextStyle(
-            color: isSelected ? Colors.white : Colors.white60,
+            color: isSelected ? Colors.white : Colors.white70,
             fontSize: 13,
             fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-            letterSpacing: 0.3,
+            letterSpacing: 0.2,
           ),
         ),
         trailing: badgeCount > 0
@@ -390,7 +402,7 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: AppTheme.statusDown.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: AppTheme.statusDown.withValues(alpha: 0.5)),
                 ),
                 child: Text(
@@ -411,44 +423,5 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
         },
       ),
     );
-  }
-}
-
-class _PulseLogoPainter extends CustomPainter {
-  final Color color;
-  final double strokeWidth;
-
-  const _PulseLogoPainter({
-    required this.color,
-    this.strokeWidth = 3.2,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-
-    final path = Path();
-    final w = size.width;
-    final h = size.height;
-
-    final baseY = h * 0.56;
-    path.moveTo(0, baseY);
-    path.lineTo(w * 0.18, baseY);
-    path.lineTo(w * 0.40, h * 0.08);
-    path.lineTo(w * 0.65, h * 0.94);
-    path.lineTo(w * 0.82, baseY);
-    path.lineTo(w, baseY);
-
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _PulseLogoPainter oldDelegate) {
-    return oldDelegate.color != color || oldDelegate.strokeWidth != strokeWidth;
   }
 }

@@ -310,6 +310,19 @@ class ViewMoxApiService {
     }
   }
 
+  /// 9b. GET /api/mobile/v1/incidents/stats
+  Future<IncidentStatsModel> getIncidentStats() async {
+    try {
+      final res = await _dio.get('/incidents/stats');
+      final body = res.data as Map<String, dynamic>;
+      return IncidentStatsModel.fromJson(
+        (body['data'] as Map<String, dynamic>?) ?? const {},
+      );
+    } catch (e) {
+      _throwHandled(e);
+    }
+  }
+
   // ===========================================================================
   // D. MODUL ANALITIK SLA (ITIL)
   // ===========================================================================

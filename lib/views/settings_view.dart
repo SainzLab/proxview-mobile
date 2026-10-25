@@ -32,16 +32,49 @@ class _SettingsViewState extends State<SettingsView> {
   }
 
   Future<void> _saveServerUrl() async {
-    final authVm = context.read<AuthViewModel>();
-    await authVm.updateBaseUrl(_baseUrlController.text);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Endpoint Server ViewMox berhasil diperbarui.'),
-          backgroundColor: AppTheme.statusTeal,
-          behavior: SnackBarBehavior.floating,
-        ),
+    final trimmed = _baseUrlController.text.trim();
+    if (trimmed.isEmpty) {
+      AppFeedback.showSnackBar(
+        context,
+        message: 'Alamat URL Server tidak boleh kosong.',
+        isWarning: true,
       );
+      return;
+    }
+
+    final confirmed = await AppFeedback.showConfirmDialog(
+      context,
+      title: 'Simpan Konfigurasi Server?',
+      message:
+          'Endpoint API akan diperbarui ke "$trimmed". Pastikan alamat server dapat diakses oleh perangkat ini.',
+      confirmLabel: 'SIMPAN',
+      accentColor: AppTheme.statusTeal,
+      icon: Icons.dns_rounded,
+    );
+    if (!confirmed || !mounted) return;
+
+    final authVm = context.read<AuthViewModel>();
+    await authVm.updateBaseUrl(trimmed);
+    if (mounted) {
+      AppFeedback.showSnackBar(
+        context,
+        message: 'Endpoint Server berhasil diperbarui.',
+      );
+    }
+  }
+
+  Future<void> _confirmLogout(BuildContext context, AuthViewModel authVm) async {
+    final confirmed = await AppFeedback.showConfirmDialog(
+      context,
+      title: 'Keluar dari Sistem?',
+      message:
+          'Sesi aktif dan kredensial lokal akan dihapus dari perangkat ini. Anda perlu login kembali untuk memantau sistem.',
+      confirmLabel: 'YA, KELUAR',
+      accentColor: AppTheme.statusDown,
+      icon: Icons.logout_rounded,
+    );
+    if (confirmed && context.mounted) {
+      await authVm.logout();
     }
   }
 
@@ -51,7 +84,7 @@ class _SettingsViewState extends State<SettingsView> {
     final user = authVm.currentUser;
 
     return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       physics: const BouncingScrollPhysics(),
       children: [
         if (user != null) ...[
@@ -61,10 +94,10 @@ class _SettingsViewState extends State<SettingsView> {
           ),
           const SizedBox(height: 12),
           Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: AppTheme.surfaceBackground,
-              borderRadius: BorderRadius.circular(20),
+              color: AppTheme.cardBackground,
+              borderRadius: BorderRadius.circular(18),
               border: Border.all(color: AppTheme.borderSubtle),
               boxShadow: [
                 BoxShadow(
@@ -86,19 +119,19 @@ class _SettingsViewState extends State<SettingsView> {
                         border: Border.all(color: AppTheme.statusTeal.withValues(alpha: 0.5), width: 2),
                       ),
                       child: CircleAvatar(
-                        radius: 26,
+                        radius: 24,
                         backgroundColor: AppTheme.statusTeal.withValues(alpha: 0.15),
                         child: Text(
                           user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
                           style: const TextStyle(
                             color: AppTheme.statusTeal,
                             fontWeight: FontWeight.bold,
-                            fontSize: 22,
+                            fontSize: 20,
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -107,51 +140,39 @@ class _SettingsViewState extends State<SettingsView> {
                             user.name,
                             style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 18,
+                              fontSize: 17,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             '@${user.username}',
-                            style: const TextStyle(color: Colors.white54, fontSize: 13),
+                            style: const TextStyle(color: Colors.white54, fontSize: 12.5),
                           ),
                         ],
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: AppTheme.statusTeal.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppTheme.statusTeal.withValues(alpha: 0.3)),
-                      ),
-                      child: Text(
-                        user.role.toUpperCase(),
-                        style: const TextStyle(
-                          color: AppTheme.statusTeal,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.0,
-                        ),
-                      ),
+                    StatusBadge(
+                      label: user.role,
+                      color: AppTheme.statusTeal,
+                      showDot: false,
                     ),
                   ],
                 ),
                 if (user.tokenExpiresAt != null) ...[
                   const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 16),
-                    child: Divider(color: Colors.white10, height: 1),
+                    padding: EdgeInsets.symmetric(vertical: 14),
+                    child: Divider(color: AppTheme.borderSubtle, height: 1),
                   ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Row(
                         children: [
-                          Icon(Icons.timer_outlined, size: 16, color: Colors.white38),
+                          Icon(Icons.timer_outlined, size: 15, color: Colors.white38),
                           SizedBox(width: 6),
                           Text(
-                            'Sesi Berakhir:',
+                            'Batas Waktu Sesi:',
                             style: TextStyle(color: Colors.white54, fontSize: 12),
                           ),
                         ],
@@ -171,7 +192,7 @@ class _SettingsViewState extends State<SettingsView> {
               ],
             ),
           ),
-          const SizedBox(height: 28),
+          const SizedBox(height: 24),
         ],
 
         const SectionTitle(
@@ -180,23 +201,23 @@ class _SettingsViewState extends State<SettingsView> {
         ),
         const SizedBox(height: 12),
         Container(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: AppTheme.surfaceBackground,
-            borderRadius: BorderRadius.circular(20),
+            color: AppTheme.cardBackground,
+            borderRadius: BorderRadius.circular(18),
             border: Border.all(color: AppTheme.borderSubtle),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Tentukan alamat endpoint API dari server yang sedang berjalan.',
+                'Tentukan alamat endpoint API server ProxView yang sedang berjalan.',
                 style: TextStyle(color: Colors.white54, fontSize: 12, height: 1.4),
               ),
               const SizedBox(height: 16),
               CustomTextField(
                 controller: _baseUrlController,
-                label: 'Base URL API Mobile',
+                label: 'Base URL Server API',
                 hint: 'http(s)://ip-atau-domain:port',
                 icon: Icons.language_rounded,
                 keyboardType: TextInputType.url,
@@ -210,10 +231,14 @@ class _SettingsViewState extends State<SettingsView> {
                   icon: const Icon(Icons.save_outlined, size: 18),
                   label: const Text(
                     'SIMPAN PERUBAHAN',
-                    style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.0),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.8,
+                      fontSize: 12.5,
+                    ),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
+                    backgroundColor: AppTheme.statusTeal,
                     foregroundColor: Colors.black,
                     elevation: 0,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -224,14 +249,14 @@ class _SettingsViewState extends State<SettingsView> {
           ),
         ),
 
-        const SizedBox(height: 28),
+        const SizedBox(height: 24),
         const SectionTitle(
-          title: 'DOKUMENTASI PANDUAN',
+          title: 'DOKUMENTASI & PANDUAN',
           icon: Icons.menu_book_outlined,
         ),
         const SizedBox(height: 12),
         Material(
-          color: AppTheme.surfaceBackground,
+          color: AppTheme.cardBackground,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
             side: const BorderSide(color: AppTheme.borderSubtle),
@@ -243,11 +268,10 @@ class _SettingsViewState extends State<SettingsView> {
               );
               if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Gagal membuka Manual Book'),
-                      backgroundColor: AppTheme.statusDown,
-                    ),
+                  AppFeedback.showSnackBar(
+                    context,
+                    message: 'Gagal membuka dokumen panduan aplikasi.',
+                    isError: true,
                   );
                 }
               }
@@ -260,10 +284,14 @@ class _SettingsViewState extends State<SettingsView> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.05),
+                      color: AppTheme.statusTeal.withValues(alpha: 0.14),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.picture_as_pdf_outlined, color: Colors.white70),
+                    child: const Icon(
+                      Icons.picture_as_pdf_outlined,
+                      color: AppTheme.statusTeal,
+                      size: 20,
+                    ),
                   ),
                   const SizedBox(width: 16),
                   const Expanded(
@@ -271,40 +299,48 @@ class _SettingsViewState extends State<SettingsView> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Buka Manual Book',
-                          style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+                          'Buka Buku Panduan (Manual Book)',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         SizedBox(height: 4),
                         Text(
-                          'Panduan penggunaan aplikasi mymomox',
+                          'Panduan lengkap operasional aplikasi ProxView',
                           style: TextStyle(color: Colors.white54, fontSize: 12),
                         ),
                       ],
                     ),
                   ),
-                  const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white38, size: 16),
+                  const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white38, size: 15),
                 ],
               ),
             ),
           ),
         ),
 
-        const SizedBox(height: 36),
+        const SizedBox(height: 32),
         SizedBox(
-          height: 52,
-          child: TextButton.icon(
-            onPressed: () => authVm.logout(),
-            icon: const Icon(Icons.logout_rounded, size: 20),
+          height: 50,
+          child: OutlinedButton.icon(
+            onPressed: () => _confirmLogout(context, authVm),
+            icon: const Icon(Icons.logout_rounded, size: 18),
             label: const Text(
-              'Keluar Sistem',
-              style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.0, fontSize: 14),
+              'KELUAR SISTEM',
+              style: TextStyle(
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.0,
+                fontSize: 13,
+              ),
             ),
-            style: TextButton.styleFrom(
+            style: OutlinedButton.styleFrom(
               foregroundColor: AppTheme.statusDown,
-              backgroundColor: AppTheme.statusDown.withValues(alpha: 0.1),
+              backgroundColor: AppTheme.statusDown.withValues(alpha: 0.08),
+              side: BorderSide(color: AppTheme.statusDown.withValues(alpha: 0.4)),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: BorderSide(color: AppTheme.statusDown.withValues(alpha: 0.3)),
+                borderRadius: BorderRadius.circular(14),
               ),
             ),
           ),

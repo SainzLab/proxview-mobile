@@ -105,9 +105,29 @@ class EmergencyCallView extends StatelessWidget {
                       child: OutlinedButton.icon(
                         onPressed: alertVm.isSubmittingAction
                             ? null
-                            : () => alertVm.dismissEmergencyCall(),
-                        icon: const Icon(Icons.call_end_rounded),
-                        label: const Text('TUTUP ALARM'),
+                            : () async {
+                                final confirmed = await AppFeedback.showConfirmDialog(
+                                  context,
+                                  title: 'Tutup Panggilan Darurat?',
+                                  message:
+                                      'Alarm darurat untuk "${alert.targetName}" akan ditutup pada perangkat Anda, namun status insiden tetap aktif.',
+                                  confirmLabel: 'TUTUP ALARM',
+                                  accentColor: AppTheme.statusDown,
+                                  icon: Icons.call_end_rounded,
+                                );
+                                if (confirmed) {
+                                  alertVm.dismissEmergencyCall();
+                                }
+                              },
+                        icon: const Icon(Icons.call_end_rounded, size: 18),
+                        label: const Text(
+                          'TUTUP ALARM',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            letterSpacing: 0.6,
+                          ),
+                        ),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.white70,
                           side: const BorderSide(color: Colors.white24),
@@ -128,24 +148,26 @@ class EmergencyCallView extends StatelessWidget {
                             : () async {
                                 final res = await alertVm.joinAlert(alert.id);
                                 if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(res.message),
-                                      backgroundColor: res.success
-                                          ? Colors.teal
-                                          : AppTheme.statusDown,
-                                    ),
+                                  AppFeedback.showSnackBar(
+                                    context,
+                                    message: res.message,
+                                    isError: !res.success,
                                   );
                                 }
                               },
-                        icon: const Icon(Icons.build_circle_outlined),
+                        icon: const Icon(Icons.handyman_rounded, size: 18),
                         label: const Text(
-                          'TANGANI (JOIN)',
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                          'TANGANI',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 12,
+                            letterSpacing: 0.6,
+                          ),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.statusTeal,
                           foregroundColor: Colors.black,
+                          elevation: 0,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
                           ),
