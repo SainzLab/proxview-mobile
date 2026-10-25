@@ -26,6 +26,7 @@ class AuthViewModel extends ChangeNotifier {
 
   AuthStatus get status => _status;
   UserModel? get currentUser => _currentUser;
+  bool get isKepalaBidang => _currentUser?.isKepalaBidang ?? false;
   String get baseUrl => _baseUrl;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;

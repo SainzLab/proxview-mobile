@@ -12,6 +12,7 @@ import '../viewmodels/proxmox_viewmodel.dart';
 import 'alerts_incidents_view.dart';
 import 'common_widgets.dart';
 import 'emergency_call_view.dart';
+import 'resource_view.dart';
 import 'sla_analytics_view.dart';
 import 'dashboard_view.dart';
 import 'logs_view.dart';
@@ -32,13 +33,21 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
   Timer? _pollingTimer;
   late AnimationController _syncController;
 
-  static const List<String> _titles = [
+  static const List<String> _teknisiTitles = [
     'Dashboard',
     'Alert & Tiket Insiden',
     'Cluster Proxmox',
     'Target ICMP & TCP',
     'Analitik',
     'Log & Audit Sistem',
+    'Pengaturan',
+  ];
+
+  static const List<String> _kabidTitles = [
+    'Dashboard',
+    'Rekap Gangguan',
+    'Resource',
+    'Analitik',
     'Pengaturan',
   ];
 
@@ -71,25 +80,70 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
     _pollingTimer?.cancel();
     _pollingTimer = Timer.periodic(const Duration(seconds: 7), (_) {
       if (!mounted) return;
-      context.read<AlertIncidentViewModel>().pollActiveAlerts();
+      final isKabid = context.read<AuthViewModel>().isKepalaBidang;
+      context.read<AlertIncidentViewModel>().pollActiveAlerts(
+        triggerNotifications: !isKabid,
+      );
 
-      switch (_selectedIndex) {
-        case 0:
-          context.read<DashboardViewModel>().fetchDashboard(showLoading: false);
-          context.read<AnalyticsViewModel>().fetchAnalytics(showLoading: false);
-          break;
-        case 2:
-          context.read<ProxmoxViewModel>().fetchProxmoxData(showLoading: false);
-          break;
-        case 3:
-          context.read<NetworkViewModel>().fetchTargets(showLoading: false);
-          break;
+      if (isKabid) {
+        switch (_selectedIndex) {
+          case 0:
+            context.read<DashboardViewModel>().fetchDashboard(showLoading: false);
+            context.read<AlertIncidentViewModel>().fetchAll(showLoading: false);
+            context.read<AnalyticsViewModel>().fetchAnalytics(showLoading: false);
+            break;
+          case 1:
+            context.read<AlertIncidentViewModel>().fetchAll(showLoading: false);
+            break;
+          case 2:
+            context.read<ProxmoxViewModel>().fetchProxmoxData(showLoading: false);
+            context.read<NetworkViewModel>().fetchTargets(showLoading: false);
+            break;
+          case 3:
+            context.read<AnalyticsViewModel>().fetchAnalytics(showLoading: false);
+            break;
+        }
+      } else {
+        switch (_selectedIndex) {
+          case 0:
+            context.read<DashboardViewModel>().fetchDashboard(showLoading: false);
+            context.read<AnalyticsViewModel>().fetchAnalytics(showLoading: false);
+            break;
+          case 2:
+            context.read<ProxmoxViewModel>().fetchProxmoxData(showLoading: false);
+            break;
+          case 3:
+            context.read<NetworkViewModel>().fetchTargets(showLoading: false);
+            break;
+        }
       }
     });
   }
 
   void _selectPage(int index) {
+    final isKabid = context.read<AuthViewModel>().isKepalaBidang;
     setState(() => _selectedIndex = index);
+    if (isKabid) {
+      switch (index) {
+        case 0:
+          context.read<DashboardViewModel>().fetchDashboard(showLoading: false);
+          context.read<AlertIncidentViewModel>().fetchAll(showLoading: false);
+          context.read<AnalyticsViewModel>().fetchAnalytics(showLoading: false);
+          break;
+        case 1:
+          context.read<AlertIncidentViewModel>().fetchAll(showLoading: false);
+          break;
+        case 2:
+          context.read<ProxmoxViewModel>().fetchProxmoxData(showLoading: false);
+          context.read<NetworkViewModel>().fetchTargets(showLoading: false);
+          break;
+        case 3:
+          context.read<AnalyticsViewModel>().fetchAnalytics(showLoading: false);
+          break;
+      }
+      return;
+    }
+
     switch (index) {
       case 0:
         context.read<DashboardViewModel>().fetchDashboard(showLoading: false);
@@ -128,16 +182,22 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
+    final authVm = context.watch<AuthViewModel>();
+    final isKabid = authVm.isKepalaBidang;
+    final titles = isKabid ? _kabidTitles : _teknisiTitles;
+    final settingsIndex = isKabid ? 4 : 6;
+    final safeIndex = _selectedIndex >= titles.length ? 0 : _selectedIndex;
+
     final alertVm = context.watch<AlertIncidentViewModel>();
     final pendingCall = alertVm.pendingEmergencyCall;
 
-    // Jika ada Emergency Call aktif ("action_type" == "Call"), tampilkan layar alarm penuh
-    if (pendingCall != null) {
+    // Jika ada Emergency Call aktif ("action_type" == "Call") untuk Teknisi, tampilkan layar alarm penuh
+    if (!isKabid && pendingCall != null) {
       return EmergencyCallView(alert: pendingCall);
     }
 
     return Scaffold(
-      drawer: _buildDrawer(context, alertVm.activeAlertCount),
+      drawer: _buildDrawer(context, alertVm.activeAlertCount, isKabid: isKabid),
       appBar: AppBar(
         elevation: 0,
         backgroundColor: AppTheme.background,
@@ -145,7 +205,7 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
           children: [
             Expanded(
               child: Text(
-                _titles[_selectedIndex],
+                titles[safeIndex],
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -154,7 +214,7 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
           ],
         ),
         actions: [
-          if (alertVm.activeAlertCount > 0 && _selectedIndex != 1)
+          if (alertVm.activeAlertCount > 0 && safeIndex != 1)
             IconButton(
               onPressed: () => _selectPage(1),
               icon: Badge(
@@ -166,7 +226,7 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
                 ),
               ),
             ),
-          if (_selectedIndex != 6)
+          if (safeIndex != settingsIndex)
             IconButton(
               onPressed: _refreshCurrentPage,
               icon: RotationTransition(
@@ -180,12 +240,37 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
           const SizedBox(width: 8),
         ],
       ),
-      body: _buildBody(),
+      body: _buildBody(isKabid: isKabid, safeIndex: safeIndex),
     );
   }
 
-  Widget _buildBody() {
-    switch (_selectedIndex) {
+  Widget _buildBody({required bool isKabid, required int safeIndex}) {
+    if (isKabid) {
+      switch (safeIndex) {
+        case 0:
+          return DashboardView(
+            onOpenIncidentsTab: () => _selectPage(1),
+            onOpenResourceTab: () => _selectPage(2),
+            onOpenAnalyticsTab: () => _selectPage(3),
+          );
+        case 1:
+          return const AlertsIncidentsView();
+        case 2:
+          return const ResourceView();
+        case 3:
+          return const SlaAnalyticsView();
+        case 4:
+          return const SettingsView();
+        default:
+          return DashboardView(
+            onOpenIncidentsTab: () => _selectPage(1),
+            onOpenResourceTab: () => _selectPage(2),
+            onOpenAnalyticsTab: () => _selectPage(3),
+          );
+      }
+    }
+
+    switch (safeIndex) {
       case 0:
         return DashboardView(onOpenIncidentsTab: () => _selectPage(1));
       case 1:
@@ -205,7 +290,11 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
     }
   }
 
-  Widget _buildDrawer(BuildContext context, int activeAlerts) {
+  Widget _buildDrawer(
+    BuildContext context,
+    int activeAlerts, {
+    required bool isKabid,
+  }) {
     final user = context.watch<AuthViewModel>().currentUser;
     final userName = user?.name ?? 'User';
     final userInitial = userName.isNotEmpty ? userName[0].toUpperCase() : 'U';
@@ -332,26 +421,87 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
             child: ListView(
               padding: const EdgeInsets.symmetric(vertical: 12),
               physics: const BouncingScrollPhysics(),
-              children: [
-                _buildDrawerItem(Icons.dashboard_customize_rounded, _titles[0], 0),
-                _buildDrawerItem(
-                  Icons.crisis_alert_rounded,
-                  _titles[1],
-                  1,
-                  badgeCount: activeAlerts,
-                ),
-                _buildDrawerItem(Icons.dns_rounded, _titles[2], 2),
-                _buildDrawerItem(Icons.router_rounded, _titles[3], 3),
-                _buildDrawerItem(Icons.insert_chart_rounded, _titles[4], 4),
-                
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-                  child: Divider(color: AppTheme.borderSubtle, height: 1),
-                ),
-                
-                _buildDrawerItem(Icons.terminal_rounded, _titles[5], 5),
-                _buildDrawerItem(Icons.settings_rounded, _titles[6], 6),
-              ],
+              children: isKabid
+                  ? [
+                      _buildDrawerItem(
+                        Icons.space_dashboard_rounded,
+                        _kabidTitles[0],
+                        0,
+                      ),
+                      _buildDrawerItem(
+                        Icons.assignment_late_rounded,
+                        _kabidTitles[1],
+                        1,
+                        badgeCount: activeAlerts,
+                      ),
+                      _buildDrawerItem(
+                        Icons.hub_rounded,
+                        _kabidTitles[2],
+                        2,
+                      ),
+                      _buildDrawerItem(
+                        Icons.insert_chart_rounded,
+                        _kabidTitles[3],
+                        3,
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(
+                          vertical: 12,
+                          horizontal: 24,
+                        ),
+                        child: Divider(color: AppTheme.borderSubtle, height: 1),
+                      ),
+                      _buildDrawerItem(
+                        Icons.settings_rounded,
+                        _kabidTitles[4],
+                        4,
+                      ),
+                    ]
+                  : [
+                      _buildDrawerItem(
+                        Icons.dashboard_customize_rounded,
+                        _teknisiTitles[0],
+                        0,
+                      ),
+                      _buildDrawerItem(
+                        Icons.crisis_alert_rounded,
+                        _teknisiTitles[1],
+                        1,
+                        badgeCount: activeAlerts,
+                      ),
+                      _buildDrawerItem(
+                        Icons.dns_rounded,
+                        _teknisiTitles[2],
+                        2,
+                      ),
+                      _buildDrawerItem(
+                        Icons.router_rounded,
+                        _teknisiTitles[3],
+                        3,
+                      ),
+                      _buildDrawerItem(
+                        Icons.insert_chart_rounded,
+                        _teknisiTitles[4],
+                        4,
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(
+                          vertical: 12,
+                          horizontal: 24,
+                        ),
+                        child: Divider(color: AppTheme.borderSubtle, height: 1),
+                      ),
+                      _buildDrawerItem(
+                        Icons.terminal_rounded,
+                        _teknisiTitles[5],
+                        5,
+                      ),
+                      _buildDrawerItem(
+                        Icons.settings_rounded,
+                        _teknisiTitles[6],
+                        6,
+                      ),
+                    ],
             ),
           ),
         ],

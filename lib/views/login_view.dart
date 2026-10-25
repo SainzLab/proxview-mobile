@@ -85,21 +85,6 @@ class _LoginViewState extends State<LoginView> {
               children: [
                 Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                      decoration: BoxDecoration(
-                        color: AppTheme.cardBackground,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: AppTheme.statusTeal.withValues(alpha: 0.35)),
-                      ),
-                      child: const CustomPaint(
-                        size: Size(32, 22),
-                        painter: PulseLogoPainter(
-                          color: AppTheme.statusTeal,
-                          strokeWidth: 3.0,
-                        ),
-                      ),
-                    ),
                     const SizedBox(width: 16),
                     const Expanded(
                       child: Column(
@@ -211,7 +196,7 @@ class _LoginViewState extends State<LoginView> {
 
                       CustomTextField(
                         controller: _tokenController,
-                        label: 'API Token (Web Admin)',
+                        label: 'API Token',
                         hint: '64 karakter hex token dari Web Admin',
                         icon: Icons.vpn_key_outlined,
                       ),

@@ -3,19 +3,31 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../core/theme/app_theme.dart';
 import '../core/utils/formatters.dart';
+import '../models/alert_incident_model.dart';
 import '../models/dashboard_model.dart';
+import '../viewmodels/alert_incident_viewmodel.dart';
 import '../viewmodels/analytics_viewmodel.dart';
+import '../viewmodels/auth_viewmodel.dart';
 import '../viewmodels/dashboard_viewmodel.dart';
 import 'common_widgets.dart';
 
 class DashboardView extends StatelessWidget {
   final VoidCallback? onOpenIncidentsTab;
+  final VoidCallback? onOpenResourceTab;
+  final VoidCallback? onOpenAnalyticsTab;
 
-  const DashboardView({super.key, this.onOpenIncidentsTab});
+  const DashboardView({
+    super.key,
+    this.onOpenIncidentsTab,
+    this.onOpenResourceTab,
+    this.onOpenAnalyticsTab,
+  });
 
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<DashboardViewModel>();
+    final authVm = context.watch<AuthViewModel>();
+    final isKepalaBidang = authVm.isKepalaBidang;
 
     if (vm.isLoading && vm.summary == null) {
       return const Center(
@@ -32,6 +44,10 @@ class DashboardView extends StatelessWidget {
 
     final summary = vm.summary;
     if (summary == null) return const SizedBox.shrink();
+
+    if (isKepalaBidang) {
+      return _buildKepalaBidangDashboard(context, vm, summary);
+    }
 
     return RefreshIndicator(
       color: Colors.black,
@@ -85,53 +101,763 @@ class DashboardView extends StatelessWidget {
             title: 'INSIDEN TERBARU',
             icon: Icons.notification_important_rounded,
             trailing: onOpenIncidentsTab != null
-                ? InkWell(
-                    onTap: onOpenIncidentsTab,
-                    borderRadius: BorderRadius.circular(8),
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      child: Text(
-                        'LIHAT SEMUA',
-                        style: TextStyle(
-                          color: AppTheme.statusTeal,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ),
-                  )
+                ? _buildSectionAction('LIHAT SEMUA', onOpenIncidentsTab!)
                 : null,
           ),
           const SizedBox(height: 12),
           if (summary.recentIncidents.isEmpty)
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 24),
-              decoration: BoxDecoration(
-                color: AppTheme.cardBackground,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.borderSubtle),
-              ),
-              child: const Center(
-                child: Column(
-                  children: [
-                    Icon(Icons.check_circle_outline_rounded, color: AppTheme.statusTeal, size: 42),
-                    SizedBox(height: 14),
-                    Text(
-                      'Tidak ada insiden terbaru.\nSeluruh sistem beroperasi normal.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white54, fontSize: 13, height: 1.4),
-                    ),
-                  ],
-                ),
-              ),
-            )
+            _buildNoIncidentsCard()
           else
             ...summary.recentIncidents.map(_buildRecentIncidentTile),
 
           const SizedBox(height: 40),
         ],
       ),
+    );
+  }
+
+  Widget _buildKepalaBidangDashboard(
+    BuildContext context,
+    DashboardViewModel vm,
+    DashboardSummaryModel summary,
+  ) {
+    final alertVm = context.watch<AlertIncidentViewModel>();
+    final analyticsVm = context.watch<AnalyticsViewModel>();
+    final stats = alertVm.incidentStats;
+    final slaSummary = analyticsVm.analytics?.summary;
+    final unhandledCount =
+        alertVm.activeAlerts.where((a) => !a.isBeingHandled).length;
+
+    return RefreshIndicator(
+      color: Colors.black,
+      backgroundColor: AppTheme.statusTeal,
+      onRefresh: () async {
+        await Future.wait([
+          vm.fetchDashboard(showLoading: false),
+          alertVm.fetchAll(showLoading: false),
+          analyticsVm.fetchAnalytics(showLoading: false),
+        ]);
+      },
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        children: [
+          SectionTitle(
+            title: 'RINGKASAN EKSEKUTIF',
+            icon: Icons.verified_user_outlined,
+            trailing: onOpenAnalyticsTab != null
+                ? _buildSectionAction('DETAIL', onOpenAnalyticsTab!)
+                : null,
+          ),
+          const SizedBox(height: 12),
+          _buildExecutiveBannerCard(
+            systemStatus: vm.systemStatus,
+            summary: summary,
+            stats: stats,
+            availability: slaSummary?.availability,
+            mttrSec: slaSummary?.mttrSec,
+          ),
+          const SizedBox(height: 24),
+
+          SectionTitle(
+            title: 'PENANGANAN GANGGUAN',
+            icon: Icons.assignment_late_outlined,
+            trailing: onOpenIncidentsTab != null
+                ? _buildSectionAction('BUKA REKAP', onOpenIncidentsTab!)
+                : null,
+          ),
+          const SizedBox(height: 12),
+          _buildExecutiveIncidentEvaluationCard(
+            stats: stats,
+            unhandledCount: unhandledCount,
+          ),
+          const SizedBox(height: 24),
+
+          const SectionTitle(
+            title: 'KINERJA PENANGANAN TEKNISI',
+            icon: Icons.engineering_rounded,
+          ),
+          const SizedBox(height: 12),
+          _buildTechnicianPerformanceCard(
+            incidents: alertVm.incidents,
+            activeUsers: summary.activeUsers,
+            totalUsers: summary.totalUsers,
+          ),
+          const SizedBox(height: 24),
+
+          SectionTitle(
+            title: 'RESOURCE',
+            icon: Icons.hub_rounded,
+            trailing: onOpenResourceTab != null
+                ? _buildSectionAction('DETAIL RESOURCE', onOpenResourceTab!)
+                : null,
+          ),
+          const SizedBox(height: 12),
+          _buildExecutiveResourceCard(context, vm, summary),
+          const SizedBox(height: 28),
+
+          SectionTitle(
+            title: 'INSIDEN TERBARU',
+            icon: Icons.notification_important_rounded,
+            trailing: onOpenIncidentsTab != null
+                ? _buildSectionAction('LIHAT SEMUA', onOpenIncidentsTab!)
+                : null,
+          ),
+          const SizedBox(height: 12),
+          if (summary.recentIncidents.isEmpty)
+            _buildNoIncidentsCard()
+          else
+            ...summary.recentIncidents.take(5).map(_buildRecentIncidentTile),
+
+          const SizedBox(height: 40),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionAction(String label, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                color: AppTheme.statusTeal,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(width: 2),
+            const Icon(
+              Icons.chevron_right_rounded,
+              size: 16,
+              color: AppTheme.statusTeal,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNoIncidentsCard() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 24),
+      decoration: BoxDecoration(
+        color: AppTheme.cardBackground,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.borderSubtle),
+      ),
+      child: const Center(
+        child: Column(
+          children: [
+            Icon(
+              Icons.check_circle_outline_rounded,
+              color: AppTheme.statusTeal,
+              size: 42,
+            ),
+            SizedBox(height: 14),
+            Text(
+              'Tidak ada insiden terbaru.\nSeluruh sistem beroperasi normal.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white54, fontSize: 13, height: 1.4),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExecutiveBannerCard({
+    required SystemStatusModel? systemStatus,
+    required DashboardSummaryModel summary,
+    required IncidentStatsModel stats,
+    required double? availability,
+    required int? mttrSec,
+  }) {
+    final bool hasCriticalOrDown = stats.down > 0 || stats.critical > 0;
+    final bool hasActiveAlert = stats.totalActive > 0;
+    final Color statusColor = hasCriticalOrDown
+        ? AppTheme.statusDown
+        : (hasActiveAlert ? AppTheme.statusWarning : AppTheme.statusTeal);
+    final String headline = hasCriticalOrDown
+        ? 'PERHATIAN: ${stats.down + stats.critical} GANGGUAN KRITIS/DOWN'
+        : (hasActiveAlert
+            ? 'TERDAPAT ${stats.totalActive} PERINGATAN AKTIF'
+            : 'SELURUH LAYANAN BEROPERASI NORMAL');
+    final double availVal = availability ?? 100.0;
+    final Color availColor = availVal >= 99.0
+        ? AppTheme.statusTeal
+        : (availVal >= 95.0 ? AppTheme.statusWarning : AppTheme.statusDown);
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppTheme.cardBackground,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: statusColor.withValues(alpha: 0.35)),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            statusColor.withValues(alpha: 0.12),
+            AppTheme.cardBackground,
+          ],
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  hasActiveAlert
+                      ? Icons.radar_rounded
+                      : Icons.verified_rounded,
+                  color: statusColor,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      headline,
+                      style: TextStyle(
+                        color: statusColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Kesehatan Cluster ${summary.proxmox.healthPercent.toStringAsFixed(0)}% • ${summary.activeUsers}/${summary.totalUsers} Personel Aktif',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (systemStatus != null) ...[
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildSystemPillarPill('PROXMOX', systemStatus.proxmox),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildSystemPillarPill('ICMP PING', systemStatus.icmp),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildSystemPillarPill('TCP SOCKET', systemStatus.tcp),
+                ),
+              ],
+            ),
+          ],
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Divider(color: AppTheme.borderSubtle, height: 1),
+          ),
+          Row(
+            children: [
+              Expanded(
+                child: _buildExecutiveKpiTile(
+                  label: 'KETERSEDIAAN',
+                  value: '${availVal.toStringAsFixed(2)}%',
+                  subtitle: availVal >= 99.0 ? 'Target ≥99% Tercapai' : 'Di Bawah Target SLA',
+                  color: availColor,
+                  icon: Icons.verified_user_outlined,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildExecutiveKpiTile(
+                  label: 'RATA-RATA MTTR',
+                  value: Formatters.formatDurationSeconds(mttrSec ?? 0),
+                  subtitle: 'Kecepatan pemulihan',
+                  color: AppTheme.statusRecovered,
+                  icon: Icons.restore_rounded,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSystemPillarPill(String label, String status) {
+    final color = AppTheme.severityColor(status);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceBackground,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Flexible(
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 9.5,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.4,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Container(
+            width: 7,
+            height: 7,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExecutiveKpiTile({
+    required String label,
+    required String value,
+    required String subtitle,
+    required Color color,
+    required IconData icon,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceBackground,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.borderSubtle),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 14, color: color),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.5,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 19,
+                fontWeight: FontWeight.w900,
+                fontFamily: 'monospace',
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: const TextStyle(color: Colors.white54, fontSize: 10),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExecutiveIncidentEvaluationCard({
+    required IncidentStatsModel stats,
+    required int unhandledCount,
+  }) {
+    final double resolutionRate = stats.totalTickets > 0
+        ? (stats.resolved / stats.totalTickets * 100.0).clamp(0.0, 100.0)
+        : 100.0;
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppTheme.cardBackground,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppTheme.borderSubtle),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ModernProgressBar(
+            label: 'Rasio Penyelesaian Tiket',
+            percentage: resolutionRate,
+            color: AppTheme.statusTeal,
+            customTrailingText:
+                '${stats.resolved}/${stats.totalTickets} Selesai (${resolutionRate.toStringAsFixed(0)}%)',
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _buildIncidentMetricBox(
+                  label: 'GANGGUAN AKTIF',
+                  count: stats.totalActive,
+                  color: stats.totalActive > 0
+                      ? AppTheme.statusDown
+                      : AppTheme.statusTeal,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildIncidentMetricBox(
+                  label: 'BELUM DIRESPON',
+                  count: unhandledCount,
+                  color: unhandledCount > 0
+                      ? AppTheme.statusWarning
+                      : Colors.white54,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildIncidentMetricBox(
+                  label: 'DALAM PROGRES',
+                  count: stats.progress,
+                  color: AppTheme.statusRecovered,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildIncidentMetricBox(
+                  label: 'SELESAI',
+                  count: stats.resolved,
+                  color: AppTheme.statusTeal,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIncidentMetricBox({
+    required String label,
+    required int count,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceBackground,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.28)),
+      ),
+      child: Column(
+        children: [
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 8.5,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.3,
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '$count',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              fontFamily: 'monospace',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTechnicianPerformanceCard({
+    required List<IncidentTicketModel> incidents,
+    required int activeUsers,
+    required int totalUsers,
+  }) {
+    final Map<String, ({int total, int resolved, int active})> techMap = {};
+
+    for (final inc in incidents) {
+      final raw = inc.technicians?.trim() ?? '';
+      if (raw.isEmpty || raw == '-') continue;
+      final names = raw
+          .split(',')
+          .map((s) => s.trim())
+          .where((s) => s.isNotEmpty && s != '-');
+      for (final name in names) {
+        final prev = techMap[name] ?? (total: 0, resolved: 0, active: 0);
+        techMap[name] = (
+          total: prev.total + 1,
+          resolved: prev.resolved + (inc.isResolved ? 1 : 0),
+          active: prev.active + (inc.isResolved ? 0 : 1),
+        );
+      }
+    }
+
+    final entries = techMap.entries.toList()
+      ..sort((a, b) => b.value.total.compareTo(a.value.total));
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppTheme.cardBackground,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppTheme.borderSubtle),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Penyelesaian Tim',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              StatusBadge(
+                label: '$activeUsers/$totalUsers Personel Aktif',
+                color: AppTheme.statusTeal,
+                showDot: false,
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          if (entries.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Text(
+                'Belum ada riwayat penugasan teknisi pada tiket insiden.',
+                style: TextStyle(color: Colors.white54, fontSize: 12),
+              ),
+            )
+          else
+            ...entries.take(5).map((entry) {
+              final name = entry.key;
+              final stat = entry.value;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surfaceBackground,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.borderSubtle),
+                  ),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 15,
+                        backgroundColor:
+                            AppTheme.statusTeal.withValues(alpha: 0.15),
+                        child: Text(
+                          name[0].toUpperCase(),
+                          style: const TextStyle(
+                            color: AppTheme.statusTeal,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              name,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${stat.resolved} Selesai • ${stat.active} Sedang Ditangani',
+                              style: const TextStyle(
+                                color: Colors.white54,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppTheme.statusTeal.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: AppTheme.statusTeal.withValues(alpha: 0.35),
+                          ),
+                        ),
+                        child: Text(
+                          '${stat.total} Tiket',
+                          style: const TextStyle(
+                            color: AppTheme.statusTeal,
+                            fontSize: 11,
+                            fontFamily: 'monospace',
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExecutiveResourceCard(
+    BuildContext context,
+    DashboardViewModel vm,
+    DashboardSummaryModel summary,
+  ) {
+    final pve = summary.proxmox;
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: AppTheme.cardBackground,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: AppTheme.borderSubtle),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildMiniStat(
+                      'Node Online',
+                      '${pve.onlineNodes}/${pve.totalNodes}',
+                      Icons.dns_rounded,
+                      AppTheme.statusTeal,
+                    ),
+                  ),
+                  Container(
+                    width: 1,
+                    height: 40,
+                    color: AppTheme.borderSubtle,
+                    margin: const EdgeInsets.symmetric(horizontal: 12),
+                  ),
+                  Expanded(
+                    child: _buildMiniStat(
+                      'VM & LXC Aktif',
+                      '${pve.runningVms}/${pve.totalVms}',
+                      Icons.computer_rounded,
+                      AppTheme.statusRecovered,
+                    ),
+                  ),
+                ],
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Divider(color: AppTheme.borderSubtle, height: 1),
+              ),
+              ModernProgressBar(
+                label: 'Rata-rata Utilisasi CPU Cluster',
+                percentage: pve.avgCpu,
+                color: Colors.white,
+              ),
+              const SizedBox(height: 14),
+              ModernProgressBar(
+                label: 'Rata-rata Utilisasi RAM Cluster',
+                percentage: pve.avgRam,
+                color: AppTheme.statusTeal,
+              ),
+              const SizedBox(height: 14),
+              ModernProgressBar(
+                label: 'Rata-rata IO Delay',
+                percentage: pve.avgIo,
+                color: AppTheme.statusWarning,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildProtocolCard(
+                title: 'ICMP PING',
+                icon: Icons.network_ping_rounded,
+                data: summary.icmp,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildProtocolCard(
+                title: 'TCP SOCKET',
+                icon: Icons.settings_ethernet_rounded,
+                data: summary.tcp,
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 

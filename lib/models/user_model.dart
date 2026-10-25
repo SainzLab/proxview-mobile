@@ -17,6 +17,14 @@ class UserModel {
     this.tokenExpiresAt,
   });
 
+  bool get isKepalaBidang {
+    final normalized = role.trim().toLowerCase();
+    return normalized.contains('kepala') ||
+        normalized.contains('kabid') ||
+        normalized.contains('pimpinan') ||
+        normalized.contains('manajer');
+  }
+
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
       id: (json['id'] as num?)?.toInt() ?? 0,

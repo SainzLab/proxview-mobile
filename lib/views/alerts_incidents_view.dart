@@ -18,6 +18,21 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   String _selectedFilter = 'Semua Status';
+  final Map<String, bool> _expandedMonitoringCards = {};
+
+  bool _isCardExpanded(String cardKey, {required bool defaultExpanded}) {
+    return _expandedMonitoringCards[cardKey] ?? defaultExpanded;
+  }
+
+  void _toggleCardExpanded(String cardKey, {required bool defaultExpanded}) {
+    setState(() {
+      final current = _isCardExpanded(
+        cardKey,
+        defaultExpanded: defaultExpanded,
+      );
+      _expandedMonitoringCards[cardKey] = !current;
+    });
+  }
 
   final List<String> _filterOptions = [
     'Semua Status',
@@ -149,6 +164,9 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
     final vm = context.watch<AlertIncidentViewModel>();
     final authVm = context.watch<AuthViewModel>();
     final currentUserName = authVm.currentUser?.name;
+    final isKepalaBidang = authVm.isKepalaBidang;
+    final unhandledCount =
+        vm.activeAlerts.where((a) => !a.isBeingHandled).length;
 
     final filteredActive = _filterAlerts(vm.activeAlerts);
     final filteredIncidents = _filterIncidents(vm.incidents);
@@ -162,7 +180,11 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
             SliverToBoxAdapter(
               child: Column(
                 children: [
-                  _buildIncidentStatsChart(vm.incidentStats),
+                  _buildIncidentStatsChart(
+                    vm.incidentStats,
+                    isKepalaBidang: isKepalaBidang,
+                    unhandledCount: unhandledCount,
+                  ),
                   Container(
                     color: AppTheme.background,
                     padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
@@ -284,6 +306,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                         vm,
                         filteredActive,
                         currentUserName: currentUserName,
+                        isKepalaBidang: isKepalaBidang,
                         emptyLabel: 'Tidak ada gangguan aktif saat ini.',
                         isActiveTab: true,
                         onLoadMore: () => vm.loadMoreActiveAlerts(),
@@ -293,6 +316,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                         vm,
                         filteredIncidents,
                         currentUserName,
+                        isKepalaBidang: isKepalaBidang,
                         onLoadMore: () => vm.loadMoreIncidents(),
                       ),
                       _buildAlertsList(
@@ -300,6 +324,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                         vm,
                         filteredHistory,
                         currentUserName: currentUserName,
+                        isKepalaBidang: isKepalaBidang,
                         emptyLabel: 'Belum ada riwayat gangguan selesai.',
                         isActiveTab: false,
                         onLoadMore: () => vm.loadMoreHistoryAlerts(),
@@ -310,12 +335,19 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
     );
   }
 
-  Widget _buildIncidentStatsChart(IncidentStatsModel stats) {
+  Widget _buildIncidentStatsChart(
+    IncidentStatsModel stats, {
+    required bool isKepalaBidang,
+    required int unhandledCount,
+  }) {
     final int sumSegments = stats.down +
         stats.critical +
         stats.warning +
         stats.progress +
         stats.resolved;
+    final double resolutionRate = stats.totalTickets > 0
+        ? (stats.resolved / stats.totalTickets * 100.0)
+        : 100.0;
 
     final items = [
       (
@@ -504,6 +536,26 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                 );
               }),
             ),
+            if (isKepalaBidang) ...[
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Divider(color: AppTheme.borderSubtle, height: 1),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Rasio Selesai: ${resolutionRate.toStringAsFixed(0)}%',
+                    style: const TextStyle(
+                      color: AppTheme.statusTeal,
+                      fontSize: 11,
+                      fontFamily: 'monospace',
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),
@@ -564,6 +616,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
     AlertIncidentViewModel vm,
     List<AlertModel> list, {
     required String? currentUserName,
+    required bool isKepalaBidang,
     required String emptyLabel,
     required bool isActiveTab,
     VoidCallback? onLoadMore,
@@ -600,6 +653,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                     vm,
                     list[index],
                     currentUserName: currentUserName,
+                    isKepalaBidang: isKepalaBidang,
                     isActiveTab: isActiveTab,
                   );
                 },
@@ -613,8 +667,35 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
     AlertIncidentViewModel vm,
     AlertModel alert, {
     required String? currentUserName,
+    required bool isKepalaBidang,
     required bool isActiveTab,
   }) {
+    if (isKepalaBidang) {
+      final year = DateTime.tryParse(alert.createdAt)?.year ?? DateTime.now().year;
+      final ticketCode =
+          '#INC-$year-${alert.id.toString().padLeft(4, '0')}';
+      final displaySeverity =
+          alert.originalSeverity.isNotEmpty &&
+                  alert.severity.toUpperCase() == 'RECOVERED'
+              ? alert.originalSeverity
+              : alert.severity;
+      return _buildKabidMonitoringCard(
+        cardKey: 'alert_${alert.id}_${isActiveTab ? "act" : "hist"}',
+        ticketCode: ticketCode,
+        timestamp: alert.createdAt,
+        title: alert.message.isNotEmpty ? alert.message : alert.targetName,
+        targetLabel: '${alert.targetType} - ${alert.targetName}',
+        badgeSeverity: displaySeverity,
+        currentSeverity: alert.severity,
+        isResolved: alert.isResolved,
+        isBeingHandled: alert.isBeingHandled,
+        technicians: alert.technicians,
+        downtimeDuration: null,
+        handlingDuration: null,
+        defaultExpanded: isActiveTab,
+      );
+    }
+
     final color = AppTheme.severityColor(alert.severity);
     final isCall = alert.isEmergencyCall;
 
@@ -709,7 +790,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
               ),
             ],
           ),
-          if (isActiveTab) ...[
+          if (isActiveTab && !isKepalaBidang) ...[
             const SizedBox(height: 16),
             Row(
               children: [
@@ -789,6 +870,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
     AlertIncidentViewModel vm,
     List<IncidentTicketModel> incidents,
     String? currentUserName, {
+    required bool isKepalaBidang,
     VoidCallback? onLoadMore,
   }) {
     return RefreshIndicator(
@@ -820,6 +902,32 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                   }
 
                   final ticket = incidents[index];
+                  if (isKepalaBidang) {
+                    final displaySeverity =
+                        ticket.originalSeverity.isNotEmpty &&
+                                ticket.severity.toUpperCase() == 'RECOVERED'
+                            ? ticket.originalSeverity
+                            : ticket.severity;
+                    final hasTech = ticket.technicians != null &&
+                        ticket.technicians!.trim().isNotEmpty &&
+                        ticket.technicians!.trim() != '-';
+                    return _buildKabidMonitoringCard(
+                      cardKey: 'ticket_${ticket.dbId}_${ticket.ticketCode}',
+                      ticketCode: ticket.ticketCode,
+                      timestamp: ticket.time,
+                      title: ticket.title.isNotEmpty ? ticket.title : ticket.target,
+                      targetLabel: ticket.target,
+                      badgeSeverity: displaySeverity,
+                      currentSeverity: ticket.severity,
+                      isResolved: ticket.isResolved,
+                      isBeingHandled: hasTech,
+                      technicians: ticket.technicians,
+                      downtimeDuration: ticket.downtimeDuration,
+                      handlingDuration: ticket.handlingDuration,
+                      defaultExpanded: !ticket.isResolved,
+                    );
+                  }
+
                   final color = AppTheme.severityColor(ticket.severity);
                   final bool hasJoined = currentUserName != null &&
                       ticket.technicians != null &&
@@ -903,7 +1011,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                             _buildChipInfo(Icons.person_outline_rounded, 'Teknisi: ${ticket.technicians ?? "-"}'),
                           ],
                         ),
-                        if (!ticket.isResolved) ...[
+                        if (!ticket.isResolved && !isKepalaBidang) ...[
                           const SizedBox(height: 16),
                           Row(
                             children: [
@@ -979,6 +1087,426 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                 },
               ),
             ),
+    );
+  }
+
+  Widget _buildKabidMonitoringCard({
+    required String cardKey,
+    required String ticketCode,
+    required String timestamp,
+    required String title,
+    required String targetLabel,
+    required String badgeSeverity,
+    required String currentSeverity,
+    required bool isResolved,
+    required bool isBeingHandled,
+    required String? technicians,
+    required String? downtimeDuration,
+    required String? handlingDuration,
+    required bool defaultExpanded,
+  }) {
+    final isExpanded = _isCardExpanded(
+      cardKey,
+      defaultExpanded: defaultExpanded,
+    );
+    final sevColor = AppTheme.severityColor(badgeSeverity);
+    final isProxmox = targetLabel.toUpperCase().contains('PROXMOX');
+
+    // Stage 1: Terdeteksi (belum ditangani), Stage 2: Perbaikan, Stage 3: Terkonfirmasi (Selesai)
+    final int stage = isResolved ? 3 : (isBeingHandled ? 2 : 1);
+    final bool isRecoveredWaitingConfirm =
+        !isResolved && currentSeverity.toUpperCase() == 'RECOVERED';
+
+    late final Color statusColor;
+    late final IconData statusIcon;
+    late final String statusTitle;
+    late final String statusSubtitle;
+    late final String statusBadgeText;
+
+    final techName = (technicians != null &&
+            technicians.trim().isNotEmpty &&
+            technicians.trim() != '-')
+        ? technicians.trim()
+        : 'Teknisi';
+
+    if (stage == 1) {
+      statusColor = AppTheme.statusDown;
+      statusIcon = Icons.notifications_active_outlined;
+      statusTitle = 'Menunggu Penanganan';
+      statusSubtitle = 'Sistem sedang menunggu respons dari teknisi.';
+      statusBadgeText = 'TERDETEKSI';
+    } else if (stage == 2) {
+      statusColor = isRecoveredWaitingConfirm
+          ? AppTheme.statusTeal
+          : AppTheme.statusRecovered;
+      statusIcon = isRecoveredWaitingConfirm
+          ? Icons.task_alt_rounded
+          : Icons.build_outlined;
+      statusTitle = isRecoveredWaitingConfirm
+          ? 'Layanan Pulih • Menunggu Konfirmasi'
+          : 'Sedang Dalam Perbaikan';
+      final durPart =
+          (handlingDuration != null &&
+                  handlingDuration.isNotEmpty &&
+                  handlingDuration != '-')
+              ? ' • Durasi: $handlingDuration'
+              : '';
+      statusSubtitle = 'Ditangani oleh $techName$durPart.';
+      statusBadgeText = isRecoveredWaitingConfirm ? 'PULIH' : 'PERBAIKAN';
+    } else {
+      statusColor = AppTheme.statusTeal;
+      statusIcon = Icons.verified_outlined;
+      statusTitle = 'Penanganan Terkonfirmasi';
+      final downPart =
+          (downtimeDuration != null &&
+                  downtimeDuration.isNotEmpty &&
+                  downtimeDuration != '-')
+              ? ' • Total Downtime: $downtimeDuration'
+              : '';
+      statusSubtitle = 'Diselesaikan oleh $techName$downPart.';
+      statusBadgeText = 'TERKONFIRMASI';
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      decoration: BoxDecoration(
+        color: AppTheme.cardBackground,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: !isResolved
+              ? sevColor.withValues(alpha: 0.35)
+              : AppTheme.borderSubtle,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.25),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header Card
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 4,
+                    decoration: BoxDecoration(
+                      color: sevColor,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '$ticketCode  •  ${Formatters.formatDateTime(timestamp)}',
+                          style: const TextStyle(
+                            color: Colors.white60,
+                            fontSize: 11,
+                            fontFamily: 'monospace',
+                            fontWeight: FontWeight.w700,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          title,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            height: 1.3,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 6,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  isProxmox
+                                      ? Icons.dns_outlined
+                                      : Icons.router_outlined,
+                                  size: 14,
+                                  color: Colors.white54,
+                                ),
+                                const SizedBox(width: 5),
+                                Flexible(
+                                  child: Text(
+                                    targetLabel,
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 12,
+                                      fontFamily: 'monospace',
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            StatusBadge(
+                              label: badgeSeverity,
+                              color: sevColor,
+                              showDot: false,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  InkWell(
+                    onTap: () => _toggleCardExpanded(
+                      cardKey,
+                      defaultExpanded: defaultExpanded,
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 7,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.surfaceBackground,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppTheme.borderSubtle),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            isExpanded
+                                ? Icons.keyboard_arrow_up_rounded
+                                : Icons.keyboard_arrow_down_rounded,
+                            size: 16,
+                            color: Colors.white70,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            isExpanded ? 'Tutup' : 'Detail',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Body: Laporan Pemantauan (3-Step Stepper + Info Box)
+          if (isExpanded) ...[
+            const Divider(color: AppTheme.borderSubtle, height: 1),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Text(
+                        'LAPORAN PEMANTAUAN',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.9,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  _buildMonitoringStepper(
+                    stage: stage,
+                    isRecoveredWaitingConfirm: isRecoveredWaitingConfirm,
+                  ),
+                  const SizedBox(height: 18),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: AppTheme.surfaceBackground,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: statusColor.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: statusColor.withValues(alpha: 0.14),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            statusIcon,
+                            color: statusColor,
+                            size: 19,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                statusTitle,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                statusSubtitle,
+                                style: const TextStyle(
+                                  color: Colors.white60,
+                                  fontSize: 11.5,
+                                  height: 1.35,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: statusColor.withValues(alpha: 0.14),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: statusColor.withValues(alpha: 0.35),
+                            ),
+                          ),
+                          child: Text(
+                            statusBadgeText,
+                            style: TextStyle(
+                              color: statusColor,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.6,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMonitoringStepper({
+    required int stage,
+    required bool isRecoveredWaitingConfirm,
+  }) {
+    final bool step2Active = stage >= 2;
+    final bool step3Active = stage >= 3;
+
+    final Color activeStepColor = AppTheme.statusTeal;
+    final Color currentStep2Color = isRecoveredWaitingConfirm
+        ? AppTheme.statusTeal
+        : AppTheme.statusRecovered;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Row(
+        children: [
+          // Step 1 Circle: Gangguan Terdeteksi
+          _buildStepCircle(
+            isCompleted: true,
+            isCurrent: stage == 1,
+            activeColor: stage == 1 ? Colors.white : activeStepColor,
+            icon: Icons.check_rounded,
+          ),
+          // Connector 1 -> 2
+          Expanded(
+            child: Container(
+              height: 2,
+              color: step2Active
+                  ? (stage == 3 ? activeStepColor : currentStep2Color)
+                  : AppTheme.borderSubtle,
+            ),
+          ),
+          // Step 2 Circle: Perbaikan
+          _buildStepCircle(
+            isCompleted: stage >= 3,
+            isCurrent: stage == 2,
+            activeColor: stage >= 3 ? activeStepColor : currentStep2Color,
+            icon: stage >= 3 ? Icons.check_rounded : Icons.build_rounded,
+          ),
+          // Connector 2 -> 3
+          Expanded(
+            child: Container(
+              height: 2,
+              color: step3Active ? activeStepColor : AppTheme.borderSubtle,
+            ),
+          ),
+          // Step 3 Circle: Terkonfirmasi / Selesai
+          _buildStepCircle(
+            isCompleted: step3Active,
+            isCurrent: step3Active,
+            activeColor: activeStepColor,
+            icon: Icons.task_alt_rounded,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStepCircle({
+    required bool isCompleted,
+    required bool isCurrent,
+    required Color activeColor,
+    required IconData icon,
+  }) {
+    final bool lit = isCompleted || isCurrent;
+    final Color bgColor = lit
+        ? activeColor.withValues(alpha: 0.18)
+        : AppTheme.surfaceBackground;
+    final Color borderColor = lit ? activeColor : AppTheme.borderHighlight;
+    final Color fgColor = lit ? activeColor : Colors.white38;
+
+    return Container(
+      width: 32,
+      height: 32,
+      decoration: BoxDecoration(
+        color: bgColor,
+        shape: BoxShape.circle,
+        border: Border.all(color: borderColor, width: lit ? 1.5 : 1.0),
+      ),
+      child: Center(
+        child: Icon(icon, size: 15, color: fgColor),
+      ),
     );
   }
 

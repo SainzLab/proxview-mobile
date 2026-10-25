@@ -106,6 +106,7 @@ Berikut adalah ringkasan seluruh **20 endpoint** yang tersedia untuk aplikasi Fl
 | | `POST` | `/api/mobile/v1/alerts/join` | Konfirmasi teknisi mulai menangani gangguan (Join Tiket) |
 | | `POST` | `/api/mobile/v1/alerts/resolve` | Menutup tiket gangguan setelah status `RECOVERED` |
 | | `GET` | `/api/mobile/v1/incidents` | Daftar lengkap seluruh tiket (`#INC-YYYY-XXXX`) + durasi |
+| | `GET` | `/api/mobile/v1/incidents/stats` | Ringkasan statistik status insiden (`down`, `critical`, `warning`, `progress`, `resolved`) |
 | | `POST` | `/api/mobile/v1/incidents/join` | Alias dari `/alerts/join` |
 | | `POST` | `/api/mobile/v1/incidents/resolve` | Alias dari `/alerts/resolve` |
 | **4. Analitik SLA** | `GET` | `/api/mobile/v1/analytics` | Metrik ITIL SLA (Uptime, Downtime, MTTR, Availability, Grafik) |
