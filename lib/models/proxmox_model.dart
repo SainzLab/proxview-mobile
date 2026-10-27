@@ -159,6 +159,7 @@ class ProxmoxStorageModel {
   final String type;
   final String used;
   final String total;
+  final String status;
 
   const ProxmoxStorageModel({
     required this.storage,
@@ -166,7 +167,16 @@ class ProxmoxStorageModel {
     required this.type,
     required this.used,
     required this.total,
+    this.status = '',
   });
+
+  bool get isActive {
+    if (status.isNotEmpty) {
+      final s = status.toLowerCase();
+      return s == 'available' || s == 'active' || s == 'online' || s == 'ok';
+    }
+    return total != '0 B' && total != '0' && total.isNotEmpty && total != '-';
+  }
 
   factory ProxmoxStorageModel.fromJson(Map<String, dynamic> json) {
     return ProxmoxStorageModel(
@@ -175,6 +185,7 @@ class ProxmoxStorageModel {
       type: json['type']?.toString() ?? '',
       used: json['used']?.toString() ?? '0 B',
       total: json['total']?.toString() ?? '0 B',
+      status: json['status']?.toString() ?? '',
     );
   }
 }

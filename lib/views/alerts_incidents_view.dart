@@ -131,7 +131,11 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
         } else if (_selectedFilter == 'Selesai') {
           matchesFilter = a.isResolved;
         } else {
-          matchesFilter = a.severity.toUpperCase() == _selectedFilter.toUpperCase();
+          final effSev = (a.originalSeverity.isNotEmpty &&
+                  a.severity.toUpperCase() == 'RECOVERED')
+              ? a.originalSeverity.toUpperCase()
+              : a.severity.toUpperCase();
+          matchesFilter = effSev == _selectedFilter.toUpperCase();
         }
       }
       return matchesSearch && matchesFilter;
@@ -152,7 +156,11 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
         } else if (_selectedFilter == 'Selesai') {
           matchesFilter = t.isResolved || t.status.toLowerCase().contains('selesai');
         } else {
-          matchesFilter = t.severity.toUpperCase() == _selectedFilter.toUpperCase();
+          final effSev = (t.originalSeverity.isNotEmpty &&
+                  t.severity.toUpperCase() == 'RECOVERED')
+              ? t.originalSeverity.toUpperCase()
+              : t.severity.toUpperCase();
+          matchesFilter = effSev == _selectedFilter.toUpperCase();
         }
       }
       return matchesSearch && matchesFilter;
@@ -173,7 +181,8 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
     final filteredHistory = _filterAlerts(vm.historyAlerts);
 
     return DefaultTabController(
-      length: 3,
+      key: ValueKey(isKepalaBidang),
+      length: isKepalaBidang ? 2 : 3,
       child: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [
@@ -189,11 +198,16 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                     color: AppTheme.background,
                     padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
                     child: SegmentedTabBar(
-                      tabs: [
-                        Tab(text: 'AKTIF (${vm.activeAlerts.length})'),
-                        Tab(text: 'TIKET (${vm.incidents.length})'),
-                        Tab(text: 'RIWAYAT (${vm.historyAlerts.length})'),
-                      ],
+                      tabs: isKepalaBidang
+                          ? [
+                              Tab(text: 'AKTIF (${vm.activeAlerts.length})'),
+                              Tab(text: 'RIWAYAT (${vm.historyAlerts.length})'),
+                            ]
+                          : [
+                              Tab(text: 'AKTIF (${vm.activeAlerts.length})'),
+                              Tab(text: 'TIKET (${vm.incidents.length})'),
+                              Tab(text: 'RIWAYAT (${vm.historyAlerts.length})'),
+                            ],
                     ),
                   ),
                   Container(
@@ -311,14 +325,15 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                         isActiveTab: true,
                         onLoadMore: () => vm.loadMoreActiveAlerts(),
                       ),
-                      _buildIncidentsList(
-                        context,
-                        vm,
-                        filteredIncidents,
-                        currentUserName,
-                        isKepalaBidang: isKepalaBidang,
-                        onLoadMore: () => vm.loadMoreIncidents(),
-                      ),
+                      if (!isKepalaBidang)
+                        _buildIncidentsList(
+                          context,
+                          vm,
+                          filteredIncidents,
+                          currentUserName,
+                          isKepalaBidang: isKepalaBidang,
+                          onLoadMore: () => vm.loadMoreIncidents(),
+                        ),
                       _buildAlertsList(
                         context,
                         vm,
@@ -340,11 +355,12 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
     required bool isKepalaBidang,
     required int unhandledCount,
   }) {
-    final int sumSegments = stats.down +
-        stats.critical +
-        stats.warning +
-        stats.progress +
-        stats.resolved;
+    // Tampilkan akumulasi seluruh total (frontend) untuk DOWN, CRITICAL, WARNING
+    final displayDown = stats.totalDown;
+    final displayCritical = stats.totalCritical;
+    final displayWarning = stats.totalWarning;
+    final int severityTotal = displayDown + displayCritical + displayWarning;
+
     final double resolutionRate = stats.totalTickets > 0
         ? (stats.resolved / stats.totalTickets * 100.0)
         : 100.0;
@@ -353,19 +369,19 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
       (
         label: 'DOWN',
         filterKey: 'DOWN',
-        count: stats.down,
+        count: displayDown,
         color: AppTheme.statusDown,
       ),
       (
         label: 'CRITICAL',
         filterKey: 'CRITICAL',
-        count: stats.critical,
+        count: displayCritical,
         color: AppTheme.statusCritical,
       ),
       (
         label: 'WARNING',
         filterKey: 'WARNING',
-        count: stats.warning,
+        count: displayWarning,
         color: AppTheme.statusWarning,
       ),
       (
@@ -442,10 +458,14 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
               borderRadius: BorderRadius.circular(6),
               child: SizedBox(
                 height: 8,
-                child: sumSegments <= 0
+                child: severityTotal <= 0
                     ? Container(color: Colors.white10)
                     : Row(
-                        children: items
+                        children: [
+                          (count: displayDown, color: AppTheme.statusDown),
+                          (count: displayCritical, color: AppTheme.statusCritical),
+                          (count: displayWarning, color: AppTheme.statusWarning),
+                        ]
                             .where((item) => item.count > 0)
                             .map((item) {
                           return Expanded(
@@ -1056,7 +1076,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                                             ticket.dbId,
                                             targetLabel: '${ticket.ticketCode} (${ticket.target})',
                                           ),
-                                  icon: const Icon(Icons.check_circle_outline_rounded, size: 16),
+                                  icon: const Icon(Icons.warehouse, size: 16),
                                   label: const Text(
                                     'SELESAIKAN',
                                     style: TextStyle(
@@ -1185,242 +1205,212 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header Card
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 4,
-                    decoration: BoxDecoration(
-                      color: sevColor,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '$ticketCode  •  ${Formatters.formatDateTime(timestamp)}',
-                          style: const TextStyle(
-                            color: Colors.white60,
-                            fontSize: 11,
-                            fontFamily: 'monospace',
-                            fontWeight: FontWeight.w700,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: () => _toggleCardExpanded(
+            cardKey,
+            defaultExpanded: defaultExpanded,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header Card
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 4,
+                        decoration: BoxDecoration(
+                          color: sevColor,
+                          borderRadius: BorderRadius.circular(4),
                         ),
-                        const SizedBox(height: 6),
-                        Text(
-                          title,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
-                            height: 1.3,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 6,
-                          crossAxisAlignment: WrapCrossAlignment.center,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
+                            Text(
+                              '$ticketCode  •  ${Formatters.formatDateTime(timestamp)}',
+                              style: const TextStyle(
+                                color: Colors.white60,
+                                fontSize: 11,
+                                fontFamily: 'monospace',
+                                fontWeight: FontWeight.w700,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              title,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                height: 1.3,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 6,
+                              crossAxisAlignment: WrapCrossAlignment.center,
                               children: [
-                                Icon(
-                                  isProxmox
-                                      ? Icons.dns_outlined
-                                      : Icons.router_outlined,
-                                  size: 14,
-                                  color: Colors.white54,
-                                ),
-                                const SizedBox(width: 5),
-                                Flexible(
-                                  child: Text(
-                                    targetLabel,
-                                    style: const TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 12,
-                                      fontFamily: 'monospace',
-                                      fontWeight: FontWeight.w600,
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      isProxmox
+                                          ? Icons.dns_outlined
+                                          : Icons.router_outlined,
+                                      size: 14,
+                                      color: Colors.white54,
                                     ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
+                                    const SizedBox(width: 5),
+                                    Flexible(
+                                      child: Text(
+                                        targetLabel,
+                                        style: const TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 12,
+                                          fontFamily: 'monospace',
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                StatusBadge(
+                                  label: badgeSeverity,
+                                  color: sevColor,
+                                  showDot: false,
                                 ),
                               ],
                             ),
-                            StatusBadge(
-                              label: badgeSeverity,
-                              color: sevColor,
-                              showDot: false,
-                            ),
                           ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  InkWell(
-                    onTap: () => _toggleCardExpanded(
-                      cardKey,
-                      defaultExpanded: defaultExpanded,
-                    ),
-                    borderRadius: BorderRadius.circular(10),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 7,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppTheme.surfaceBackground,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: AppTheme.borderSubtle),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            isExpanded
-                                ? Icons.keyboard_arrow_up_rounded
-                                : Icons.keyboard_arrow_down_rounded,
-                            size: 16,
-                            color: Colors.white70,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            isExpanded ? 'Tutup' : 'Detail',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // Body: Laporan Pemantauan (3-Step Stepper + Info Box)
-          if (isExpanded) ...[
-            const Divider(color: AppTheme.borderSubtle, height: 1),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Text(
-                        'LAPORAN PEMANTAUAN',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.9,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 18),
-                  _buildMonitoringStepper(
-                    stage: stage,
-                    isRecoveredWaitingConfirm: isRecoveredWaitingConfirm,
-                  ),
-                  const SizedBox(height: 18),
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: AppTheme.surfaceBackground,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: statusColor.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 38,
-                          height: 38,
-                          decoration: BoxDecoration(
-                            color: statusColor.withValues(alpha: 0.14),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            statusIcon,
-                            color: statusColor,
-                            size: 19,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                statusTitle,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                              const SizedBox(height: 3),
-                              Text(
-                                statusSubtitle,
-                                style: const TextStyle(
-                                  color: Colors.white60,
-                                  fontSize: 11.5,
-                                  height: 1.35,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: statusColor.withValues(alpha: 0.14),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: statusColor.withValues(alpha: 0.35),
-                            ),
-                          ),
-                          child: Text(
-                            statusBadgeText,
-                            style: TextStyle(
-                              color: statusColor,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 0.6,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ],
-        ],
+
+              // Body: Laporan Pemantauan (3-Step Stepper + Info Box)
+              if (isExpanded) ...[
+                const Divider(color: AppTheme.borderSubtle, height: 1),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Text(
+                            'LAPORAN PEMANTAUAN',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.9,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 18),
+                      _buildMonitoringStepper(
+                        stage: stage,
+                        isRecoveredWaitingConfirm: isRecoveredWaitingConfirm,
+                      ),
+                      const SizedBox(height: 18),
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: AppTheme.surfaceBackground,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: statusColor.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 38,
+                              height: 38,
+                              decoration: BoxDecoration(
+                                color: statusColor.withValues(alpha: 0.14),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                statusIcon,
+                                color: statusColor,
+                                size: 19,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    statusTitle,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    statusSubtitle,
+                                    style: const TextStyle(
+                                      color: Colors.white60,
+                                      fontSize: 11.5,
+                                      height: 1.35,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: statusColor.withValues(alpha: 0.14),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: statusColor.withValues(alpha: 0.35),
+                                ),
+                              ),
+                              child: Text(
+                                statusBadgeText,
+                                style: TextStyle(
+                                  color: statusColor,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 0.6,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1446,7 +1436,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
             isCompleted: true,
             isCurrent: stage == 1,
             activeColor: stage == 1 ? Colors.white : activeStepColor,
-            icon: Icons.check_rounded,
+            icon: Icons.warning,
           ),
           // Connector 1 -> 2
           Expanded(

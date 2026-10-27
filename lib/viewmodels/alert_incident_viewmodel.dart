@@ -26,20 +26,103 @@ class AlertIncidentViewModel extends ChangeNotifier {
   List<AlertModel> get activeAlerts => _activeAlerts;
   List<AlertModel> get historyAlerts => _historyAlerts;
   List<IncidentTicketModel> get incidents => _incidents;
+
+  /// Perhitungan total insiden DOWN dari sisi frontend (akumulasi seluruh tiket/riwayat)
+  int get totalDownCount {
+    if (_incidents.isNotEmpty) {
+      return _incidents.where((t) {
+        final s = (t.originalSeverity.isNotEmpty &&
+                t.originalSeverity.toUpperCase() != 'RECOVERED')
+            ? t.originalSeverity.toUpperCase().trim()
+            : t.severity.toUpperCase().trim();
+        return s == 'DOWN';
+      }).length;
+    }
+    final all = [..._activeAlerts, ..._historyAlerts];
+    return all.where((a) {
+      final s = (a.originalSeverity.isNotEmpty &&
+              a.severity.toUpperCase() != 'RECOVERED')
+          ? a.originalSeverity.toUpperCase().trim()
+          : a.severity.toUpperCase().trim();
+      return s == 'DOWN';
+    }).length;
+  }
+
+  /// Perhitungan total insiden CRITICAL dari sisi frontend (akumulasi seluruh tiket/riwayat)
+  int get totalCriticalCount {
+    if (_incidents.isNotEmpty) {
+      return _incidents.where((t) {
+        final s = (t.originalSeverity.isNotEmpty &&
+                t.originalSeverity.toUpperCase() != 'RECOVERED')
+            ? t.originalSeverity.toUpperCase().trim()
+            : t.severity.toUpperCase().trim();
+        return s == 'CRITICAL';
+      }).length;
+    }
+    final all = [..._activeAlerts, ..._historyAlerts];
+    return all.where((a) {
+      final s = (a.originalSeverity.isNotEmpty &&
+              a.severity.toUpperCase() != 'RECOVERED')
+          ? a.originalSeverity.toUpperCase().trim()
+          : a.severity.toUpperCase().trim();
+      return s == 'CRITICAL';
+    }).length;
+  }
+
+  /// Perhitungan total insiden WARNING dari sisi frontend (akumulasi seluruh tiket/riwayat)
+  int get totalWarningCount {
+    if (_incidents.isNotEmpty) {
+      return _incidents.where((t) {
+        final s = (t.originalSeverity.isNotEmpty &&
+                t.originalSeverity.toUpperCase() != 'RECOVERED')
+            ? t.originalSeverity.toUpperCase().trim()
+            : t.severity.toUpperCase().trim();
+        return s == 'WARNING';
+      }).length;
+    }
+    final all = [..._activeAlerts, ..._historyAlerts];
+    return all.where((a) {
+      final s = (a.originalSeverity.isNotEmpty &&
+              a.severity.toUpperCase() != 'RECOVERED')
+          ? a.originalSeverity.toUpperCase().trim()
+          : a.severity.toUpperCase().trim();
+      return s == 'WARNING';
+    }).length;
+  }
+
   IncidentStatsModel get incidentStats {
-    if (_incidentStats != null) return _incidentStats!;
-    int down = 0;
-    int critical = 0;
-    int warning = 0;
+    final baseStats = _incidentStats;
+    final totalDown = totalDownCount;
+    final totalCrit = totalCriticalCount;
+    final totalWarn = totalWarningCount;
+
+    if (baseStats != null) {
+      return IncidentStatsModel(
+        down: baseStats.down,
+        critical: baseStats.critical,
+        warning: baseStats.warning,
+        progress: baseStats.progress,
+        resolved: baseStats.resolved,
+        totalActive: baseStats.totalActive,
+        totalTickets: baseStats.totalTickets,
+        totalDown: totalDown,
+        totalCritical: totalCrit,
+        totalWarning: totalWarn,
+      );
+    }
+
+    int activeDown = 0;
+    int activeCrit = 0;
+    int activeWarn = 0;
     int progress = 0;
     for (final a in _activeAlerts) {
       final sev = a.severity.toUpperCase();
       if (sev == 'DOWN') {
-        down++;
+        activeDown++;
       } else if (sev == 'CRITICAL') {
-        critical++;
+        activeCrit++;
       } else if (sev == 'WARNING') {
-        warning++;
+        activeWarn++;
       }
       if (a.isBeingHandled) {
         progress++;
@@ -48,13 +131,16 @@ class AlertIncidentViewModel extends ChangeNotifier {
     final resolved = _historyAlerts.length;
     final totalActive = _activeAlerts.length;
     return IncidentStatsModel(
-      down: down,
-      critical: critical,
-      warning: warning,
+      down: activeDown,
+      critical: activeCrit,
+      warning: activeWarn,
       progress: progress,
       resolved: resolved,
       totalActive: totalActive,
       totalTickets: totalActive + resolved,
+      totalDown: totalDown,
+      totalCritical: totalCrit,
+      totalWarning: totalWarn,
     );
   }
   bool get isLoading => _isLoading;

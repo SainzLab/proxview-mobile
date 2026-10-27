@@ -118,6 +118,9 @@ class IncidentStatsModel {
   final int resolved;
   final int totalActive;
   final int totalTickets;
+  final int totalDown;
+  final int totalCritical;
+  final int totalWarning;
 
   const IncidentStatsModel({
     required this.down,
@@ -127,6 +130,9 @@ class IncidentStatsModel {
     required this.resolved,
     required this.totalActive,
     required this.totalTickets,
+    this.totalDown = 0,
+    this.totalCritical = 0,
+    this.totalWarning = 0,
   });
 
   factory IncidentStatsModel.fromJson(Map<String, dynamic> json) {
@@ -148,6 +154,9 @@ class IncidentStatsModel {
       resolved: resolved,
       totalActive: totalActive,
       totalTickets: totalTickets,
+      totalDown: (json['total_down'] as num?)?.toInt() ?? down,
+      totalCritical: (json['total_critical'] as num?)?.toInt() ?? critical,
+      totalWarning: (json['total_warning'] as num?)?.toInt() ?? warning,
     );
   }
 }

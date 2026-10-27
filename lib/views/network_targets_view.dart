@@ -141,24 +141,6 @@ class _NetworkTargetsViewState extends State<NetworkTargetsView>
     );
   }
 
-  int _countFor(NetworkViewModel vm, String filter) {
-    var list = vm.allTargets;
-    if (filter != 'ALL') {
-      list = list.where((t) => t.protocol.toUpperCase().contains(filter)).toList();
-    }
-    if (vm.searchQuery.trim().isEmpty) return list.length;
-    final q = vm.searchQuery.trim().toLowerCase();
-    return list.where((t) {
-      final portStr = t.port != null ? ':${t.port}' : '';
-      return t.name.toLowerCase().contains(q) ||
-          t.description.toLowerCase().contains(q) ||
-          t.ipAddress.toLowerCase().contains(q) ||
-          portStr.contains(q) ||
-          t.protocol.toLowerCase().contains(q) ||
-          t.status.toLowerCase().contains(q);
-    }).length;
-  }
-
   Widget _buildFilterTabs(NetworkViewModel vm) {
     return SegmentedTabBar(
       controller: _tabController,
@@ -168,10 +150,10 @@ class _NetworkTargetsViewState extends State<NetworkTargetsView>
           vm.setProtocolFilter(newFilter);
         }
       },
-      tabs: [
-        Tab(text: 'SEMUA (${_countFor(vm, 'ALL')})'),
-        Tab(text: 'ICMP (${_countFor(vm, 'ICMP')})'),
-        Tab(text: 'TCP (${_countFor(vm, 'TCP')})'),
+      tabs: const [
+        Tab(text: 'SEMUA'),
+        Tab(text: 'ICMP'),
+        Tab(text: 'TCP'),
       ],
     );
   }

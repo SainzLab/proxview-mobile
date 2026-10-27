@@ -21,16 +21,41 @@ class _ResourceViewState extends State<ResourceView> {
     final pveVm = context.watch<ProxmoxViewModel>();
     final netVm = context.watch<NetworkViewModel>();
 
+    // 1. Data Node Fisik
     final totalNodes = pveVm.nodeStatuses.length;
     final onlineNodes = pveVm.nodeStatuses.where((n) => n.isOnline).length;
-    final totalGuests =
-        pveVm.resources.vms.length + pveVm.resources.lxcs.length;
-    final runningGuests =
-        pveVm.resources.vms.where((v) => v.isRunning).length +
-        pveVm.resources.lxcs.where((l) => l.isRunning).length;
 
+    // 2. Data VM (QEMU) & LXC (Container)
+    final totalVms = pveVm.resources.vms.length;
+    final runningVms = pveVm.resources.vms.where((v) => v.isRunning).length;
+
+    final totalLxcs = pveVm.resources.lxcs.length;
+    final runningLxcs = pveVm.resources.lxcs.where((l) => l.isRunning).length;
+
+    final totalGuests = totalVms + totalLxcs;
+    final runningGuests = runningVms + runningLxcs;
+    final stoppedGuests = totalGuests - runningGuests;
+
+    // 3. Data Storage Cluster
+    final totalStorages = pveVm.resources.storages.length;
+    final activeStorages =
+        pveVm.resources.storages.where((s) => s.isActive).length;
+    final inactiveStorages = totalStorages - activeStorages;
+
+    // 4. Data Target Jaringan
     final totalTargets = netVm.allTargets.length;
     final upTargets = netVm.allTargets.where((t) => t.isUp).length;
+    final downTargets = totalTargets - upTargets;
+    final icmpCount = netVm.allTargets
+        .where((t) => t.protocol.toUpperCase().contains('ICMP'))
+        .length;
+    final tcpCount = netVm.allTargets
+        .where((t) => t.protocol.toUpperCase().contains('TCP'))
+        .length;
+
+    final hasProxmoxAlert =
+        onlineNodes < totalNodes || stoppedGuests > 0 || inactiveStorages > 0;
+    final hasNetworkAlert = upTargets < totalTargets;
 
     return Column(
       children: [
@@ -43,11 +68,14 @@ class _ResourceViewState extends State<ResourceView> {
                 child: _buildCategoryCard(
                   index: 0,
                   icon: Icons.dns_rounded,
-                  title: 'CLUSTER PROXMOX',
-                  primaryStat: '$onlineNodes/$totalNodes Node',
-                  secondaryStat: '$runningGuests/$totalGuests Guest Aktif',
+                  title: 'PROXMOX',
+                  primaryStat: '$onlineNodes/$totalNodes Node Online',
+                  secondaryStat:
+                      'VM/LXC: $runningGuests Aktif • $stoppedGuests Non-Aktif',
+                  tertiaryStat:
+                      'Storage: $activeStorages Aktif • $inactiveStorages Non-Aktif',
                   accentColor: AppTheme.statusTeal,
-                  hasAlert: onlineNodes < totalNodes,
+                  hasAlert: hasProxmoxAlert,
                 ),
               ),
               const SizedBox(width: 10),
@@ -55,12 +83,14 @@ class _ResourceViewState extends State<ResourceView> {
                 child: _buildCategoryCard(
                   index: 1,
                   icon: Icons.router_rounded,
-                  title: 'JARINGAN ICMP & TCP',
-                  primaryStat: '$upTargets/$totalTargets UP',
-                  secondaryStat:
-                      '${totalTargets - upTargets} Target Gangguan',
+                  title: 'ICMP & TCP',
+                  primaryStat: '$upTargets/$totalTargets Target UP',
+                  secondaryStat: downTargets > 0
+                      ? '$downTargets Target Gangguan'
+                      : 'Semua Target Normal',
+                  tertiaryStat: '$icmpCount ICMP • $tcpCount TCP Socket',
                   accentColor: AppTheme.statusRecovered,
-                  hasAlert: upTargets < totalTargets,
+                  hasAlert: hasNetworkAlert,
                 ),
               ),
             ],
@@ -71,7 +101,7 @@ class _ResourceViewState extends State<ResourceView> {
           child: IndexedStack(
             index: _selectedCategory,
             children: const [
-              ProxmoxView(),
+              ProxmoxView(summaryOnly: true),
               NetworkTargetsView(),
             ],
           ),
@@ -86,6 +116,7 @@ class _ResourceViewState extends State<ResourceView> {
     required String title,
     required String primaryStat,
     required String secondaryStat,
+    String? tertiaryStat,
     required Color accentColor,
     required bool hasAlert,
   }) {
@@ -144,24 +175,37 @@ class _ResourceViewState extends State<ResourceView> {
               primaryStat,
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 15,
+                fontSize: 14,
                 fontWeight: FontWeight.w900,
                 fontFamily: 'monospace',
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 3),
             Text(
               secondaryStat,
               style: TextStyle(
                 color: hasAlert ? AppTheme.statusDown : Colors.white54,
-                fontSize: 10.5,
+                fontSize: 9.5,
                 fontWeight: hasAlert ? FontWeight.bold : FontWeight.w500,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
+            if (tertiaryStat != null) ...[
+              const SizedBox(height: 2),
+              Text(
+                tertiaryStat,
+                style: const TextStyle(
+                  color: Colors.white38,
+                  fontSize: 9,
+                  fontWeight: FontWeight.normal,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ],
         ),
       ),

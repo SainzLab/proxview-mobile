@@ -170,7 +170,7 @@ class _LoginViewState extends State<LoginView> {
                       CustomTextField(
                         controller: _usernameController,
                         label: 'Username',
-                        hint: 'Contoh: sainzlab',
+                        hint: 'Contoh: Asep_NOC',
                         icon: Icons.person_outline_rounded,
                       ),
                       const SizedBox(height: 16),
@@ -197,7 +197,7 @@ class _LoginViewState extends State<LoginView> {
                       CustomTextField(
                         controller: _tokenController,
                         label: 'API Token',
-                        hint: '64 karakter hex token dari Web Admin',
+                        hint: 'hex token dari Web Admin',
                         icon: Icons.vpn_key_outlined,
                       ),
                       const SizedBox(height: 16),

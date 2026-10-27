@@ -282,8 +282,8 @@ class DashboardView extends StatelessWidget {
     required double? availability,
     required int? mttrSec,
   }) {
-    final bool hasCriticalOrDown = stats.down > 0 || stats.critical > 0;
     final bool hasActiveAlert = stats.totalActive > 0;
+    final bool hasCriticalOrDown = hasActiveAlert && (stats.down > 0 || stats.critical > 0);
     final Color statusColor = hasCriticalOrDown
         ? AppTheme.statusDown
         : (hasActiveAlert ? AppTheme.statusWarning : AppTheme.statusTeal);
