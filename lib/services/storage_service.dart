@@ -7,7 +7,7 @@ class StorageService {
   static const String _keyApiToken = 'viewmox_api_token';
   static const String _keyBaseUrl = 'viewmox_base_url';
   static const String _keyCachedUser = 'viewmox_cached_user';
-  static const String defaultBaseUrl = 'http://localhost:3000/api/mobile/v1';
+  static const String defaultBaseUrl = 'http://192.168.8.10:7060/api/mobile/v1';
 
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
