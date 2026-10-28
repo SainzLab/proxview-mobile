@@ -1,19 +1,69 @@
 import 'package:flutter/material.dart';
+import '../../services/storage_service.dart';
+
+class ThemeViewModel extends ChangeNotifier {
+  final StorageService _storageService;
+  bool _isDarkMode = false;
+
+  ThemeViewModel(this._storageService);
+
+  bool get isDarkMode => _isDarkMode;
+  ThemeMode get themeMode => _isDarkMode ? ThemeMode.dark : ThemeMode.light;
+
+  Future<void> loadTheme() async {
+    _isDarkMode = await _storageService.getIsDarkMode(defaultValue: false);
+    AppTheme.isDark = _isDarkMode;
+    notifyListeners();
+  }
+
+  Future<void> setDarkMode(bool value) async {
+    if (_isDarkMode == value) return;
+    _isDarkMode = value;
+    AppTheme.isDark = value;
+    notifyListeners();
+    await _storageService.setIsDarkMode(value);
+  }
+
+  Future<void> toggleTheme() => setDarkMode(!_isDarkMode);
+}
 
 class AppTheme {
-  // Core Surface & Background Palette (Untuk referensi custom painting/widget)
-  static const Color background = Color(0xFF05070A);
-  static const Color cardBackground = Color(0xFF0D1117);
-  static const Color surfaceBackground = Color(0xFF161B22);
-  static const Color elevatedBackground = Color(0xFF1E2530);
-  static const Color borderSubtle = Color(0x1AFFFFFF); // Colors.white10
-  static const Color borderHighlight = Color(0x33FFFFFF); // Colors.white20
+  static bool isDark = false;
 
-  // Light Theme Specific Colors (Bisa dipanggil manual jika butuh custom shadow/border)
+  // Core Surface & Background Palette (Dark Mode)
+  static const Color background = Color(0xFF0B0F19); // Deep Slate Midnight
+  static const Color cardBackground = Color(0xFF111827); // Slate 900
+  static const Color surfaceBackground = Color(0xFF1E293B); // Slate 800
+  static const Color elevatedBackground = Color(0xFF26334D);
+  static const Color borderSubtle = Color(0xFF26334D); // Subtle Dark Border
+  static const Color borderHighlight = Color(0xFF334155); // Slate 700
+  static const Color darkTextMain = Color(0xFFF8FAFC); // Slate 50
+  static const Color darkTextSecondary = Color(0xFFCBD5E1); // Slate 300
+  static const Color darkTextMuted = Color(0xFF94A3B8); // Slate 400
+  static const Color darkTextHint = Color(0xFF64748B); // Slate 500
+
+  // Light Theme Specific Colors
   static const Color lightBg = Color(0xFFF8F9FA); // slate-50
   static const Color lightCard = Colors.white;
+  static const Color lightSurface = Color(0xFFF1F5F9); // slate-100
   static const Color lightBorder = Color(0xFFE2E8F0); // slate-200
   static const Color lightText = Color(0xFF0F172A); // slate-900
+  static const Color lightTextSecondary = Color(0xFF475569); // slate-600
+  static const Color lightTextMuted = Color(0xFF64748B); // slate-500
+  static const Color lightTextHint = Color(0xFF94A3B8); // slate-400
+
+  // Adaptive Getters (Otomatis menyesuaikan Mode Terang / Mode Gelap)
+  static Color get bgMain => isDark ? background : lightBg;
+  static Color get bgCard => isDark ? cardBackground : lightCard;
+  static Color get bgSurface => isDark ? surfaceBackground : lightSurface;
+  static Color get borderColor => isDark ? borderSubtle : lightBorder;
+  static Color get textMain => isDark ? darkTextMain : lightText;
+  static Color get textSecondary => isDark ? darkTextSecondary : lightTextSecondary;
+  static Color get textMuted => isDark ? darkTextMuted : lightTextMuted;
+  static Color get textHint => isDark ? darkTextHint : lightTextHint;
+  static Color get gridLineColor => isDark
+      ? Colors.white.withValues(alpha: 0.07)
+      : Colors.black.withValues(alpha: 0.05);
 
   // Unified Status & Severity Colors (Dipertahankan agar logic berjalan mulus)
   static const Color statusTeal = Color(0xFF10B981); // Emerald (menyesuaikan web)

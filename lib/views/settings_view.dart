@@ -16,13 +16,13 @@ class SettingsView extends StatefulWidget {
 class _SettingsViewState extends State<SettingsView> {
   final TextEditingController _baseUrlController = TextEditingController();
 
-  // Light Theme Specific Colors
-  static const Color _bgCard = Colors.white;
-  static const Color _borderSubtle = Color(0xFFE2E8F0); // slate-200
-  static const Color _textMain = Color(0xFF0F172A); // slate-900
-  static const Color _textSecondary = Color(0xFF475569); // slate-600
-  static const Color _textMuted = Color(0xFF64748B); // slate-500
-  static const Color _textHint = Color(0xFF94A3B8); // slate-400
+  // Adaptive Theme Colors
+  static Color get _bgCard => AppTheme.bgCard;
+  static Color get _borderSubtle => AppTheme.borderColor;
+  static Color get _textMain => AppTheme.textMain;
+  static Color get _textSecondary => AppTheme.textSecondary;
+  static Color get _textMuted => AppTheme.textMuted;
+  static Color get _textHint => AppTheme.textHint;
 
   @override
   void initState() {
@@ -88,6 +88,7 @@ class _SettingsViewState extends State<SettingsView> {
 
   @override
   Widget build(BuildContext context) {
+    final themeVm = context.watch<ThemeViewModel>();
     final authVm = context.watch<AuthViewModel>();
     final user = authVm.currentUser;
 
@@ -146,7 +147,7 @@ class _SettingsViewState extends State<SettingsView> {
                         children: [
                           Text(
                             user.name,
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: _textMain,
                               fontSize: 17,
                               fontWeight: FontWeight.bold,
@@ -155,7 +156,7 @@ class _SettingsViewState extends State<SettingsView> {
                           const SizedBox(height: 4),
                           Text(
                             '@${user.username}',
-                            style: const TextStyle(color: _textSecondary, fontSize: 12.5),
+                            style: TextStyle(color: _textSecondary, fontSize: 12.5),
                           ),
                         ],
                       ),
@@ -168,17 +169,17 @@ class _SettingsViewState extends State<SettingsView> {
                   ],
                 ),
                 if (user.tokenExpiresAt != null) ...[
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 14),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                     child: Divider(color: _borderSubtle, height: 1),
                   ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Row(
+                      Row(
                         children: [
                           Icon(Icons.timer_outlined, size: 15, color: _textHint),
-                          SizedBox(width: 6),
+                          const SizedBox(width: 6),
                           Text(
                             'Batas Waktu Sesi:',
                             style: TextStyle(color: _textMuted, fontSize: 12, fontWeight: FontWeight.w600),
@@ -187,7 +188,7 @@ class _SettingsViewState extends State<SettingsView> {
                       ),
                       Text(
                         Formatters.formatDateTime(user.tokenExpiresAt),
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: _textMain,
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
@@ -202,6 +203,73 @@ class _SettingsViewState extends State<SettingsView> {
           ),
           const SizedBox(height: 24),
         ],
+
+        const SectionTitle(
+          title: 'TAMPILAN & TEMA',
+          icon: Icons.palette_outlined,
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          decoration: BoxDecoration(
+            color: _bgCard,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: _borderSubtle),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: (themeVm.isDarkMode ? AppTheme.statusWarning : AppTheme.statusTeal)
+                      .withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  themeVm.isDarkMode ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+                  color: themeVm.isDarkMode ? AppTheme.statusWarning : AppTheme.statusTeal,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Mode Gelap (Dark Mode)',
+                      style: TextStyle(
+                        color: _textMain,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      themeVm.isDarkMode
+                          ? 'Tampilan gelap aktif (nyaman di ruangan redup)'
+                          : 'Tampilan terang aktif',
+                      style: TextStyle(color: _textSecondary, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              Switch.adaptive(
+                value: themeVm.isDarkMode,
+                activeColor: AppTheme.statusTeal,
+                onChanged: (val) => themeVm.setDarkMode(val),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
 
         const SectionTitle(
           title: 'KONFIGURASI SERVER',
@@ -225,7 +293,7 @@ class _SettingsViewState extends State<SettingsView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Tentukan alamat endpoint API server ProxView yang sedang berjalan.',
                 style: TextStyle(color: _textSecondary, fontSize: 12, height: 1.4),
               ),

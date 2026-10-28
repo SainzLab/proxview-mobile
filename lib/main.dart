@@ -46,6 +46,9 @@ class MyApp extends StatelessWidget {
       providers: [
         Provider<StorageService>.value(value: storageService),
         Provider<ViewMoxApiService>.value(value: apiService),
+        ChangeNotifierProvider<ThemeViewModel>(
+          create: (_) => ThemeViewModel(storageService)..loadTheme(),
+        ),
         ChangeNotifierProvider<AuthViewModel>(
           create: (_) => AuthViewModel(apiService, storageService)..initializeSession(),
         ),
@@ -68,12 +71,17 @@ class MyApp extends StatelessWidget {
           create: (_) => LogViewModel(apiService),
         ),
       ],
-      child: MaterialApp(
-        title: 'ProxView',
-        debugShowCheckedModeBanner: false,
-        // UBAH DI SINI: Gunakan lightTheme agar warna dasar sistem mengikuti tema terang
-        theme: AppTheme.lightTheme, 
-        home: const _AuthGate(),
+      child: Consumer<ThemeViewModel>(
+        builder: (context, themeVm, _) {
+          return MaterialApp(
+            title: 'ProxView',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: themeVm.themeMode,
+            home: const _AuthGate(),
+          );
+        },
       ),
     );
   }

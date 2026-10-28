@@ -7,9 +7,20 @@ class StorageService {
   static const String _keyApiToken = 'viewmox_api_token';
   static const String _keyBaseUrl = 'viewmox_base_url';
   static const String _keyCachedUser = 'viewmox_cached_user';
+  static const String _keyDarkMode = 'viewmox_dark_mode';
   static const String defaultBaseUrl = 'http://192.168.8.10:7060/api/mobile/v1';
 
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
+
+  Future<bool> getIsDarkMode({bool defaultValue = false}) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keyDarkMode) ?? defaultValue;
+  }
+
+  Future<void> setIsDarkMode(bool isDark) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyDarkMode, isDark);
+  }
 
   Future<String> getBaseUrl() async {
     final prefs = await SharedPreferences.getInstance();

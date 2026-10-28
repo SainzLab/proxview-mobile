@@ -24,15 +24,13 @@ class _NetworkTargetsViewState extends State<NetworkTargetsView>
 
   static const List<String> _filters = ['ALL', 'ICMP', 'TCP'];
 
-  // Light Theme Specific Colors
-  static const Color _bgMain = Color(0xFFF8F9FA); // slate-50
-  static const Color _bgCard = Colors.white;
-  static const Color _bgSurface = Color(0xFFF1F5F9); // slate-100
-  static const Color _borderSubtle = Color(0xFFE2E8F0); // slate-200
-  static const Color _textMain = Color(0xFF0F172A); // slate-900
-  static const Color _textSecondary = Color(0xFF475569); // slate-600
-  static const Color _textMuted = Color(0xFF64748B); // slate-500
-  static const Color _textHint = Color(0xFF94A3B8); // slate-400
+  // Adaptive Theme Colors
+  static Color get _bgMain => AppTheme.bgMain;
+  static Color get _bgCard => AppTheme.bgCard;
+  static Color get _borderSubtle => AppTheme.borderColor;
+  static Color get _textMain => AppTheme.textMain;
+  static Color get _textSecondary => AppTheme.textSecondary;
+  static Color get _textHint => AppTheme.textHint;
 
   @override
   void initState() {
@@ -80,6 +78,7 @@ class _NetworkTargetsViewState extends State<NetworkTargetsView>
 
   @override
   Widget build(BuildContext context) {
+    Theme.of(context);
     final vm = context.watch<NetworkViewModel>();
 
     final filterIndex = _filters.indexOf(vm.protocolFilter);
@@ -125,7 +124,7 @@ class _NetworkTargetsViewState extends State<NetworkTargetsView>
             color: _bgMain,
             child: RefreshIndicator(
               color: AppTheme.statusTeal,
-              backgroundColor: Colors.white,
+              backgroundColor: _bgCard,
               onRefresh: () => vm.fetchTargets(showLoading: false),
               child: vm.targets.isEmpty
                   ? EmptyStateBox(
@@ -223,7 +222,7 @@ class _NetworkTargetsViewState extends State<NetworkTargetsView>
                       const SizedBox(width: 10),
                       Text(
                         target.protocol.toUpperCase(),
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: _textSecondary,
                           fontSize: 11,
                           fontWeight: FontWeight.w800,
@@ -238,7 +237,7 @@ class _NetworkTargetsViewState extends State<NetworkTargetsView>
               const SizedBox(height: 14),
               Text(
                 target.name,
-                style: const TextStyle(
+                style: TextStyle(
                   color: _textMain,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -248,13 +247,13 @@ class _NetworkTargetsViewState extends State<NetworkTargetsView>
                 const SizedBox(height: 4),
                 Text(
                   target.description,
-                  style: const TextStyle(color: _textSecondary, fontSize: 13),
+                  style: TextStyle(color: _textSecondary, fontSize: 13),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ],
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 14),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 14),
                 child: Divider(color: _borderSubtle, height: 1),
               ),
               Row(
@@ -262,13 +261,13 @@ class _NetworkTargetsViewState extends State<NetworkTargetsView>
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.link_rounded, size: 14, color: _textHint),
+                      Icon(Icons.link_rounded, size: 14, color: _textHint),
                       const SizedBox(width: 6),
                       Text(
                         target.port != null
                             ? '${target.ipAddress}:${target.port}'
                             : target.ipAddress,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: _textSecondary,
                           fontSize: 12.5,
                           fontFamily: 'monospace',
@@ -324,12 +323,12 @@ class _TargetHistoryBottomSheet extends StatefulWidget {
 class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
   Timer? _historyTimer;
 
-  static const Color _textMain = Color(0xFF0F172A); // slate-900
-  static const Color _textSecondary = Color(0xFF475569); // slate-600
-  static const Color _textMuted = Color(0xFF64748B); // slate-500
-  static const Color _textHint = Color(0xFF94A3B8); // slate-400
-  static const Color _bgSurface = Color(0xFFF1F5F9); // slate-100
-  static const Color _borderSubtle = Color(0xFFE2E8F0); // slate-200
+  static Color get _textMain => AppTheme.textMain;
+  static Color get _textSecondary => AppTheme.textSecondary;
+  static Color get _textMuted => AppTheme.textMuted;
+  static Color get _textHint => AppTheme.textHint;
+  static Color get _bgSurface => AppTheme.bgSurface;
+  static Color get _borderSubtle => AppTheme.borderColor;
 
   @override
   void initState() {
@@ -356,6 +355,7 @@ class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    Theme.of(context);
     final target = widget.target;
     final statusColor = target.isUp ? AppTheme.statusTeal : AppTheme.statusDown;
 
@@ -376,7 +376,7 @@ class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
                       children: [
                         Text(
                           target.name,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: _textMain,
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -385,7 +385,7 @@ class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
                         const SizedBox(height: 6),
                         Text(
                           '${target.protocol.toUpperCase()} \n${target.ipAddress}${target.port != null ? ":${target.port}" : ""}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: _textSecondary,
                             fontSize: 12.5,
                             fontFamily: 'monospace',
@@ -419,7 +419,7 @@ class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Text(
                       'GRAFIK RIWAYAT LATENCY (MS)',
                       style: TextStyle(
@@ -434,7 +434,7 @@ class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
                   if (points.isNotEmpty)
                     Text(
                       '${Formatters.formatTimeSeconds(points.first.time)} \n${Formatters.formatTimeSeconds(points.last.time)}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: _textHint,
                         fontSize: 10,
                         fontFamily: 'monospace',
@@ -453,7 +453,7 @@ class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
                         ),
                       )
                     : points.isEmpty
-                        ? const Center(
+                        ? Center(
                             child: Text(
                               'Belum ada riwayat latency.',
                               style: TextStyle(color: _textHint, fontSize: 12),
@@ -466,7 +466,7 @@ class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
                 Center(
                   child: Text(
                     'Pengecekan terakhir: ${Formatters.formatDateTime(target.lastCheck)}',
-                    style: const TextStyle(color: _textMuted, fontSize: 11),
+                    style: TextStyle(color: _textMuted, fontSize: 11),
                   ),
                 ),
             ],
@@ -481,7 +481,7 @@ class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             color: _textMuted, 
             fontSize: 10, 
             fontWeight: FontWeight.w600
@@ -525,8 +525,8 @@ class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
         lineTouchData: LineTouchData(
           handleBuiltInTouches: true,
           touchTooltipData: LineTouchTooltipData(
-            getTooltipColor: (_) => Colors.white,
-            tooltipBorder: const BorderSide(color: _borderSubtle, width: 1),
+            getTooltipColor: (_) => AppTheme.bgCard,
+            tooltipBorder: BorderSide(color: _borderSubtle, width: 1),
             tooltipRoundedRadius: 10,
             tooltipPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             getTooltipItems: (touchedSpots) {
@@ -537,7 +537,7 @@ class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
                 final val = spot.y.toStringAsFixed(1);
                 return LineTooltipItem(
                   '$timeStr\n$val ms',
-                  const TextStyle(
+                  TextStyle(
                     color: _textMain,
                     fontWeight: FontWeight.bold,
                     fontSize: 11,
@@ -567,7 +567,7 @@ class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
           drawVerticalLine: false,
           horizontalInterval: gridInterval,
           getDrawingHorizontalLine: (_) => FlLine(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: AppTheme.gridLineColor,
             strokeWidth: 1,
             dashArray: [4, 4],
           ),
@@ -588,7 +588,7 @@ class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
                   padding: const EdgeInsets.only(top: 8),
                   child: Text(
                     Formatters.formatTimeSeconds(points[idx].time),
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: _textHint,
                       fontSize: 9,
                       fontWeight: FontWeight.w500,
@@ -608,7 +608,7 @@ class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
                 child: Text(
                   '${val.toInt()} ms',
                   textAlign: TextAlign.right,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: _textHint,
                     fontSize: 9.5,
                     fontWeight: FontWeight.w500,
@@ -631,7 +631,7 @@ class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
               getDotPainter: (spot, percent, barData, index) {
                 return FlDotCirclePainter(
                   radius: 2.5,
-                  color: Colors.white,
+                  color: AppTheme.bgCard,
                   strokeWidth: 1.5,
                   strokeColor: AppTheme.statusTeal,
                 );

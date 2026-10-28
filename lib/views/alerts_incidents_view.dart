@@ -21,14 +21,14 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
   String _selectedFilter = 'Semua Status';
   final Map<String, bool> _expandedMonitoringCards = {};
 
-  // Light theme specific colors
-  static const Color _bgCard = Colors.white;
-  static const Color _bgSurface = Color(0xFFF8F9FA); // slate-50
-  static const Color _borderSubtle = Color(0xFFE2E8F0); // slate-200
-  static const Color _textMain = Color(0xFF0F172A); // slate-900
-  static const Color _textSecondary = Color(0xFF475569); // slate-600
-  static const Color _textMuted = Color(0xFF64748B); // slate-500
-  static const Color _textHint = Color(0xFF94A3B8); // slate-400
+  // Adaptive theme colors
+  static Color get _bgCard => AppTheme.bgCard;
+  static Color get _bgSurface => AppTheme.bgSurface;
+  static Color get _borderSubtle => AppTheme.borderColor;
+  static Color get _textMain => AppTheme.textMain;
+  static Color get _textSecondary => AppTheme.textSecondary;
+  static Color get _textMuted => AppTheme.textMuted;
+  static Color get _textHint => AppTheme.textHint;
 
   bool _isCardExpanded(String cardKey, {required bool defaultExpanded}) {
     return _expandedMonitoringCards[cardKey] ?? defaultExpanded;
@@ -179,6 +179,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
 
   @override
   Widget build(BuildContext context) {
+    Theme.of(context);
     final vm = context.watch<AlertIncidentViewModel>();
     final authVm = context.watch<AuthViewModel>();
     final currentUserName = authVm.currentUser?.name;
@@ -251,13 +252,13 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                                   value: _selectedFilter,
                                   dropdownColor: _bgCard,
                                   borderRadius: BorderRadius.circular(12),
-                                  icon: const Icon(
+                                  icon: Icon(
                                     Icons.filter_list_rounded,
                                     color: _textHint,
                                     size: 18,
                                   ),
                                   isExpanded: true,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     color: _textMain,
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
@@ -435,14 +436,14 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Row(
+                Row(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.analytics_outlined,
                       color: AppTheme.statusTeal,
                       size: 16,
                     ),
-                    SizedBox(width: 6),
+                    const SizedBox(width: 6),
                     Text(
                       'RINGKASAN STATUS INSIDEN',
                       style: TextStyle(
@@ -480,7 +481,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
               child: SizedBox(
                 height: 8,
                 child: severityTotal <= 0
-                    ? Container(color: const Color(0xFFF1F5F9)) // slate-100
+                    ? Container(color: _bgSurface)
                     : Row(
                         children: [
                           (count: displayDown, color: AppTheme.statusDown),
@@ -561,7 +562,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                               fit: BoxFit.scaleDown,
                               child: Text(
                                 '${item.count}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: _textMain,
                                   fontSize: 18,
                                   fontWeight: FontWeight.w900,
@@ -578,8 +579,8 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
               }),
             ),
             if (isKepalaBidang) ...[
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
                 child: Divider(color: _borderSubtle, height: 1),
               ),
               Row(
@@ -620,7 +621,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
         children: [
           Text(
             '$label: ',
-            style: const TextStyle(
+            style: TextStyle(
               color: _textMuted,
               fontSize: 10,
               fontWeight: FontWeight.w600,
@@ -664,7 +665,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
   }) {
     return RefreshIndicator(
       color: AppTheme.statusTeal,
-      backgroundColor: Colors.white,
+      backgroundColor: _bgCard,
       onRefresh: () => vm.fetchAll(showLoading: false),
       child: list.isEmpty
           ? _buildEmptyState(emptyLabel)
@@ -785,7 +786,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                     const SizedBox(height: 6),
                     Text(
                       alert.targetName,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: _textMain,
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -805,10 +806,10 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
           const SizedBox(height: 12),
           Text(
             alert.message,
-            style: const TextStyle(color: _textSecondary, fontSize: 13, height: 1.4),
+            style: TextStyle(color: _textSecondary, fontSize: 13, height: 1.4),
           ),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 14),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 14),
             child: Divider(color: _borderSubtle, height: 1),
           ),
           Row(
@@ -816,11 +817,11 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.access_time_rounded, size: 14, color: _textHint),
+                  Icon(Icons.access_time_rounded, size: 14, color: _textHint),
                   const SizedBox(width: 6),
                   Text(
                     Formatters.formatDateTime(alert.createdAt),
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: _textMuted,
                       fontSize: 11,
                       fontFamily: 'monospace',
@@ -830,7 +831,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
               ),
               Row(
                 children: [
-                  const Icon(Icons.person_outline_rounded, size: 14, color: _textHint),
+                  Icon(Icons.person_outline_rounded, size: 14, color: _textHint),
                   const SizedBox(width: 6),
                   Text(
                     alert.isBeingHandled ? (alert.technicians ?? '-') : 'Belum Ditangani',
@@ -872,7 +873,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: _textSecondary,
                       padding: const EdgeInsets.symmetric(vertical: 13),
-                      side: const BorderSide(color: _borderSubtle),
+                      side: BorderSide(color: _borderSubtle),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -902,7 +903,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                       backgroundColor: AppTheme.statusTeal,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 13),
-                      disabledBackgroundColor: const Color(0xFFF1F5F9), // slate-100
+                      disabledBackgroundColor: _bgSurface,
                       disabledForegroundColor: _textHint,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
@@ -929,7 +930,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
   }) {
     return RefreshIndicator(
       color: AppTheme.statusTeal,
-      backgroundColor: Colors.white,
+      backgroundColor: _bgCard,
       onRefresh: () => vm.fetchAll(showLoading: false),
       child: incidents.isEmpty
           ? _buildEmptyState('Belum ada tiket insiden.')
@@ -1027,7 +1028,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                                   Flexible(
                                     child: Text(
                                       ticket.ticketCode,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         color: _textMain,
                                         fontFamily: 'monospace',
                                         fontWeight: FontWeight.bold,
@@ -1050,7 +1051,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                         const SizedBox(height: 12),
                         Text(
                           ticket.target,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: _textMain,
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -1059,10 +1060,10 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                         const SizedBox(height: 6),
                         Text(
                           ticket.title,
-                          style: const TextStyle(color: _textSecondary, fontSize: 13, height: 1.4),
+                          style: TextStyle(color: _textSecondary, fontSize: 13, height: 1.4),
                         ),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 14),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
                           child: Divider(color: _borderSubtle, height: 1),
                         ),
                         Wrap(
@@ -1102,7 +1103,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                                   style: OutlinedButton.styleFrom(
                                     foregroundColor: _textSecondary,
                                     padding: const EdgeInsets.symmetric(vertical: 13),
-                                    side: const BorderSide(color: _borderSubtle),
+                                    side: BorderSide(color: _borderSubtle),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
                                     ),
@@ -1132,7 +1133,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                                     backgroundColor: AppTheme.statusTeal,
                                     foregroundColor: Colors.white,
                                     padding: const EdgeInsets.symmetric(vertical: 13),
-                                    disabledBackgroundColor: const Color(0xFFF1F5F9), // slate-100
+                                    disabledBackgroundColor: _bgSurface,
                                     disabledForegroundColor: _textHint,
                                     elevation: 0,
                                     shape: RoundedRectangleBorder(
@@ -1282,7 +1283,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                           children: [
                             Text(
                               '$ticketCode \n${Formatters.formatDateTime(timestamp)}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: _textMuted,
                                 fontSize: 11,
                                 fontFamily: 'monospace',
@@ -1294,7 +1295,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                             const SizedBox(height: 6),
                             Text(
                               title,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: _textMain,
                                 fontSize: 15,
                                 fontWeight: FontWeight.w800,
@@ -1321,7 +1322,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                                     Flexible(
                                       child: Text(
                                         targetLabel,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           color: _textSecondary,
                                           fontSize: 12,
                                           fontFamily: 'monospace',
@@ -1349,13 +1350,13 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
 
               // Body: Laporan Pemantauan (3-Step Stepper + Info Box)
               if (isExpanded) ...[
-                const Divider(color: _borderSubtle, height: 1),
+                Divider(color: _borderSubtle, height: 1),
                 Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Row(
+                      Row(
                         children: [
                           Text(
                             'LAPORAN PEMANTAUAN',
@@ -1405,7 +1406,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                                 children: [
                                   Text(
                                     statusTitle,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       color: _textMain,
                                       fontSize: 13,
                                       fontWeight: FontWeight.w800,
@@ -1414,7 +1415,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                                   const SizedBox(height: 3),
                                   Text(
                                     statusSubtitle,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       color: _textSecondary,
                                       fontSize: 11.5,
                                       height: 1.35,
@@ -1560,7 +1561,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
           const SizedBox(width: 6),
           Text(
             text,
-            style: const TextStyle(
+            style: TextStyle(
               color: _textSecondary,
               fontSize: 11.5,
               fontWeight: FontWeight.w600,

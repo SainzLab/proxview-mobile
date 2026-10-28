@@ -24,17 +24,18 @@ class DashboardView extends StatelessWidget {
     this.onOpenAnalyticsTab,
   });
 
-  // Light theme specific colors
-  static const Color _bgCard = Colors.white;
-  static const Color _bgSurface = Color(0xFFF8F9FA); // slate-50
-  static const Color _borderSubtle = Color(0xFFE2E8F0); // slate-200
-  static const Color _textMain = Color(0xFF0F172A); // slate-900
-  static const Color _textSecondary = Color(0xFF475569); // slate-600
-  static const Color _textMuted = Color(0xFF64748B); // slate-500
-  static const Color _textHint = Color(0xFF94A3B8); // slate-400
+  // Adaptive theme colors
+  static Color get _bgCard => AppTheme.bgCard;
+  static Color get _bgSurface => AppTheme.bgSurface;
+  static Color get _borderSubtle => AppTheme.borderColor;
+  static Color get _textMain => AppTheme.textMain;
+  static Color get _textSecondary => AppTheme.textSecondary;
+  static Color get _textMuted => AppTheme.textMuted;
+  static Color get _textHint => AppTheme.textHint;
 
   @override
   Widget build(BuildContext context) {
+    Theme.of(context);
     final vm = context.watch<DashboardViewModel>();
     final authVm = context.watch<AuthViewModel>();
     final isKepalaBidang = authVm.isKepalaBidang;
@@ -61,7 +62,7 @@ class DashboardView extends StatelessWidget {
 
     return RefreshIndicator(
       color: AppTheme.statusTeal,
-      backgroundColor: Colors.white,
+      backgroundColor: _bgCard,
       onRefresh: () async {
         final analyticsVm = context.read<AnalyticsViewModel>();
         await Future.wait([
@@ -136,7 +137,7 @@ class DashboardView extends StatelessWidget {
 
     return RefreshIndicator(
       color: AppTheme.statusTeal,
-      backgroundColor: Colors.white,
+      backgroundColor: _bgCard,
       onRefresh: () async {
         await Future.wait([
           vm.fetchDashboard(showLoading: false),
@@ -256,15 +257,15 @@ class DashboardView extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: _borderSubtle),
       ),
-      child: const Center(
+      child: Center(
         child: Column(
           children: [
-            Icon(
+            const Icon(
               Icons.check_circle_outline_rounded,
               color: AppTheme.statusTeal,
               size: 42,
             ),
-            SizedBox(height: 14),
+            const SizedBox(height: 14),
             Text(
               'Tidak ada insiden terbaru.\nSeluruh sistem beroperasi normal.',
               textAlign: TextAlign.center,
@@ -347,7 +348,7 @@ class DashboardView extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       'Kesehatan Cluster ${summary.proxmox.healthPercent.toStringAsFixed(0)}% • ${summary.activeUsers}/${summary.totalUsers} Personel Aktif',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: _textSecondary,
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
@@ -376,8 +377,8 @@ class DashboardView extends StatelessWidget {
               ],
             ),
           ],
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
             child: Divider(color: _borderSubtle, height: 1),
           ),
           Row(
@@ -423,7 +424,7 @@ class DashboardView extends StatelessWidget {
           Flexible(
             child: Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 color: _textSecondary,
                 fontSize: 9.5,
                 fontWeight: FontWeight.w800,
@@ -486,7 +487,7 @@ class DashboardView extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: Text(
               value,
-              style: const TextStyle(
+              style: TextStyle(
                 color: _textMain,
                 fontSize: 19,
                 fontWeight: FontWeight.w900,
@@ -497,7 +498,7 @@ class DashboardView extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             subtitle,
-            style: const TextStyle(color: _textMuted, fontSize: 10),
+            style: TextStyle(color: _textMuted, fontSize: 10),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -601,7 +602,7 @@ class DashboardView extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             '$count',
-            style: const TextStyle(
+            style: TextStyle(
               color: _textMain,
               fontSize: 18,
               fontWeight: FontWeight.w900,
@@ -655,7 +656,7 @@ class DashboardView extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Penyelesaian Tim',
                 style: TextStyle(
                   color: _textMain,
@@ -672,8 +673,8 @@ class DashboardView extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           if (entries.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
               child: Text(
                 'Belum ada riwayat penugasan teknisi pada tiket insiden.',
                 style: TextStyle(color: _textMuted, fontSize: 12),
@@ -717,7 +718,7 @@ class DashboardView extends StatelessWidget {
                           children: [
                             Text(
                               name,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: _textMain,
                                 fontSize: 13,
                                 fontWeight: FontWeight.bold,
@@ -727,7 +728,7 @@ class DashboardView extends StatelessWidget {
                             const SizedBox(height: 2),
                             Text(
                               '${stat.resolved} Selesai • ${stat.active} Sedang Ditangani',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: _textMuted,
                                 fontSize: 11,
                               ),
@@ -812,8 +813,8 @@ class DashboardView extends StatelessWidget {
                   ),
                 ],
               ),
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
                 child: Divider(color: _borderSubtle, height: 1),
               ),
               ModernProgressBar(
@@ -908,14 +909,14 @@ class DashboardView extends StatelessWidget {
               ),
             ],
           ),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
             child: Divider(color: _borderSubtle, height: 1),
           ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Metrik Beban Cluster',
                 style: TextStyle(
                   color: _textMain,
@@ -996,7 +997,7 @@ class DashboardView extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   color: _textMuted,
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
@@ -1006,7 +1007,7 @@ class DashboardView extends StatelessWidget {
               const SizedBox(height: 2),
               Text(
                 value,
-                style: const TextStyle(
+                style: TextStyle(
                   color: _textMain,
                   fontSize: 16,
                   fontWeight: FontWeight.w900,
@@ -1022,7 +1023,7 @@ class DashboardView extends StatelessWidget {
 
   Widget _buildRrdChart(DashboardChartModel chart) {
     if (chart.cpu.isEmpty && chart.ram.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
           'Belum ada data grafik RRD.',
           style: TextStyle(color: _textHint, fontSize: 12),
@@ -1044,8 +1045,8 @@ class DashboardView extends StatelessWidget {
         lineTouchData: LineTouchData(
           handleBuiltInTouches: true,
           touchTooltipData: LineTouchTooltipData(
-            getTooltipColor: (_) => Colors.white,
-            tooltipBorder: const BorderSide(color: _borderSubtle, width: 1),
+            getTooltipColor: (_) => _bgCard,
+            tooltipBorder: BorderSide(color: _borderSubtle, width: 1),
             tooltipRoundedRadius: 10,
             tooltipPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             getTooltipItems: (touchedSpots) {
@@ -1079,7 +1080,7 @@ class DashboardView extends StatelessWidget {
           drawVerticalLine: false,
           horizontalInterval: 25,
           getDrawingHorizontalLine: (_) => FlLine(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: AppTheme.gridLineColor,
             strokeWidth: 1,
             dashArray: [4, 4],
           ),
@@ -1098,7 +1099,7 @@ class DashboardView extends StatelessWidget {
                 child: Text(
                   '${val.toInt()}%',
                   textAlign: TextAlign.right,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: _textHint,
                     fontSize: 10,
                     fontWeight: FontWeight.w500,
@@ -1121,7 +1122,7 @@ class DashboardView extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 8),
                   child: Text(
                     chart.labels[idx],
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: _textHint,
                       fontSize: 9,
                       fontWeight: FontWeight.w500,
@@ -1221,7 +1222,7 @@ class DashboardView extends StatelessWidget {
               Expanded(
                 child: Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: _textSecondary,
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
@@ -1238,7 +1239,7 @@ class DashboardView extends StatelessWidget {
             children: [
               Text(
                 '${data.up}/${data.active}',
-                style: const TextStyle(
+                style: TextStyle(
                   color: _textMain,
                   fontSize: 22,
                   fontWeight: FontWeight.w900,
@@ -1255,7 +1256,7 @@ class DashboardView extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             'Rata-rata Latency: ${data.avgLatencyMs.toStringAsFixed(1)} ms',
-            style: const TextStyle(
+            style: TextStyle(
               color: _textMuted,
               fontSize: 11,
               fontFamily: 'monospace',
@@ -1297,7 +1298,7 @@ class DashboardView extends StatelessWidget {
                   const SizedBox(width: 6),
                   Text(
                     inc.ticketId,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: _textMain,
                       fontSize: 12,
                       fontFamily: 'monospace',
@@ -1313,13 +1314,13 @@ class DashboardView extends StatelessWidget {
               ),
             ],
           ),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
             child: Divider(color: _borderSubtle, height: 1),
           ),
           Text(
             inc.component.isNotEmpty ? inc.component : inc.targetName,
-            style: const TextStyle(
+            style: TextStyle(
               color: _textMain,
               fontSize: 15,
               fontWeight: FontWeight.bold,
@@ -1328,7 +1329,7 @@ class DashboardView extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             inc.message,
-            style: const TextStyle(color: _textSecondary, fontSize: 13, height: 1.4),
+            style: TextStyle(color: _textSecondary, fontSize: 13, height: 1.4),
           ),
           const SizedBox(height: 14),
           Row(
@@ -1336,17 +1337,17 @@ class DashboardView extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.access_time_rounded, size: 14, color: _textHint),
+                  Icon(Icons.access_time_rounded, size: 14, color: _textHint),
                   const SizedBox(width: 4),
                   Text(
                     Formatters.formatDateTime(inc.time),
-                    style: const TextStyle(color: _textMuted, fontSize: 11),
+                    style: TextStyle(color: _textMuted, fontSize: 11),
                   ),
                 ],
               ),
               Row(
                 children: [
-                  const Icon(Icons.person_outline_rounded, size: 14, color: _textHint),
+                  Icon(Icons.person_outline_rounded, size: 14, color: _textHint),
                   const SizedBox(width: 4),
                   Text(
                     inc.technicians.isNotEmpty && inc.technicians != '-'

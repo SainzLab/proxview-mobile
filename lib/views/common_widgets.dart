@@ -73,12 +73,12 @@ class AppFeedback {
         content: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppTheme.bgCard,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: accentColor.withValues(alpha: 0.5), width: 1.2),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
+                color: Colors.black.withValues(alpha: 0.08),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               ),
@@ -98,8 +98,8 @@ class AppFeedback {
               Expanded(
                 child: Text(
                   message,
-                  style: const TextStyle(
-                    color: Color(0xFF0F172A), // slate-900
+                  style: TextStyle(
+                    color: AppTheme.textMain,
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                     height: 1.35,
@@ -124,10 +124,10 @@ class AppFeedback {
   }) async {
     final result = await showDialog<bool>(
       context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.4), // Lighter barrier for light theme
+      barrierColor: Colors.black.withValues(alpha: AppTheme.isDark ? 0.65 : 0.4),
       builder: (dialogContext) {
         return Dialog(
-          backgroundColor: Colors.white,
+          backgroundColor: AppTheme.bgCard,
           surfaceTintColor: Colors.transparent,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
@@ -154,8 +154,8 @@ class AppFeedback {
                     Expanded(
                       child: Text(
                         title,
-                        style: const TextStyle(
-                          color: Color(0xFF0F172A), // slate-900
+                        style: TextStyle(
+                          color: AppTheme.textMain,
                           fontSize: 17,
                           fontWeight: FontWeight.bold,
                         ),
@@ -166,8 +166,8 @@ class AppFeedback {
                 const SizedBox(height: 16),
                 Text(
                   message,
-                  style: const TextStyle(
-                    color: Color(0xFF475569), // slate-600
+                  style: TextStyle(
+                    color: AppTheme.textSecondary,
                     fontSize: 13,
                     height: 1.5,
                   ),
@@ -179,8 +179,8 @@ class AppFeedback {
                       child: OutlinedButton(
                         onPressed: () => Navigator.of(dialogContext).pop(false),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF64748B), // slate-500
-                          side: const BorderSide(color: Color(0xFFE2E8F0)), // slate-200
+                          foregroundColor: AppTheme.textMuted,
+                          side: BorderSide(color: AppTheme.borderColor),
                           padding: const EdgeInsets.symmetric(vertical: 13),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -248,6 +248,7 @@ class HeaderGreeting extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Theme.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Column(
@@ -258,8 +259,8 @@ class HeaderGreeting extends StatelessWidget {
             children: [
               Text(
                 subtitle.toUpperCase(),
-                style: const TextStyle(
-                  color: Color(0xFF64748B), // slate-500
+                style: TextStyle(
+                  color: AppTheme.textMuted,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 1.4,
@@ -295,8 +296,8 @@ class HeaderGreeting extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             title,
-            style: const TextStyle(
-              color: Color(0xFF0F172A), // slate-900
+            style: TextStyle(
+              color: AppTheme.textMain,
               fontSize: 26,
               fontWeight: FontWeight.bold,
             ),
@@ -321,6 +322,7 @@ class SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Theme.of(context);
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -332,10 +334,10 @@ class SectionTitle extends StatelessWidget {
               Flexible(
                 child: Text(
                   title.toUpperCase(),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11.5,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF475569), // slate-600
+                    color: AppTheme.textSecondary,
                     letterSpacing: 1.4,
                   ),
                   overflow: TextOverflow.ellipsis,
@@ -411,6 +413,7 @@ class ModernProgressBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Theme.of(context);
     final clamped = (percentage / 100).clamp(0.0, 1.0);
 
     return Column(
@@ -422,8 +425,8 @@ class ModernProgressBar extends StatelessWidget {
             Flexible(
               child: Text(
                 label,
-                style: const TextStyle(
-                  color: Color(0xFF64748B), // slate-500
+                style: TextStyle(
+                  color: AppTheme.textMuted,
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
                 ),
@@ -433,11 +436,11 @@ class ModernProgressBar extends StatelessWidget {
             const SizedBox(width: 8),
             Text(
               customTrailingText ?? '${percentage.toStringAsFixed(1)}%',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
                 fontFamily: 'monospace',
-                color: Color(0xFF0F172A), // slate-900
+                color: AppTheme.textMain,
               ),
             ),
           ],
@@ -451,7 +454,7 @@ class ModernProgressBar extends StatelessWidget {
                   height: 6,
                   width: constraints.maxWidth,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5F9), // slate-100
+                    color: AppTheme.bgSurface,
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
@@ -486,13 +489,14 @@ class ErrorStateBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Theme.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppTheme.bgCard,
             borderRadius: BorderRadius.circular(18),
             border: Border.all(color: AppTheme.statusDown.withValues(alpha: 0.4)),
             boxShadow: [
@@ -519,10 +523,10 @@ class ErrorStateBox extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 'Gagal Memuat Data',
                 style: TextStyle(
-                  color: Color(0xFF0F172A), // slate-900
+                  color: AppTheme.textMain,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
@@ -531,8 +535,8 @@ class ErrorStateBox extends StatelessWidget {
               Text(
                 message,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Color(0xFF475569), // slate-600
+                style: TextStyle(
+                  color: AppTheme.textSecondary,
                   height: 1.5,
                   fontSize: 13,
                 ),
@@ -582,6 +586,7 @@ class EmptyStateBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Theme.of(context);
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
       children: [
@@ -595,18 +600,18 @@ class EmptyStateBox extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(18),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF8F9FA), // slate-50
+                    color: AppTheme.bgCard,
                     shape: BoxShape.circle,
-                    border: Border.all(color: const Color(0xFFE2E8F0)), // slate-200
+                    border: Border.all(color: AppTheme.borderColor),
                   ),
-                  child: Icon(icon, size: 38, color: const Color(0xFF94A3B8)), // slate-400
+                  child: Icon(icon, size: 38, color: AppTheme.textHint),
                 ),
                 const SizedBox(height: 16),
                 Text(
                   message,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Color(0xFF64748B), // slate-500
+                  style: TextStyle(
+                    color: AppTheme.textMuted,
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                     height: 1.4,
@@ -672,13 +677,14 @@ class CustomTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(
-            color: Color(0xFF475569), // slate-600
+          style: TextStyle(
+            color: AppTheme.textSecondary,
             fontSize: 13,
             fontWeight: FontWeight.bold,
           ),
@@ -690,19 +696,19 @@ class CustomTextField extends StatelessWidget {
           controller: controller,
           obscureText: obscureText,
           keyboardType: keyboardType,
-          style: const TextStyle(color: Color(0xFF0F172A), fontSize: 14), // slate-900
+          style: TextStyle(color: AppTheme.textMain, fontSize: 14),
           cursorColor: AppTheme.statusTeal,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13), // slate-400
-            prefixIcon: Icon(icon, color: const Color(0xFF64748B), size: 20), // slate-500
+            hintStyle: TextStyle(color: AppTheme.textHint, fontSize: 13),
+            prefixIcon: Icon(icon, color: AppTheme.textMuted, size: 20),
             suffixIcon: suffixIcon,
             filled: true,
-            fillColor: Colors.white,
+            fillColor: AppTheme.isDark ? AppTheme.bgSurface : AppTheme.bgCard,
             contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 16),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFE2E8F0)), // slate-200
+              borderSide: BorderSide(color: AppTheme.borderColor),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -733,31 +739,32 @@ class AppSearchField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Theme.of(context);
     return SizedBox(
       height: 44,
       child: TextField(
         controller: controller,
         onChanged: onChanged,
-        style: const TextStyle(color: Color(0xFF0F172A), fontSize: 13), // slate-900
+        style: TextStyle(color: AppTheme.textMain, fontSize: 13),
         cursorColor: AppTheme.statusTeal,
         decoration: InputDecoration(
           hintText: hintText,
-          hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13), // slate-400
-          prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF64748B), size: 20), // slate-500
+          hintStyle: TextStyle(color: AppTheme.textHint, fontSize: 13),
+          prefixIcon: Icon(Icons.search_rounded, color: AppTheme.textMuted, size: 20),
           suffixIcon: hasText
               ? IconButton(
-                  icon: const Icon(Icons.clear_rounded, color: Color(0xFF64748B), size: 18), // slate-500
+                  icon: Icon(Icons.clear_rounded, color: AppTheme.textMuted, size: 18),
                   onPressed: onClear,
                   tooltip: 'Hapus pencarian',
                 )
               : null,
           filled: true,
-          fillColor: Colors.white,
+          fillColor: AppTheme.bgCard,
           isDense: true,
           contentPadding: const EdgeInsets.symmetric(vertical: 11, horizontal: 14),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFFE2E8F0)), // slate-200
+            borderSide: BorderSide(color: AppTheme.borderColor),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
@@ -783,12 +790,13 @@ class SegmentedTabBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Theme.of(context);
     return Container(
       height: 44,
       decoration: BoxDecoration(
-        color: const Color(0xFFF8F9FA), // slate-50
+        color: AppTheme.isDark ? AppTheme.bgCard : AppTheme.bgMain,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0)), // slate-200
+        border: Border.all(color: AppTheme.borderColor),
       ),
       child: TabBar(
         controller: controller,
@@ -796,9 +804,11 @@ class SegmentedTabBar extends StatelessWidget {
         indicatorSize: TabBarIndicatorSize.tab,
         indicator: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
-          color: Colors.white,
+          color: AppTheme.isDark ? AppTheme.bgSurface : Colors.white,
           border: Border.all(
-            color: const Color(0xFFCBD5E1), // slate-300
+            color: AppTheme.isDark
+                ? AppTheme.statusTeal.withValues(alpha: 0.4)
+                : const Color(0xFFCBD5E1),
           ),
           boxShadow: [
             BoxShadow(
@@ -808,8 +818,8 @@ class SegmentedTabBar extends StatelessWidget {
             ),
           ],
         ),
-        labelColor: const Color(0xFF0F172A), // slate-900
-        unselectedLabelColor: const Color(0xFF64748B), // slate-500
+        labelColor: AppTheme.isDark ? AppTheme.statusTeal : AppTheme.textMain,
+        unselectedLabelColor: AppTheme.textMuted,
         dividerColor: Colors.transparent,
         labelStyle: const TextStyle(
           fontWeight: FontWeight.bold,
@@ -834,6 +844,7 @@ class ChartLegendItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Theme.of(context);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -849,8 +860,8 @@ class ChartLegendItem extends StatelessWidget {
         const SizedBox(width: 6),
         Text(
           label,
-          style: const TextStyle(
-            color: Color(0xFF475569), // slate-600
+          style: TextStyle(
+            color: AppTheme.textSecondary,
             fontSize: 11,
             fontWeight: FontWeight.w600,
           ),
@@ -872,13 +883,14 @@ class BottomSheetContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Theme.of(context);
     return Container(
       height: height,
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border(top: BorderSide(color: Color(0xFFE2E8F0))), // slate-200
+      decoration: BoxDecoration(
+        color: AppTheme.bgCard,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border(top: BorderSide(color: AppTheme.borderColor)),
       ),
       child: Column(
         mainAxisSize: height != null ? MainAxisSize.max : MainAxisSize.min,
@@ -890,7 +902,7 @@ class BottomSheetContainer extends StatelessWidget {
               height: 4,
               margin: const EdgeInsets.only(bottom: 20),
               decoration: BoxDecoration(
-                color: const Color(0xFFCBD5E1), // slate-300
+                color: AppTheme.borderColor,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),

@@ -20,15 +20,15 @@ class _LoginViewState extends State<LoginView> {
   bool _obscurePassword = true;
   bool _showServerConfig = false;
 
-  // Light Theme Colors
-  static const Color _bgMain = Color(0xFFF8F9FA); // slate-50
-  static const Color _bgCard = Colors.white;
-  static const Color _borderSubtle = Color(0xFFE2E8F0); // slate-200
-  static const Color _textMain = Color(0xFF0F172A); // slate-900
-  static const Color _textSecondary = Color(0xFF475569); // slate-600
-  static const Color _textMuted = Color(0xFF64748B); // slate-500
+  // Adaptive Theme Colors
+  static Color get _bgMain => AppTheme.bgMain;
+  static Color get _bgCard => AppTheme.bgCard;
+  static Color get _borderSubtle => AppTheme.borderColor;
+  static Color get _textMain => AppTheme.textMain;
+  static Color get _textSecondary => AppTheme.textSecondary;
+  static Color get _textMuted => AppTheme.textMuted;
   static const Color _primaryAccent = Color(0xFF10B981); // emerald-500
-  static const Color _textHint = Color(0xFF94A3B8);
+  static Color get _textHint => AppTheme.textHint;
 
   @override
   void initState() {
@@ -82,6 +82,7 @@ class _LoginViewState extends State<LoginView> {
 
   @override
   Widget build(BuildContext context) {
+    final themeVm = context.watch<ThemeViewModel>();
     final authVm = context.watch<AuthViewModel>();
 
     return Scaffold(
@@ -120,7 +121,7 @@ class _LoginViewState extends State<LoginView> {
                       ),
                     ),
                     const SizedBox(width: 16),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -133,7 +134,7 @@ class _LoginViewState extends State<LoginView> {
                               letterSpacing: -0.5,
                             ),
                           ),
-                          SizedBox(height: 3),
+                          const SizedBox(height: 3),
                           Text(
                             'MONITORING PROXMOX & JARINGAN',
                             style: TextStyle(
@@ -146,6 +147,14 @@ class _LoginViewState extends State<LoginView> {
                         ],
                       ),
                     ),
+                    IconButton(
+                      onPressed: () => themeVm.toggleTheme(),
+                      tooltip: themeVm.isDarkMode ? 'Mode Terang' : 'Mode Gelap',
+                      icon: Icon(
+                        themeVm.isDarkMode ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                        color: themeVm.isDarkMode ? AppTheme.statusWarning : _textSecondary,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 32),
@@ -156,17 +165,17 @@ class _LoginViewState extends State<LoginView> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFFF1F2), // rose-50
+                      color: AppTheme.statusDown.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: const Color(0xFFFECDD3), // rose-200
+                        color: AppTheme.statusDown.withValues(alpha: 0.35),
                       ),
                     ),
                     child: Row(
                       children: [
                         const Icon(
                           Icons.error_outline_rounded,
-                          color: Color(0xFFE11D48), // rose-600
+                          color: AppTheme.statusDown,
                           size: 20,
                         ),
                         const SizedBox(width: 10),
@@ -174,7 +183,7 @@ class _LoginViewState extends State<LoginView> {
                           child: Text(
                             authVm.errorMessage!,
                             style: const TextStyle(
-                              color: Color(0xFFBE123C), // rose-700
+                              color: AppTheme.statusDown,
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
                               height: 1.4,
@@ -207,13 +216,13 @@ class _LoginViewState extends State<LoginView> {
                     children: [
                       Row(
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.verified_user_outlined,
                             color: _primaryAccent,
                             size: 18,
                           ),
                           const SizedBox(width: 8),
-                          const Text(
+                          Text(
                             'OTENTIKASI 3-FAKTOR',
                             style: TextStyle(
                               color: _textSecondary,
@@ -309,9 +318,9 @@ class _LoginViewState extends State<LoginView> {
                         child: ElevatedButton(
                           onPressed: authVm.isLoading ? null : _submitLogin,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: _textMain, // slate-900 for Light Theme primary buttons
+                            backgroundColor: AppTheme.isDark ? _primaryAccent : _textMain,
                             foregroundColor: Colors.white,
-                            disabledBackgroundColor: const Color(0xFFF1F5F9), // slate-100
+                            disabledBackgroundColor: AppTheme.bgSurface,
                             disabledForegroundColor: _textHint,
                             elevation: 0,
                             shape: RoundedRectangleBorder(

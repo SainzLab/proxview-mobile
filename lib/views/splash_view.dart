@@ -5,14 +5,15 @@ import 'common_widgets.dart';
 class SplashView extends StatelessWidget {
   const SplashView({super.key});
 
-  // Light Theme Specific Colors
-  static const Color _bgMain = Color(0xFFF8F9FA); // slate-50
-  static const Color _bgCard = Colors.white;
-  static const Color _textMain = Color(0xFF0F172A); // slate-900
-  static const Color _textMuted = Color(0xFF64748B); // slate-500
+  // Adaptive Theme Colors
+  static Color get _bgMain => AppTheme.bgMain;
+  static Color get _bgCard => AppTheme.bgCard;
+  static Color get _textMain => AppTheme.textMain;
+  static Color get _textMuted => AppTheme.textMuted;
 
   @override
   Widget build(BuildContext context) {
+    Theme.of(context);
     return Scaffold(
       backgroundColor: _bgMain,
       body: Center(
@@ -42,7 +43,7 @@ class SplashView extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-            const Text(
+            Text(
               'ProxView',
               style: TextStyle(
                 color: _textMain,
@@ -52,7 +53,7 @@ class SplashView extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'MONITORING & INCIDENT RESPONSE',
               style: TextStyle(
                 color: _textMuted,

@@ -11,16 +11,17 @@ class EmergencyCallView extends StatelessWidget {
 
   const EmergencyCallView({super.key, required this.alert});
 
-  // Light theme specific colors
-  static const Color _bgMain = Colors.white;
-  static const Color _bgSurface = Color(0xFFF8F9FA); // slate-50
-  static const Color _borderSubtle = Color(0xFFE2E8F0); // slate-200
-  static const Color _textMain = Color(0xFF0F172A); // slate-900
-  static const Color _textSecondary = Color(0xFF475569); // slate-600
-  static const Color _textMuted = Color(0xFF64748B); // slate-500
+  // Adaptive Theme Colors
+  static Color get _bgMain => AppTheme.bgCard;
+  static Color get _bgSurface => AppTheme.bgSurface;
+  static Color get _borderSubtle => AppTheme.borderColor;
+  static Color get _textMain => AppTheme.textMain;
+  static Color get _textSecondary => AppTheme.textSecondary;
+  static Color get _textMuted => AppTheme.textMuted;
 
   @override
   Widget build(BuildContext context) {
+    Theme.of(context);
     final alertVm = context.watch<AlertIncidentViewModel>();
     final severityColor = AppTheme.severityColor(alert.severity);
 
@@ -108,7 +109,7 @@ class EmergencyCallView extends StatelessWidget {
                   Text(
                     alert.targetName,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: _textMain,
                       fontSize: 26,
                       fontWeight: FontWeight.w900,
@@ -128,7 +129,7 @@ class EmergencyCallView extends StatelessWidget {
                     child: Text(
                       alert.message,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: _textSecondary,
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
@@ -173,7 +174,7 @@ class EmergencyCallView extends StatelessWidget {
                             ),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: _textMuted,
-                              side: const BorderSide(color: _borderSubtle),
+                              side: BorderSide(color: _borderSubtle),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14),
                               ),

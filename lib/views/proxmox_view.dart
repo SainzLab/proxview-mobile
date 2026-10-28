@@ -22,15 +22,15 @@ class _ProxmoxViewState extends State<ProxmoxView> {
   final TextEditingController _searchController = TextEditingController();
   late bool _isSummaryMode;
 
-  // Light Theme Specific Colors
-  static const Color _bgMain = Color(0xFFF8F9FA); // slate-50
-  static const Color _bgCard = Colors.white;
-  static const Color _bgSurface = Color(0xFFF1F5F9); // slate-100
-  static const Color _borderSubtle = Color(0xFFE2E8F0); // slate-200
-  static const Color _textMain = Color(0xFF0F172A); // slate-900
-  static const Color _textSecondary = Color(0xFF475569); // slate-600
-  static const Color _textMuted = Color(0xFF64748B); // slate-500
-  static const Color _textHint = Color(0xFF94A3B8); // slate-400
+  // Adaptive Theme Colors
+  static Color get _bgMain => AppTheme.bgMain;
+  static Color get _bgCard => AppTheme.bgCard;
+  static Color get _bgSurface => AppTheme.bgSurface;
+  static Color get _borderSubtle => AppTheme.borderColor;
+  static Color get _textMain => AppTheme.textMain;
+  static Color get _textSecondary => AppTheme.textSecondary;
+  static Color get _textMuted => AppTheme.textMuted;
+  static Color get _textHint => AppTheme.textHint;
 
   @override
   void initState() {
@@ -61,6 +61,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
 
   @override
   Widget build(BuildContext context) {
+    Theme.of(context);
     final vm = context.watch<ProxmoxViewModel>();
 
     return DefaultTabController(
@@ -229,14 +230,14 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                 value: selected.id,
                 dropdownColor: _bgCard,
                 borderRadius: BorderRadius.circular(12),
-                icon: const Icon(Icons.keyboard_arrow_down_rounded, color: _textHint),
+                icon: Icon(Icons.keyboard_arrow_down_rounded, color: _textHint),
                 isExpanded: true,
                 items: vm.servers.map((server) {
                   return DropdownMenuItem<int>(
                     value: server.id,
                     child: Text(
                       '${server.name} (PVE ${server.pveVersion}\n${server.latency})',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: _textMain,
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
@@ -263,7 +264,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
 
     return RefreshIndicator(
       color: AppTheme.statusTeal,
-      backgroundColor: Colors.white,
+      backgroundColor: _bgCard,
       onRefresh: () => vm.fetchProxmoxData(showLoading: false),
       child: nodes.isEmpty
           ? (vm.searchQuery.isNotEmpty
@@ -307,7 +308,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                   children: [
                     Text(
                       node.nodeName.toUpperCase(),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w900,
                         letterSpacing: 0.8,
@@ -319,12 +320,12 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        const Icon(Icons.access_time_rounded, size: 12, color: _textHint),
+                        Icon(Icons.access_time_rounded, size: 12, color: _textHint),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
                             'UPTIME: ${node.uptime}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: _textMuted,
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
@@ -346,10 +347,10 @@ class _ProxmoxViewState extends State<ProxmoxView> {
           const SizedBox(height: 12),
           Text(
             '${node.cpuModel} (${node.cpuCores} Core)',
-            style: const TextStyle(color: _textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
+            style: TextStyle(color: _textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
           ),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
             child: Divider(color: _borderSubtle, height: 1),
           ),
           ModernProgressBar(
@@ -387,7 +388,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    Text(
                       'Beban Rata-rata (Load)',
                       style: TextStyle(color: _textMuted, fontSize: 11, fontWeight: FontWeight.w600),
                     ),
@@ -395,7 +396,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                     Expanded(
                       child: Text(
                         node.loadAverage,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: _textMain,
                           fontSize: 11,
                           fontFamily: 'monospace',
@@ -406,14 +407,14 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                     ),
                   ],
                 ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 10),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
                   child: Divider(color: _borderSubtle, height: 1),
                 ),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    Text(
                       'Trafik Jaringan',
                       style: TextStyle(color: _textMuted, fontSize: 11, fontWeight: FontWeight.w600),
                     ),
@@ -453,7 +454,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
 
     return RefreshIndicator(
       color: AppTheme.statusTeal,
-      backgroundColor: Colors.white,
+      backgroundColor: _bgCard,
       onRefresh: () => vm.fetchProxmoxData(showLoading: false),
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
@@ -469,7 +470,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
               padding: const EdgeInsets.symmetric(vertical: 12),
               child: Text(
                 vm.searchQuery.isNotEmpty ? 'Tidak ada VM yang cocok.' : 'Tidak ada QEMU VM.',
-                style: const TextStyle(color: _textHint, fontSize: 13),
+                style: TextStyle(color: _textHint, fontSize: 13),
               ),
             )
           else
@@ -486,7 +487,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
               padding: const EdgeInsets.symmetric(vertical: 12),
               child: Text(
                 vm.searchQuery.isNotEmpty ? 'Tidak ada LXC yang cocok.' : 'Tidak ada LXC Container.',
-                style: const TextStyle(color: _textHint, fontSize: 13),
+                style: TextStyle(color: _textHint, fontSize: 13),
               ),
             )
           else
@@ -581,7 +582,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                     const SizedBox(height: 6),
                     Text(
                       '${guest.node.toUpperCase()}\n${guest.cpuCores} vCPU • ${guest.ramUsed}/${guest.ramTotal}',
-                      style: const TextStyle(color: _textMuted, fontSize: 11),
+                      style: TextStyle(color: _textMuted, fontSize: 11),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -600,7 +601,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                     const SizedBox(height: 6),
                     Text(
                       guest.cpuUsage,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: _textMain,
                         fontSize: 11,
                         fontFamily: 'monospace',
@@ -656,7 +657,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                       children: [
                         Text(
                           guest.name,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: _textMain,
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -667,7 +668,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                         const SizedBox(height: 6),
                         Text(
                           '${guest.type.toUpperCase()} #${guest.vmid}\nNode: ${guest.node}',
-                          style: const TextStyle(color: _textMuted, fontSize: 12),
+                          style: TextStyle(color: _textMuted, fontSize: 12),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -716,14 +717,14 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                             children: [
                               TextSpan(
                                 text: guest.diskTotal,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: _textMain,
                                   fontSize: 12,
                                   fontFamily: 'monospace',
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              const TextSpan(
+                              TextSpan(
                                 text: ' (Bootdisk)',
                                 style: TextStyle(
                                   color: _textMuted,
@@ -738,13 +739,13 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                       )
                     else
                       _buildKeyValRow('Penggunaan Disk', '${guest.diskUsed} / ${guest.diskTotal}'),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 12),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                       child: Divider(color: _borderSubtle, height: 1),
                     ),
                     _buildKeyValRow('Trafik Jaringan', '↓ ${guest.netIn}\n↑ ${guest.netOut}'),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 12),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                       child: Divider(color: _borderSubtle, height: 1),
                     ),
                     _buildKeyValRow('Durasi Aktif (Uptime)', guest.uptime),
@@ -765,13 +766,13 @@ class _ProxmoxViewState extends State<ProxmoxView> {
       children: [
         Text(
           key,
-          style: const TextStyle(color: _textMuted, fontSize: 12, fontWeight: FontWeight.w600),
+          style: TextStyle(color: _textMuted, fontSize: 12, fontWeight: FontWeight.w600),
         ),
         const SizedBox(width: 16),
         Expanded(
           child: Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               color: _textMain,
               fontSize: 12,
               fontFamily: 'monospace',
@@ -792,7 +793,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
       children: [
         Text(
           key,
-          style: const TextStyle(color: _textMuted, fontSize: 12, fontWeight: FontWeight.w600),
+          style: TextStyle(color: _textMuted, fontSize: 12, fontWeight: FontWeight.w600),
         ),
         const SizedBox(width: 16),
         Expanded(
@@ -810,7 +811,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
 
     return RefreshIndicator(
       color: AppTheme.statusTeal,
-      backgroundColor: Colors.white,
+      backgroundColor: _bgCard,
       onRefresh: () => vm.fetchProxmoxData(showLoading: false),
       child: storages.isEmpty
           ? (vm.searchQuery.isNotEmpty
@@ -859,7 +860,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                           children: [
                             Text(
                               st.storage,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: _textMain,
                                 fontSize: 15,
                                 fontWeight: FontWeight.bold,
@@ -870,7 +871,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                             const SizedBox(height: 6),
                             Text(
                               'Node: ${st.node}\nTipe: ${st.type}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: _textMuted,
                                 fontSize: 12,
                               ),
@@ -886,7 +887,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                         children: [
                           Text(
                             st.used,
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: _textMain,
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
@@ -896,7 +897,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                           const SizedBox(height: 2),
                           Text(
                             'dari ${st.total}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: _textMuted,
                               fontSize: 11,
                             ),
@@ -921,7 +922,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
     if (vms.isEmpty && lxcs.isEmpty) {
       return RefreshIndicator(
         color: AppTheme.statusTeal,
-        backgroundColor: Colors.white,
+        backgroundColor: _bgCard,
         onRefresh: () => vm.fetchProxmoxData(showLoading: false),
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
@@ -955,7 +956,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
 
     return RefreshIndicator(
       color: AppTheme.statusTeal,
-      backgroundColor: Colors.white,
+      backgroundColor: _bgCard,
       onRefresh: () => vm.fetchProxmoxData(showLoading: false),
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
@@ -1001,7 +1002,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                           ),
                         ),
                         const SizedBox(width: 10),
-                        const Text(
+                        Text(
                           'TOTAL STATUS MESIN',
                           style: TextStyle(
                             color: _textSecondary,
@@ -1117,7 +1118,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
     if (storages.isEmpty) {
       return RefreshIndicator(
         color: AppTheme.statusTeal,
-        backgroundColor: Colors.white,
+        backgroundColor: _bgCard,
         onRefresh: () => vm.fetchProxmoxData(showLoading: false),
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
@@ -1142,7 +1143,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
 
     return RefreshIndicator(
       color: AppTheme.statusTeal,
-      backgroundColor: Colors.white,
+      backgroundColor: _bgCard,
       onRefresh: () => vm.fetchProxmoxData(showLoading: false),
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
@@ -1188,7 +1189,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                           ),
                         ),
                         const SizedBox(width: 10),
-                        const Text(
+                        Text(
                           'TOTAL STORAGE PROXMOX',
                           style: TextStyle(
                             color: _textSecondary,
@@ -1318,7 +1319,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
         const SizedBox(height: 4),
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             color: _textMain,
             fontSize: 11,
             fontWeight: FontWeight.bold,
@@ -1330,7 +1331,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
         const SizedBox(height: 2),
         Text(
           subtext,
-          style: const TextStyle(
+          style: TextStyle(
             color: _textMuted,
             fontSize: 10,
           ),
@@ -1388,7 +1389,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: _textMain,
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
@@ -1397,7 +1398,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                     const SizedBox(height: 2),
                     Text(
                       subtitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: _textMuted,
                         fontSize: 11,
                       ),
@@ -1407,7 +1408,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
               ),
               Text(
                 '$total $typeLabel',
-                style: const TextStyle(
+                style: TextStyle(
                   color: _textSecondary,
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
@@ -1430,10 +1431,10 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Row(
+                      Row(
                         children: [
-                          Icon(Icons.play_circle_filled_rounded, size: 14, color: AppTheme.statusTeal),
-                          SizedBox(width: 6),
+                          const Icon(Icons.play_circle_filled_rounded, size: 14, color: AppTheme.statusTeal),
+                          const SizedBox(width: 6),
                           Text('Aktif', style: TextStyle(color: _textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
                         ],
                       ),
@@ -1471,7 +1472,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                             color: stopped > 0 ? AppTheme.statusDown : _textHint,
                           ),
                           const SizedBox(width: 6),
-                          const Text('Non-Aktif', style: TextStyle(color: _textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
+                          Text('Non-Aktif', style: TextStyle(color: _textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
                         ],
                       ),
                       Text(
@@ -1558,7 +1559,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
           const SizedBox(height: 12),
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               color: _textMain,
               fontSize: 13,
               fontWeight: FontWeight.bold,
@@ -1567,7 +1568,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
           const SizedBox(height: 4),
           Text(
             description,
-            style: const TextStyle(
+            style: TextStyle(
               color: _textMuted,
               fontSize: 10.5,
             ),
@@ -1598,7 +1599,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(
+              style: TextStyle(
                 color: _textSecondary,
                 fontSize: 11,
                 height: 1.4,

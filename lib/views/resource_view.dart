@@ -17,17 +17,18 @@ class ResourceView extends StatefulWidget {
 class _ResourceViewState extends State<ResourceView> {
   int _selectedCategory = 0; // 0 = Cluster Proxmox, 1 = Target Jaringan
 
-  // Light Theme Specific Colors
-  static const Color _bgMain = Color(0xFFF8F9FA); // slate-50
-  static const Color _bgCard = Colors.white;
-  static const Color _borderSubtle = Color(0xFFE2E8F0); // slate-200
-  static const Color _textMain = Color(0xFF0F172A); // slate-900
-  static const Color _textSecondary = Color(0xFF475569); // slate-600
-  static const Color _textMuted = Color(0xFF64748B); // slate-500
-  static const Color _textHint = Color(0xFF94A3B8); // slate-400
+  // Adaptive Theme Colors
+  static Color get _bgMain => AppTheme.bgMain;
+  static Color get _bgCard => AppTheme.bgCard;
+  static Color get _borderSubtle => AppTheme.borderColor;
+  static Color get _textMain => AppTheme.textMain;
+  static Color get _textSecondary => AppTheme.textSecondary;
+  static Color get _textMuted => AppTheme.textMuted;
+  static Color get _textHint => AppTheme.textHint;
 
   @override
   Widget build(BuildContext context) {
+    Theme.of(context);
     final pveVm = context.watch<ProxmoxViewModel>();
     final netVm = context.watch<NetworkViewModel>();
 
@@ -106,7 +107,7 @@ class _ResourceViewState extends State<ResourceView> {
             ],
           ),
         ),
-        const Divider(color: _borderSubtle, height: 1),
+        Divider(color: _borderSubtle, height: 1),
         Expanded(
           child: Container(
             color: _bgMain,
@@ -227,7 +228,7 @@ class _ResourceViewState extends State<ResourceView> {
               const SizedBox(height: 2),
               Text(
                 tertiaryStat,
-                style: const TextStyle(
+                style: TextStyle(
                   color: _textHint,
                   fontSize: 9,
                   fontWeight: FontWeight.normal,

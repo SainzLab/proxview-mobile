@@ -33,14 +33,14 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
   Timer? _pollingTimer;
   late AnimationController _syncController;
 
-  // Light Theme Specific Colors
-  static const Color _bgMain = Color(0xFFF8F9FA); // slate-50
-  static const Color _bgCard = Colors.white;
-  static const Color _borderSubtle = Color(0xFFE2E8F0); // slate-200
-  static const Color _textMain = Color(0xFF0F172A); // slate-900
-  static const Color _textSecondary = Color(0xFF475569); // slate-600
-  static const Color _textMuted = Color(0xFF64748B); // slate-500
-  static const Color _textHint = Color(0xFF94A3B8); // slate-400
+  // Adaptive Theme Colors
+  static Color get _bgMain => AppTheme.bgMain;
+  static Color get _bgCard => AppTheme.bgCard;
+  static Color get _borderSubtle => AppTheme.borderColor;
+  static Color get _textMain => AppTheme.textMain;
+  static Color get _textSecondary => AppTheme.textSecondary;
+  static Color get _textMuted => AppTheme.textMuted;
+  static Color get _textHint => AppTheme.textHint;
 
   static const List<String> _teknisiTitles = [
     'Dashboard',
@@ -191,6 +191,7 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
+    final themeVm = context.watch<ThemeViewModel>();
     final authVm = context.watch<AuthViewModel>();
     final isKabid = authVm.isKepalaBidang;
     final titles = isKabid ? _kabidTitles : _teknisiTitles;
@@ -212,13 +213,13 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
         elevation: 0,
         backgroundColor: _bgMain,
         scrolledUnderElevation: 0,
-        iconTheme: const IconThemeData(color: _textMain),
+        iconTheme: IconThemeData(color: _textMain),
         title: Row(
           children: [
             Expanded(
               child: Text(
                 titles[safeIndex],
-                style: const TextStyle(
+                style: TextStyle(
                   color: _textMain,
                   fontWeight: FontWeight.w900,
                   fontSize: 20,
@@ -231,6 +232,15 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
           ],
         ),
         actions: [
+          IconButton(
+            onPressed: () => themeVm.toggleTheme(),
+            tooltip: themeVm.isDarkMode ? 'Beralih ke Mode Terang' : 'Beralih ke Mode Gelap',
+            icon: Icon(
+              themeVm.isDarkMode ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+              color: themeVm.isDarkMode ? AppTheme.statusWarning : _textSecondary,
+              size: 21,
+            ),
+          ),
           if (alertVm.activeAlertCount > 0 && safeIndex != 1)
             IconButton(
               onPressed: () => _selectPage(1),
@@ -251,7 +261,7 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
                   parent: _syncController,
                   curve: Curves.easeInOut,
                 )),
-                child: const Icon(Icons.sync_rounded, color: _textSecondary),
+                child: Icon(Icons.sync_rounded, color: _textSecondary),
               ),
             ),
           const SizedBox(width: 8),
@@ -334,7 +344,7 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              border: const Border(bottom: BorderSide(color: _borderSubtle)),
+              border: Border(bottom: BorderSide(color: _borderSubtle)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -354,7 +364,7 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
                           ),
                         ),
                         const SizedBox(width: 12),
-                        const Text(
+                        Text(
                           'ProxView',
                           style: TextStyle(
                             color: _textMain,
@@ -366,7 +376,7 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
                       ],
                     ),
                     const SizedBox(height: 6),
-                    const Text(
+                    Text(
                       'MONITORING PROXMOX',
                       style: TextStyle(
                         color: _textMuted,
@@ -400,7 +410,7 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
                           children: [
                             Text(
                               userName,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: _textMain,
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
@@ -462,8 +472,8 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
                         _kabidTitles[3],
                         3,
                       ),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
                           vertical: 12,
                           horizontal: 24,
                         ),
@@ -502,8 +512,8 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
                         _teknisiTitles[4],
                         4,
                       ),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
                           vertical: 12,
                           horizontal: 24,
                         ),

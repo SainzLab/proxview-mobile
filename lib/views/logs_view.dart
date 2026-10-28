@@ -21,15 +21,15 @@ class _LogsViewState extends State<LogsView> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
-  // Light Theme Colors
-  static const Color _bgMain = Color(0xFFF8F9FA); // slate-50
-  static const Color _bgCard = Colors.white;
-  static const Color _bgSurface = Color(0xFFF1F5F9); // slate-100
-  static const Color _borderSubtle = Color(0xFFE2E8F0); // slate-200
-  static const Color _textMain = Color(0xFF0F172A); // slate-900
-  static const Color _textSecondary = Color(0xFF475569); // slate-600
-  static const Color _textMuted = Color(0xFF64748B); // slate-500
-  static const Color _textHint = Color(0xFF94A3B8); // slate-400
+  // Adaptive Theme Colors
+  static Color get _bgMain => AppTheme.bgMain;
+  static Color get _bgCard => AppTheme.bgCard;
+  static Color get _bgSurface => AppTheme.bgSurface;
+  static Color get _borderSubtle => AppTheme.borderColor;
+  static Color get _textMain => AppTheme.textMain;
+  static Color get _textSecondary => AppTheme.textSecondary;
+  static Color get _textMuted => AppTheme.textMuted;
+  static Color get _textHint => AppTheme.textHint;
 
   @override
   void initState() {
@@ -98,6 +98,7 @@ class _LogsViewState extends State<LogsView> {
 
   @override
   Widget build(BuildContext context) {
+    Theme.of(context);
     final vm = context.watch<LogViewModel>();
 
     final filteredTasks = _filterTasks(vm.taskLogs);
@@ -189,7 +190,7 @@ class _LogsViewState extends State<LogsView> {
   ) {
     return RefreshIndicator(
       color: AppTheme.statusTeal,
-      backgroundColor: Colors.white,
+      backgroundColor: _bgCard,
       onRefresh: () => vm.fetchLogs(showLoading: false),
       child: NotificationListener<ScrollNotification>(
         onNotification: (ScrollNotification scrollInfo) {
@@ -279,7 +280,7 @@ class _LogsViewState extends State<LogsView> {
                                     children: [
                                       Text(
                                         task.type,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           color: _textMain,
                                           fontWeight: FontWeight.bold,
                                           fontSize: 15,
@@ -288,7 +289,7 @@ class _LogsViewState extends State<LogsView> {
                                       const SizedBox(height: 6),
                                       RichText(
                                         text: TextSpan(
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             color: _textSecondary,
                                             fontSize: 12,
                                             height: 1.4,
@@ -297,7 +298,7 @@ class _LogsViewState extends State<LogsView> {
                                             const TextSpan(text: 'Node: '),
                                             TextSpan(
                                               text: '${task.node}  ',
-                                              style: const TextStyle(
+                                              style: TextStyle(
                                                 color: _textMain,
                                                 fontWeight: FontWeight.w700,
                                               ),
@@ -305,7 +306,7 @@ class _LogsViewState extends State<LogsView> {
                                             const TextSpan(text: '•  User: '),
                                             TextSpan(
                                               text: task.user,
-                                              style: const TextStyle(
+                                              style: TextStyle(
                                                 color: _textMain,
                                                 fontWeight: FontWeight.w700,
                                               ),
@@ -316,7 +317,7 @@ class _LogsViewState extends State<LogsView> {
                                       const SizedBox(height: 6),
                                       Row(
                                         children: [
-                                          const Icon(
+                                          Icon(
                                             Icons.access_time_rounded,
                                             size: 12,
                                             color: _textHint,
@@ -324,7 +325,7 @@ class _LogsViewState extends State<LogsView> {
                                           const SizedBox(width: 4),
                                           Text(
                                             Formatters.formatDateTime(task.startTime),
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               color: _textMuted,
                                               fontSize: 11,
                                             ),
@@ -414,7 +415,7 @@ class _LogsViewState extends State<LogsView> {
                           children: [
                             Text(
                               task.type.toUpperCase(),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: _textMain,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 15,
@@ -424,7 +425,7 @@ class _LogsViewState extends State<LogsView> {
                             const SizedBox(height: 2),
                             Text(
                               'Node: ${task.node} • User: ${task.user}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: _textMuted,
                                 fontSize: 12,
                               ),
@@ -507,7 +508,7 @@ class _LogsViewState extends State<LogsView> {
   ) {
     return RefreshIndicator(
       color: AppTheme.statusTeal,
-      backgroundColor: Colors.white,
+      backgroundColor: _bgCard,
       onRefresh: () => vm.fetchLogs(showLoading: false),
       child: NotificationListener<ScrollNotification>(
         onNotification: (ScrollNotification scrollInfo) {
@@ -607,7 +608,7 @@ class _LogsViewState extends State<LogsView> {
                                   const SizedBox(height: 8),
                                   Row(
                                     children: [
-                                      const Icon(
+                                      Icon(
                                         Icons.access_time_rounded,
                                         size: 12,
                                         color: _textHint,
@@ -615,7 +616,7 @@ class _LogsViewState extends State<LogsView> {
                                       const SizedBox(width: 4),
                                       Text(
                                         Formatters.formatDateTime(log.time),
-                                        style: const TextStyle(color: _textMuted, fontSize: 11),
+                                        style: TextStyle(color: _textMuted, fontSize: 11),
                                       ),
                                     ],
                                   ),
@@ -638,7 +639,7 @@ class _LogsViewState extends State<LogsView> {
   ) {
     return RefreshIndicator(
       color: AppTheme.statusTeal,
-      backgroundColor: Colors.white,
+      backgroundColor: _bgCard,
       onRefresh: () => vm.fetchLogs(showLoading: false),
       child: NotificationListener<ScrollNotification>(
         onNotification: (ScrollNotification scrollInfo) {
@@ -730,7 +731,7 @@ class _LogsViewState extends State<LogsView> {
                                 const SizedBox(height: 10),
                                 Text(
                                   item.message,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     color: _textMain,
                                     fontSize: 13,
                                     height: 1.4,
@@ -740,7 +741,7 @@ class _LogsViewState extends State<LogsView> {
                                 const SizedBox(height: 10),
                                 Row(
                                   children: [
-                                    const Icon(
+                                    Icon(
                                       Icons.access_time_rounded,
                                       size: 12,
                                       color: _textHint,
@@ -748,7 +749,7 @@ class _LogsViewState extends State<LogsView> {
                                     const SizedBox(width: 4),
                                     Text(
                                       Formatters.formatDateTime(item.timestamp),
-                                      style: const TextStyle(color: _textMuted, fontSize: 11),
+                                      style: TextStyle(color: _textMuted, fontSize: 11),
                                     ),
                                   ],
                                 ),
@@ -778,7 +779,7 @@ class _LogsViewState extends State<LogsView> {
           const SizedBox(width: 4),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               color: _textSecondary,
               fontSize: 10.5,
               fontWeight: FontWeight.w600,

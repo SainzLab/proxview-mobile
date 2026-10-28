@@ -9,21 +9,21 @@ import '../models/analytics_model.dart';
 import '../viewmodels/analytics_viewmodel.dart';
 import 'common_widgets.dart';
 
-// Light Theme Specific Colors
-const Color _bgMain = Color(0xFFF8F9FA); // slate-50
-const Color _bgCard = Colors.white;
-const Color _bgSurface = Color(0xFFF1F5F9); // slate-100
-const Color _borderSubtle = Color(0xFFE2E8F0); // slate-200
-const Color _textMain = Color(0xFF0F172A); // slate-900
-const Color _textSecondary = Color(0xFF475569); // slate-600
-const Color _textMuted = Color(0xFF64748B); // slate-500
-const Color _textHint = Color(0xFF94A3B8); // slate-400
+// Adaptive Theme Colors
+Color get _bgCard => AppTheme.bgCard;
+Color get _bgSurface => AppTheme.bgSurface;
+Color get _borderSubtle => AppTheme.borderColor;
+Color get _textMain => AppTheme.textMain;
+Color get _textSecondary => AppTheme.textSecondary;
+Color get _textMuted => AppTheme.textMuted;
+Color get _textHint => AppTheme.textHint;
 
 class SlaAnalyticsView extends StatelessWidget {
   const SlaAnalyticsView({super.key});
 
   @override
   Widget build(BuildContext context) {
+    Theme.of(context);
     final vm = context.watch<AnalyticsViewModel>();
 
     if (vm.isLoading && vm.analytics == null) {
@@ -41,7 +41,7 @@ class SlaAnalyticsView extends StatelessWidget {
 
     return RefreshIndicator(
       color: AppTheme.statusTeal,
-      backgroundColor: Colors.white,
+      backgroundColor: _bgCard,
       onRefresh: () => vm.fetchAnalytics(showLoading: false),
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
@@ -85,6 +85,7 @@ class SlaMetricsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Theme.of(context);
     final vm = context.watch<AnalyticsViewModel>();
     final data = vm.analytics;
 
@@ -134,7 +135,7 @@ class SlaMetricsSection extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'Analitik Kinerja & Keandalan Sistem',
                           style: TextStyle(
                             color: _textMain,
@@ -145,7 +146,7 @@ class SlaMetricsSection extends StatelessWidget {
                         const SizedBox(height: 4),
                         Text(
                           '${_periodDescription(vm.selectedPeriod)} • ${_severityDescription(vm.selectedSeverity)}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: _textSecondary,
                             fontSize: 12,
                             height: 1.4,
@@ -386,7 +387,7 @@ class SlaMetricsSection extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: Text(
               value,
-              style: const TextStyle(
+              style: TextStyle(
                 color: _textMain,
                 fontSize: 22,
                 fontWeight: FontWeight.w900,
@@ -398,7 +399,7 @@ class SlaMetricsSection extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             subtitle,
-            style: const TextStyle(color: _textMuted, fontSize: 10, height: 1.3),
+            style: TextStyle(color: _textMuted, fontSize: 10, height: 1.3),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
@@ -499,7 +500,7 @@ class SlaMetricsSection extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             s.availability >= 99.0 ? 'Ketersediaan (target ≥99%)' : 'Di bawah target SLA',
-            style: const TextStyle(color: _textMuted, fontSize: 10, height: 1.3),
+            style: TextStyle(color: _textMuted, fontSize: 10, height: 1.3),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
@@ -536,7 +537,7 @@ class SlaMetricsSection extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Expanded(
+              Expanded(
                 child: Text(
                   'Uptime & Downtime',
                   style: TextStyle(
@@ -556,7 +557,7 @@ class SlaMetricsSection extends StatelessWidget {
                 ),
                 child: Text(
                   unitBadge,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: _textSecondary,
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
@@ -577,7 +578,7 @@ class SlaMetricsSection extends StatelessWidget {
           SizedBox(
             height: 180,
             child: points.isEmpty
-                ? const Center(
+                ? Center(
                     child: Text(
                       'Tidak ada data grafik Uptime & Downtime.',
                       style: TextStyle(color: _textHint, fontSize: 12),
@@ -621,8 +622,8 @@ class SlaMetricsSection extends StatelessWidget {
       BarChartData(
         barTouchData: BarTouchData(
           touchTooltipData: BarTouchTooltipData(
-            getTooltipColor: (_) => Colors.white,
-            tooltipBorder: const BorderSide(color: _borderSubtle, width: 1),
+            getTooltipColor: (_) => _bgCard,
+            tooltipBorder: BorderSide(color: _borderSubtle, width: 1),
             tooltipPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             tooltipRoundedRadius: 10,
             getTooltipItem: (group, groupIndex, rod, rodIndex) {
@@ -654,7 +655,7 @@ class SlaMetricsSection extends StatelessWidget {
           drawVerticalLine: false,
           horizontalInterval: interval,
           getDrawingHorizontalLine: (_) => FlLine(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: AppTheme.gridLineColor,
             strokeWidth: 1,
             dashArray: [4, 4],
           ),
@@ -686,7 +687,7 @@ class SlaMetricsSection extends StatelessWidget {
                   child: Text(
                     text,
                     textAlign: TextAlign.right,
-                    style: const TextStyle(
+                    style: TextStyle(
                         color: _textHint, fontSize: 10, fontWeight: FontWeight.w500),
                   ),
                 );
@@ -707,7 +708,7 @@ class SlaMetricsSection extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 8),
                   child: Text(
                     points[idx].label,
-                    style: const TextStyle(
+                    style: TextStyle(
                         color: _textHint, fontSize: 9, fontWeight: FontWeight.w500),
                   ),
                 );
@@ -787,7 +788,7 @@ class SlaMetricsSection extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'MTTR (Mean Time To Recover)',
                       style: TextStyle(
                         color: _textMain,
@@ -799,7 +800,7 @@ class SlaMetricsSection extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       subtitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: _textSecondary,
                         fontSize: 11,
                       ),
@@ -819,7 +820,7 @@ class SlaMetricsSection extends StatelessWidget {
           SizedBox(
             height: 180,
             child: points.isEmpty
-                ? const Center(
+                ? Center(
                     child: Text(
                       'Tidak ada data grafik MTTR.',
                       style: TextStyle(color: _textHint, fontSize: 12),
@@ -902,8 +903,8 @@ class SlaMetricsSection extends StatelessWidget {
       BarChartData(
         barTouchData: BarTouchData(
           touchTooltipData: BarTouchTooltipData(
-            getTooltipColor: (_) => Colors.white,
-            tooltipBorder: const BorderSide(color: _borderSubtle, width: 1),
+            getTooltipColor: (_) => _bgCard,
+            tooltipBorder: BorderSide(color: _borderSubtle, width: 1),
             tooltipPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             tooltipRoundedRadius: 10,
             getTooltipItem: (group, groupIndex, rod, rodIndex) {
@@ -931,7 +932,7 @@ class SlaMetricsSection extends StatelessWidget {
           drawVerticalLine: false,
           horizontalInterval: interval,
           getDrawingHorizontalLine: (_) => FlLine(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: AppTheme.gridLineColor,
             strokeWidth: 1,
             dashArray: [4, 4],
           ),
@@ -952,7 +953,7 @@ class SlaMetricsSection extends StatelessWidget {
                   child: Text(
                     Formatters.formatDurationSeconds(val.toInt()),
                     textAlign: TextAlign.right,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: _textHint,
                       fontSize: 10,
                       fontWeight: FontWeight.w500,
@@ -976,7 +977,7 @@ class SlaMetricsSection extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 8),
                   child: Text(
                     points[idx].label,
-                    style: const TextStyle(
+                    style: TextStyle(
                         color: _textHint, fontSize: 9, fontWeight: FontWeight.w500),
                   ),
                 );
@@ -1025,7 +1026,7 @@ class SlaMetricsSection extends StatelessWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               color: _textMuted,
               fontSize: 11,
               fontWeight: FontWeight.w500,
@@ -1073,7 +1074,7 @@ class SlaMetricsSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
@@ -1099,7 +1100,7 @@ class SlaMetricsSection extends StatelessWidget {
           SizedBox(
             height: 180,
             child: points.isEmpty
-                ? const Center(
+                ? Center(
                     child: Text(
                       'Tidak ada data grafik Availability.',
                       style: TextStyle(color: _textHint, fontSize: 12),
@@ -1130,8 +1131,8 @@ class SlaMetricsSection extends StatelessWidget {
       LineChartData(
         lineTouchData: LineTouchData(
           touchTooltipData: LineTouchTooltipData(
-            getTooltipColor: (_) => Colors.white,
-            tooltipBorder: const BorderSide(color: _borderSubtle, width: 1),
+            getTooltipColor: (_) => _bgCard,
+            tooltipBorder: BorderSide(color: _borderSubtle, width: 1),
             tooltipPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             tooltipRoundedRadius: 10,
             getTooltipItems: (touchedSpots) {
@@ -1161,7 +1162,7 @@ class SlaMetricsSection extends StatelessWidget {
           drawVerticalLine: false,
           horizontalInterval: interval,
           getDrawingHorizontalLine: (_) => FlLine(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: AppTheme.gridLineColor,
             strokeWidth: 1,
             dashArray: [4, 4],
           ),
@@ -1180,7 +1181,7 @@ class SlaMetricsSection extends StatelessWidget {
                 child: Text(
                   '${val.toStringAsFixed(0)}%',
                   textAlign: TextAlign.right,
-                  style: const TextStyle(
+                  style: TextStyle(
                       color: _textHint, fontSize: 10, fontWeight: FontWeight.w500),
                 ),
               ),
@@ -1201,7 +1202,7 @@ class SlaMetricsSection extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 8),
                   child: Text(
                     points[idx].label,
-                    style: const TextStyle(
+                    style: TextStyle(
                         color: _textHint, fontSize: 9, fontWeight: FontWeight.w500),
                   ),
                 );
