@@ -20,6 +20,16 @@ class _LoginViewState extends State<LoginView> {
   bool _obscurePassword = true;
   bool _showServerConfig = false;
 
+  // Light Theme Colors
+  static const Color _bgMain = Color(0xFFF8F9FA); // slate-50
+  static const Color _bgCard = Colors.white;
+  static const Color _borderSubtle = Color(0xFFE2E8F0); // slate-200
+  static const Color _textMain = Color(0xFF0F172A); // slate-900
+  static const Color _textSecondary = Color(0xFF475569); // slate-600
+  static const Color _textMuted = Color(0xFF64748B); // slate-500
+  static const Color _primaryAccent = Color(0xFF10B981); // emerald-500
+  static const Color _textHint = Color(0xFF94A3B8);
+
   @override
   void initState() {
     super.initState();
@@ -75,7 +85,7 @@ class _LoginViewState extends State<LoginView> {
     final authVm = context.watch<AuthViewModel>();
 
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: _bgMain,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -85,6 +95,30 @@ class _LoginViewState extends State<LoginView> {
               children: [
                 Row(
                   children: [
+                    // Optional Logo Box
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: _bgCard,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: _borderSubtle),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.03),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: const Center(
+                        child: Icon(
+                          Icons.insights_rounded,
+                          color: _primaryAccent,
+                          size: 26,
+                        ),
+                      ),
+                    ),
                     const SizedBox(width: 16),
                     const Expanded(
                       child: Column(
@@ -93,20 +127,20 @@ class _LoginViewState extends State<LoginView> {
                           Text(
                             'ProxView',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: _textMain,
                               fontSize: 26,
                               fontWeight: FontWeight.w900,
-                              letterSpacing: 0.5,
+                              letterSpacing: -0.5,
                             ),
                           ),
                           SizedBox(height: 3),
                           Text(
                             'MONITORING PROXMOX & JARINGAN',
                             style: TextStyle(
-                              color: Colors.white54,
+                              color: _textMuted,
                               fontSize: 10.5,
                               fontWeight: FontWeight.w700,
-                              letterSpacing: 1.4,
+                              letterSpacing: 1.2,
                             ),
                           ),
                         ],
@@ -114,24 +148,25 @@ class _LoginViewState extends State<LoginView> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 28),
+                const SizedBox(height: 32),
 
+                // Error Message Box
                 if (authVm.errorMessage != null) ...[
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: AppTheme.statusDown.withValues(alpha: 0.1),
+                      color: const Color(0xFFFFF1F2), // rose-50
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: AppTheme.statusDown.withValues(alpha: 0.35),
+                        color: const Color(0xFFFECDD3), // rose-200
                       ),
                     ),
                     child: Row(
                       children: [
                         const Icon(
                           Icons.error_outline_rounded,
-                          color: AppTheme.statusDown,
+                          color: Color(0xFFE11D48), // rose-600
                           size: 20,
                         ),
                         const SizedBox(width: 10),
@@ -139,8 +174,9 @@ class _LoginViewState extends State<LoginView> {
                           child: Text(
                             authVm.errorMessage!,
                             style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
+                              color: Color(0xFFBE123C), // rose-700
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
                               height: 1.4,
                             ),
                           ),
@@ -151,21 +187,44 @@ class _LoginViewState extends State<LoginView> {
                   const SizedBox(height: 20),
                 ],
 
+                // Main Login Card
                 Container(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: AppTheme.cardBackground,
+                    color: _bgCard,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppTheme.borderSubtle),
+                    border: Border.all(color: _borderSubtle),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.03),
+                        blurRadius: 15,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SectionTitle(
-                        title: 'OTENTIKASI 3-FAKTOR',
-                        icon: Icons.verified_user_outlined,
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.verified_user_outlined,
+                            color: _primaryAccent,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'OTENTIKASI 3-FAKTOR',
+                            style: TextStyle(
+                              color: _textSecondary,
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 20),
 
                       CustomTextField(
                         controller: _usernameController,
@@ -173,7 +232,7 @@ class _LoginViewState extends State<LoginView> {
                         hint: 'Contoh: Asep_NOC',
                         icon: Icons.person_outline_rounded,
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 18),
 
                       CustomTextField(
                         controller: _passwordController,
@@ -183,8 +242,8 @@ class _LoginViewState extends State<LoginView> {
                         obscureText: _obscurePassword,
                         suffixIcon: IconButton(
                           icon: Icon(
-                            _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                            color: Colors.white38,
+                            _obscurePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                            color: _textHint,
                             size: 20,
                           ),
                           onPressed: () {
@@ -192,7 +251,7 @@ class _LoginViewState extends State<LoginView> {
                           },
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 18),
 
                       CustomTextField(
                         controller: _tokenController,
@@ -200,7 +259,7 @@ class _LoginViewState extends State<LoginView> {
                         hint: 'hex token dari Web Admin',
                         icon: Icons.vpn_key_outlined,
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 18),
 
                       InkWell(
                         onTap: () => setState(() => _showServerConfig = !_showServerConfig),
@@ -208,21 +267,22 @@ class _LoginViewState extends State<LoginView> {
                         child: Padding(
                           padding: const EdgeInsets.symmetric(vertical: 6),
                           child: Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
                                 _showServerConfig
                                     ? Icons.keyboard_arrow_up_rounded
                                     : Icons.keyboard_arrow_down_rounded,
-                                color: AppTheme.statusTeal,
+                                color: _primaryAccent,
                                 size: 18,
                               ),
                               const SizedBox(width: 6),
                               const Text(
                                 'Konfigurasi Endpoint Server',
                                 style: TextStyle(
-                                  color: AppTheme.statusTeal,
+                                  color: _primaryAccent,
                                   fontSize: 12,
-                                  fontWeight: FontWeight.w600,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                             ],
@@ -231,7 +291,7 @@ class _LoginViewState extends State<LoginView> {
                       ),
 
                       if (_showServerConfig) ...[
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 12),
                         CustomTextField(
                           controller: _serverUrlController,
                           label: 'Base URL Server API',
@@ -241,7 +301,7 @@ class _LoginViewState extends State<LoginView> {
                         ),
                       ],
 
-                      const SizedBox(height: 28),
+                      const SizedBox(height: 32),
 
                       SizedBox(
                         width: double.infinity,
@@ -249,9 +309,10 @@ class _LoginViewState extends State<LoginView> {
                         child: ElevatedButton(
                           onPressed: authVm.isLoading ? null : _submitLogin,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.statusTeal,
-                            foregroundColor: Colors.black,
-                            disabledBackgroundColor: Colors.white12,
+                            backgroundColor: _textMain, // slate-900 for Light Theme primary buttons
+                            foregroundColor: Colors.white,
+                            disabledBackgroundColor: const Color(0xFFF1F5F9), // slate-100
+                            disabledForegroundColor: _textHint,
                             elevation: 0,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(14),
@@ -262,7 +323,7 @@ class _LoginViewState extends State<LoginView> {
                                   width: 22,
                                   height: 22,
                                   child: CircularProgressIndicator(
-                                    color: Colors.black,
+                                    color: Colors.white, // Keep loader visible on dark button
                                     strokeWidth: 2.5,
                                   ),
                                 )
@@ -275,7 +336,7 @@ class _LoginViewState extends State<LoginView> {
                                       'HUBUNGKAN PERANGKAT',
                                       style: TextStyle(
                                         fontWeight: FontWeight.w800,
-                                        letterSpacing: 1.2,
+                                        letterSpacing: 1.0,
                                         fontSize: 13,
                                       ),
                                     ),

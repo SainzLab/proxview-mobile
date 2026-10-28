@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../core/theme/app_theme.dart';
 
 /// Painter logo gelombang pulsa ProxView / mymomox agar konsisten di seluruh halaman
@@ -7,7 +8,7 @@ class PulseLogoPainter extends CustomPainter {
   final double strokeWidth;
 
   const PulseLogoPainter({
-    this.color = AppTheme.statusTeal,
+    this.color = AppTheme.statusTeal, // Emerald
     this.strokeWidth = 3.2,
   });
 
@@ -23,8 +24,8 @@ class PulseLogoPainter extends CustomPainter {
     final path = Path();
     final w = size.width;
     final h = size.height;
-
     final baseY = h * 0.56;
+
     path.moveTo(0, baseY);
     path.lineTo(w * 0.18, baseY);
     path.lineTo(w * 0.40, h * 0.08);
@@ -50,17 +51,17 @@ class AppFeedback {
     bool isWarning = false,
   }) {
     if (!context.mounted) return;
+
     final Color accentColor = isError
         ? AppTheme.statusDown
         : (isWarning ? AppTheme.statusWarning : AppTheme.statusTeal);
     final IconData icon = isError
         ? Icons.error_outline_rounded
-        : (isWarning
-            ? Icons.warning_amber_rounded
-            : Icons.check_circle_outline_rounded);
+        : (isWarning ? Icons.warning_amber_rounded : Icons.check_circle_outline_rounded);
 
     final messenger = ScaffoldMessenger.of(context);
     messenger.hideCurrentSnackBar();
+
     messenger.showSnackBar(
       SnackBar(
         backgroundColor: Colors.transparent,
@@ -72,14 +73,14 @@ class AppFeedback {
         content: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            color: AppTheme.surfaceBackground,
+            color: Colors.white,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: accentColor.withValues(alpha: 0.5), width: 1.2),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.45),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 12,
-                offset: const Offset(0, 6),
+                offset: const Offset(0, 4),
               ),
             ],
           ),
@@ -98,7 +99,7 @@ class AppFeedback {
                 child: Text(
                   message,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: Color(0xFF0F172A), // slate-900
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                     height: 1.35,
@@ -123,10 +124,10 @@ class AppFeedback {
   }) async {
     final result = await showDialog<bool>(
       context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.75),
+      barrierColor: Colors.black.withValues(alpha: 0.4), // Lighter barrier for light theme
       builder: (dialogContext) {
         return Dialog(
-          backgroundColor: AppTheme.cardBackground,
+          backgroundColor: Colors.white,
           surfaceTintColor: Colors.transparent,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
@@ -154,7 +155,7 @@ class AppFeedback {
                       child: Text(
                         title,
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: Color(0xFF0F172A), // slate-900
                           fontSize: 17,
                           fontWeight: FontWeight.bold,
                         ),
@@ -166,7 +167,7 @@ class AppFeedback {
                 Text(
                   message,
                   style: const TextStyle(
-                    color: Colors.white70,
+                    color: Color(0xFF475569), // slate-600
                     fontSize: 13,
                     height: 1.5,
                   ),
@@ -178,8 +179,8 @@ class AppFeedback {
                       child: OutlinedButton(
                         onPressed: () => Navigator.of(dialogContext).pop(false),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.white70,
-                          side: const BorderSide(color: Colors.white24),
+                          foregroundColor: const Color(0xFF64748B), // slate-500
+                          side: const BorderSide(color: Color(0xFFE2E8F0)), // slate-200
                           padding: const EdgeInsets.symmetric(vertical: 13),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -201,9 +202,7 @@ class AppFeedback {
                         onPressed: () => Navigator.of(dialogContext).pop(true),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: accentColor,
-                          foregroundColor: accentColor == AppTheme.statusDown
-                              ? Colors.white
-                              : Colors.black,
+                          foregroundColor: Colors.white,
                           elevation: 0,
                           padding: const EdgeInsets.symmetric(vertical: 13),
                           shape: RoundedRectangleBorder(
@@ -228,6 +227,7 @@ class AppFeedback {
         );
       },
     );
+
     return result ?? false;
   }
 }
@@ -259,7 +259,7 @@ class HeaderGreeting extends StatelessWidget {
               Text(
                 subtitle.toUpperCase(),
                 style: const TextStyle(
-                  color: Colors.white54,
+                  color: Color(0xFF64748B), // slate-500
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 1.4,
@@ -296,7 +296,7 @@ class HeaderGreeting extends StatelessWidget {
           Text(
             title,
             style: const TextStyle(
-              color: Colors.white,
+              color: Color(0xFF0F172A), // slate-900
               fontSize: 26,
               fontWeight: FontWeight.bold,
             ),
@@ -335,7 +335,7 @@ class SectionTitle extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 11.5,
                     fontWeight: FontWeight.w800,
-                    color: Colors.white70,
+                    color: Color(0xFF475569), // slate-600
                     letterSpacing: 1.4,
                   ),
                   overflow: TextOverflow.ellipsis,
@@ -365,6 +365,7 @@ class StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final badgeColor = color ?? AppTheme.severityColor(label);
+    
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
@@ -411,6 +412,7 @@ class ModernProgressBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final clamped = (percentage / 100).clamp(0.0, 1.0);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -421,7 +423,7 @@ class ModernProgressBar extends StatelessWidget {
               child: Text(
                 label,
                 style: const TextStyle(
-                  color: Colors.white70,
+                  color: Color(0xFF64748B), // slate-500
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
                 ),
@@ -435,7 +437,7 @@ class ModernProgressBar extends StatelessWidget {
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
                 fontFamily: 'monospace',
-                color: Colors.white,
+                color: Color(0xFF0F172A), // slate-900
               ),
             ),
           ],
@@ -449,7 +451,7 @@ class ModernProgressBar extends StatelessWidget {
                   height: 6,
                   width: constraints.maxWidth,
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.08),
+                    color: const Color(0xFFF1F5F9), // slate-100
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
@@ -461,13 +463,6 @@ class ModernProgressBar extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: color,
                     borderRadius: BorderRadius.circular(4),
-                    boxShadow: [
-                      BoxShadow(
-                        color: color.withValues(alpha: 0.35),
-                        blurRadius: 4,
-                        offset: const Offset(0, 1),
-                      ),
-                    ],
                   ),
                 ),
               ],
@@ -497,9 +492,16 @@ class ErrorStateBox extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: AppTheme.cardBackground,
+            color: Colors.white,
             borderRadius: BorderRadius.circular(18),
             border: Border.all(color: AppTheme.statusDown.withValues(alpha: 0.4)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -520,7 +522,7 @@ class ErrorStateBox extends StatelessWidget {
               const Text(
                 'Gagal Memuat Data',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: Color(0xFF0F172A), // slate-900
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
@@ -530,7 +532,7 @@ class ErrorStateBox extends StatelessWidget {
                 message,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                  color: Colors.white70,
+                  color: Color(0xFF475569), // slate-600
                   height: 1.5,
                   fontSize: 13,
                 ),
@@ -593,18 +595,18 @@ class EmptyStateBox extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(18),
                   decoration: BoxDecoration(
-                    color: AppTheme.surfaceBackground,
+                    color: const Color(0xFFF8F9FA), // slate-50
                     shape: BoxShape.circle,
-                    border: Border.all(color: AppTheme.borderSubtle),
+                    border: Border.all(color: const Color(0xFFE2E8F0)), // slate-200
                   ),
-                  child: Icon(icon, size: 38, color: Colors.white38),
+                  child: Icon(icon, size: 38, color: const Color(0xFF94A3B8)), // slate-400
                 ),
                 const SizedBox(height: 16),
                 Text(
                   message,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                    color: Colors.white54,
+                    color: Color(0xFF64748B), // slate-500
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                     height: 1.4,
@@ -676,7 +678,7 @@ class CustomTextField extends StatelessWidget {
         Text(
           label,
           style: const TextStyle(
-            color: Colors.white70,
+            color: Color(0xFF475569), // slate-600
             fontSize: 13,
             fontWeight: FontWeight.bold,
           ),
@@ -688,19 +690,19 @@ class CustomTextField extends StatelessWidget {
           controller: controller,
           obscureText: obscureText,
           keyboardType: keyboardType,
-          style: const TextStyle(color: Colors.white, fontSize: 14),
+          style: const TextStyle(color: Color(0xFF0F172A), fontSize: 14), // slate-900
           cursorColor: AppTheme.statusTeal,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: Colors.white30, fontSize: 13),
-            prefixIcon: Icon(icon, color: Colors.white54, size: 20),
+            hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13), // slate-400
+            prefixIcon: Icon(icon, color: const Color(0xFF64748B), size: 20), // slate-500
             suffixIcon: suffixIcon,
             filled: true,
-            fillColor: AppTheme.surfaceBackground,
+            fillColor: Colors.white,
             contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 16),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppTheme.borderSubtle),
+              borderSide: const BorderSide(color: Color(0xFFE2E8F0)), // slate-200
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -736,26 +738,26 @@ class AppSearchField extends StatelessWidget {
       child: TextField(
         controller: controller,
         onChanged: onChanged,
-        style: const TextStyle(color: Colors.white, fontSize: 13),
+        style: const TextStyle(color: Color(0xFF0F172A), fontSize: 13), // slate-900
         cursorColor: AppTheme.statusTeal,
         decoration: InputDecoration(
           hintText: hintText,
-          hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
-          prefixIcon: const Icon(Icons.search_rounded, color: Colors.white54, size: 20),
+          hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13), // slate-400
+          prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF64748B), size: 20), // slate-500
           suffixIcon: hasText
               ? IconButton(
-                  icon: const Icon(Icons.clear_rounded, color: Colors.white54, size: 18),
+                  icon: const Icon(Icons.clear_rounded, color: Color(0xFF64748B), size: 18), // slate-500
                   onPressed: onClear,
                   tooltip: 'Hapus pencarian',
                 )
               : null,
           filled: true,
-          fillColor: AppTheme.surfaceBackground,
+          fillColor: Colors.white,
           isDense: true,
           contentPadding: const EdgeInsets.symmetric(vertical: 11, horizontal: 14),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppTheme.borderSubtle),
+            borderSide: const BorderSide(color: Color(0xFFE2E8F0)), // slate-200
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
@@ -784,9 +786,9 @@ class SegmentedTabBar extends StatelessWidget {
     return Container(
       height: 44,
       decoration: BoxDecoration(
-        color: AppTheme.surfaceBackground,
+        color: const Color(0xFFF8F9FA), // slate-50
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.borderSubtle),
+        border: Border.all(color: const Color(0xFFE2E8F0)), // slate-200
       ),
       child: TabBar(
         controller: controller,
@@ -794,13 +796,20 @@ class SegmentedTabBar extends StatelessWidget {
         indicatorSize: TabBarIndicatorSize.tab,
         indicator: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
-          color: AppTheme.statusTeal.withValues(alpha: 0.15),
+          color: Colors.white,
           border: Border.all(
-            color: AppTheme.statusTeal.withValues(alpha: 0.5),
+            color: const Color(0xFFCBD5E1), // slate-300
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 4,
+              offset: const Offset(0, 1),
+            ),
+          ],
         ),
-        labelColor: AppTheme.statusTeal,
-        unselectedLabelColor: Colors.white54,
+        labelColor: const Color(0xFF0F172A), // slate-900
+        unselectedLabelColor: const Color(0xFF64748B), // slate-500
         dividerColor: Colors.transparent,
         labelStyle: const TextStyle(
           fontWeight: FontWeight.bold,
@@ -841,7 +850,7 @@ class ChartLegendItem extends StatelessWidget {
         Text(
           label,
           style: const TextStyle(
-            color: Colors.white70,
+            color: Color(0xFF475569), // slate-600
             fontSize: 11,
             fontWeight: FontWeight.w600,
           ),
@@ -867,9 +876,9 @@ class BottomSheetContainer extends StatelessWidget {
       height: height,
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
       decoration: const BoxDecoration(
-        color: AppTheme.cardBackground,
+        color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border(top: BorderSide(color: AppTheme.borderHighlight)),
+        border: Border(top: BorderSide(color: Color(0xFFE2E8F0))), // slate-200
       ),
       child: Column(
         mainAxisSize: height != null ? MainAxisSize.max : MainAxisSize.min,
@@ -881,7 +890,7 @@ class BottomSheetContainer extends StatelessWidget {
               height: 4,
               margin: const EdgeInsets.only(bottom: 20),
               decoration: BoxDecoration(
-                color: Colors.white24,
+                color: const Color(0xFFCBD5E1), // slate-300
                 borderRadius: BorderRadius.circular(2),
               ),
             ),

@@ -1,6 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../core/theme/app_theme.dart';
 import '../core/utils/formatters.dart';
 import '../models/alert_incident_model.dart';
@@ -22,6 +23,15 @@ class DashboardView extends StatelessWidget {
     this.onOpenResourceTab,
     this.onOpenAnalyticsTab,
   });
+
+  // Light theme specific colors
+  static const Color _bgCard = Colors.white;
+  static const Color _bgSurface = Color(0xFFF8F9FA); // slate-50
+  static const Color _borderSubtle = Color(0xFFE2E8F0); // slate-200
+  static const Color _textMain = Color(0xFF0F172A); // slate-900
+  static const Color _textSecondary = Color(0xFF475569); // slate-600
+  static const Color _textMuted = Color(0xFF64748B); // slate-500
+  static const Color _textHint = Color(0xFF94A3B8); // slate-400
 
   @override
   Widget build(BuildContext context) {
@@ -50,8 +60,8 @@ class DashboardView extends StatelessWidget {
     }
 
     return RefreshIndicator(
-      color: Colors.black,
-      backgroundColor: AppTheme.statusTeal,
+      color: AppTheme.statusTeal,
+      backgroundColor: Colors.white,
       onRefresh: () async {
         final analyticsVm = context.read<AnalyticsViewModel>();
         await Future.wait([
@@ -70,7 +80,6 @@ class DashboardView extends StatelessWidget {
           const SizedBox(height: 12),
           _buildProxmoxOverviewCard(context, vm, summary.proxmox),
           const SizedBox(height: 24),
-
           const SectionTitle(
             title: 'TARGET JARINGAN (ICMP & TCP)',
             icon: Icons.lan_rounded,
@@ -96,7 +105,6 @@ class DashboardView extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 28),
-
           SectionTitle(
             title: 'INSIDEN TERBARU',
             icon: Icons.notification_important_rounded,
@@ -109,7 +117,6 @@ class DashboardView extends StatelessWidget {
             _buildNoIncidentsCard()
           else
             ...summary.recentIncidents.map(_buildRecentIncidentTile),
-
           const SizedBox(height: 40),
         ],
       ),
@@ -125,12 +132,11 @@ class DashboardView extends StatelessWidget {
     final analyticsVm = context.watch<AnalyticsViewModel>();
     final stats = alertVm.incidentStats;
     final slaSummary = analyticsVm.analytics?.summary;
-    final unhandledCount =
-        alertVm.activeAlerts.where((a) => !a.isBeingHandled).length;
+    final unhandledCount = alertVm.activeAlerts.where((a) => !a.isBeingHandled).length;
 
     return RefreshIndicator(
-      color: Colors.black,
-      backgroundColor: AppTheme.statusTeal,
+      color: AppTheme.statusTeal,
+      backgroundColor: Colors.white,
       onRefresh: () async {
         await Future.wait([
           vm.fetchDashboard(showLoading: false),
@@ -160,7 +166,6 @@ class DashboardView extends StatelessWidget {
             mttrSec: slaSummary?.mttrSec,
           ),
           const SizedBox(height: 24),
-
           SectionTitle(
             title: 'PENANGANAN GANGGUAN',
             icon: Icons.assignment_late_outlined,
@@ -174,7 +179,6 @@ class DashboardView extends StatelessWidget {
             unhandledCount: unhandledCount,
           ),
           const SizedBox(height: 24),
-
           const SectionTitle(
             title: 'KINERJA PENANGANAN TEKNISI',
             icon: Icons.engineering_rounded,
@@ -186,7 +190,6 @@ class DashboardView extends StatelessWidget {
             totalUsers: summary.totalUsers,
           ),
           const SizedBox(height: 24),
-
           SectionTitle(
             title: 'RESOURCE',
             icon: Icons.hub_rounded,
@@ -197,7 +200,6 @@ class DashboardView extends StatelessWidget {
           const SizedBox(height: 12),
           _buildExecutiveResourceCard(context, vm, summary),
           const SizedBox(height: 28),
-
           SectionTitle(
             title: 'INSIDEN TERBARU',
             icon: Icons.notification_important_rounded,
@@ -210,7 +212,6 @@ class DashboardView extends StatelessWidget {
             _buildNoIncidentsCard()
           else
             ...summary.recentIncidents.take(5).map(_buildRecentIncidentTile),
-
           const SizedBox(height: 40),
         ],
       ),
@@ -251,9 +252,9 @@ class DashboardView extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 24),
       decoration: BoxDecoration(
-        color: AppTheme.cardBackground,
+        color: _bgCard,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.borderSubtle),
+        border: Border.all(color: _borderSubtle),
       ),
       child: const Center(
         child: Column(
@@ -267,7 +268,7 @@ class DashboardView extends StatelessWidget {
             Text(
               'Tidak ada insiden terbaru.\nSeluruh sistem beroperasi normal.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white54, fontSize: 13, height: 1.4),
+              style: TextStyle(color: _textMuted, fontSize: 13, height: 1.4),
             ),
           ],
         ),
@@ -284,14 +285,14 @@ class DashboardView extends StatelessWidget {
   }) {
     final bool hasActiveAlert = stats.totalActive > 0;
     final bool hasCriticalOrDown = hasActiveAlert && (stats.down > 0 || stats.critical > 0);
+
     final Color statusColor = hasCriticalOrDown
         ? AppTheme.statusDown
         : (hasActiveAlert ? AppTheme.statusWarning : AppTheme.statusTeal);
     final String headline = hasCriticalOrDown
         ? 'PERHATIAN: ${stats.down + stats.critical} GANGGUAN KRITIS/DOWN'
-        : (hasActiveAlert
-            ? 'TERDAPAT ${stats.totalActive} PERINGATAN AKTIF'
-            : 'SELURUH LAYANAN BEROPERASI NORMAL');
+        : (hasActiveAlert ? 'TERDAPAT ${stats.totalActive} PERINGATAN AKTIF' : 'SELURUH LAYANAN BEROPERASI NORMAL');
+
     final double availVal = availability ?? 100.0;
     final Color availColor = availVal >= 99.0
         ? AppTheme.statusTeal
@@ -300,15 +301,15 @@ class DashboardView extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppTheme.cardBackground,
+        color: _bgCard,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: statusColor.withValues(alpha: 0.35)),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            statusColor.withValues(alpha: 0.12),
-            AppTheme.cardBackground,
+            statusColor.withValues(alpha: 0.08),
+            _bgCard,
           ],
         ),
       ),
@@ -324,9 +325,7 @@ class DashboardView extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
-                  hasActiveAlert
-                      ? Icons.radar_rounded
-                      : Icons.verified_rounded,
+                  hasActiveAlert ? Icons.radar_rounded : Icons.verified_rounded,
                   color: statusColor,
                   size: 22,
                 ),
@@ -349,8 +348,9 @@ class DashboardView extends StatelessWidget {
                     Text(
                       'Kesehatan Cluster ${summary.proxmox.healthPercent.toStringAsFixed(0)}% • ${summary.activeUsers}/${summary.totalUsers} Personel Aktif',
                       style: const TextStyle(
-                        color: Colors.white70,
+                        color: _textSecondary,
                         fontSize: 12,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
@@ -378,7 +378,7 @@ class DashboardView extends StatelessWidget {
           ],
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 16),
-            child: Divider(color: AppTheme.borderSubtle, height: 1),
+            child: Divider(color: _borderSubtle, height: 1),
           ),
           Row(
             children: [
@@ -413,7 +413,7 @@ class DashboardView extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceBackground,
+        color: _bgSurface,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
@@ -424,7 +424,7 @@ class DashboardView extends StatelessWidget {
             child: Text(
               label,
               style: const TextStyle(
-                color: Colors.white70,
+                color: _textSecondary,
                 fontSize: 9.5,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 0.4,
@@ -455,9 +455,9 @@ class DashboardView extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceBackground,
+        color: _bgSurface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.borderSubtle),
+        border: Border.all(color: _borderSubtle),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -487,7 +487,7 @@ class DashboardView extends StatelessWidget {
             child: Text(
               value,
               style: const TextStyle(
-                color: Colors.white,
+                color: _textMain,
                 fontSize: 19,
                 fontWeight: FontWeight.w900,
                 fontFamily: 'monospace',
@@ -497,7 +497,7 @@ class DashboardView extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             subtitle,
-            style: const TextStyle(color: Colors.white54, fontSize: 10),
+            style: const TextStyle(color: _textMuted, fontSize: 10),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -517,9 +517,9 @@ class DashboardView extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppTheme.cardBackground,
+        color: _bgCard,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppTheme.borderSubtle),
+        border: Border.all(color: _borderSubtle),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -538,9 +538,7 @@ class DashboardView extends StatelessWidget {
                 child: _buildIncidentMetricBox(
                   label: 'GANGGUAN AKTIF',
                   count: stats.totalActive,
-                  color: stats.totalActive > 0
-                      ? AppTheme.statusDown
-                      : AppTheme.statusTeal,
+                  color: stats.totalActive > 0 ? AppTheme.statusDown : AppTheme.statusTeal,
                 ),
               ),
               const SizedBox(width: 8),
@@ -548,9 +546,7 @@ class DashboardView extends StatelessWidget {
                 child: _buildIncidentMetricBox(
                   label: 'BELUM DIRESPON',
                   count: unhandledCount,
-                  color: unhandledCount > 0
-                      ? AppTheme.statusWarning
-                      : Colors.white54,
+                  color: unhandledCount > 0 ? AppTheme.statusWarning : _textHint,
                 ),
               ),
               const SizedBox(width: 8),
@@ -584,7 +580,7 @@ class DashboardView extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceBackground,
+        color: _bgSurface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color.withValues(alpha: 0.28)),
       ),
@@ -606,7 +602,7 @@ class DashboardView extends StatelessWidget {
           Text(
             '$count',
             style: const TextStyle(
-              color: Colors.white,
+              color: _textMain,
               fontSize: 18,
               fontWeight: FontWeight.w900,
               fontFamily: 'monospace',
@@ -627,10 +623,12 @@ class DashboardView extends StatelessWidget {
     for (final inc in incidents) {
       final raw = inc.technicians?.trim() ?? '';
       if (raw.isEmpty || raw == '-') continue;
+
       final names = raw
           .split(',')
           .map((s) => s.trim())
           .where((s) => s.isNotEmpty && s != '-');
+
       for (final name in names) {
         final prev = techMap[name] ?? (total: 0, resolved: 0, active: 0);
         techMap[name] = (
@@ -647,9 +645,9 @@ class DashboardView extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppTheme.cardBackground,
+        color: _bgCard,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppTheme.borderSubtle),
+        border: Border.all(color: _borderSubtle),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -660,7 +658,7 @@ class DashboardView extends StatelessWidget {
               const Text(
                 'Penyelesaian Tim',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: _textMain,
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
                 ),
@@ -678,13 +676,14 @@ class DashboardView extends StatelessWidget {
               padding: EdgeInsets.symmetric(vertical: 12),
               child: Text(
                 'Belum ada riwayat penugasan teknisi pada tiket insiden.',
-                style: TextStyle(color: Colors.white54, fontSize: 12),
+                style: TextStyle(color: _textMuted, fontSize: 12),
               ),
             )
           else
             ...entries.take(5).map((entry) {
               final name = entry.key;
               final stat = entry.value;
+
               return Padding(
                 padding: const EdgeInsets.only(bottom: 10),
                 child: Container(
@@ -693,16 +692,15 @@ class DashboardView extends StatelessWidget {
                     vertical: 10,
                   ),
                   decoration: BoxDecoration(
-                    color: AppTheme.surfaceBackground,
+                    color: _bgSurface,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppTheme.borderSubtle),
+                    border: Border.all(color: _borderSubtle),
                   ),
                   child: Row(
                     children: [
                       CircleAvatar(
                         radius: 15,
-                        backgroundColor:
-                            AppTheme.statusTeal.withValues(alpha: 0.15),
+                        backgroundColor: AppTheme.statusTeal.withValues(alpha: 0.15),
                         child: Text(
                           name[0].toUpperCase(),
                           style: const TextStyle(
@@ -720,7 +718,7 @@ class DashboardView extends StatelessWidget {
                             Text(
                               name,
                               style: const TextStyle(
-                                color: Colors.white,
+                                color: _textMain,
                                 fontSize: 13,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -730,7 +728,7 @@ class DashboardView extends StatelessWidget {
                             Text(
                               '${stat.resolved} Selesai • ${stat.active} Sedang Ditangani',
                               style: const TextStyle(
-                                color: Colors.white54,
+                                color: _textMuted,
                                 fontSize: 11,
                               ),
                             ),
@@ -775,14 +773,15 @@ class DashboardView extends StatelessWidget {
     DashboardSummaryModel summary,
   ) {
     final pve = summary.proxmox;
+
     return Column(
       children: [
         Container(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: AppTheme.cardBackground,
+            color: _bgCard,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppTheme.borderSubtle),
+            border: Border.all(color: _borderSubtle),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -800,7 +799,7 @@ class DashboardView extends StatelessWidget {
                   Container(
                     width: 1,
                     height: 40,
-                    color: AppTheme.borderSubtle,
+                    color: _borderSubtle,
                     margin: const EdgeInsets.symmetric(horizontal: 12),
                   ),
                   Expanded(
@@ -815,12 +814,12 @@ class DashboardView extends StatelessWidget {
               ),
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 16),
-                child: Divider(color: AppTheme.borderSubtle, height: 1),
+                child: Divider(color: _borderSubtle, height: 1),
               ),
               ModernProgressBar(
                 label: 'Rata-rata Utilisasi CPU Cluster',
                 percentage: pve.avgCpu,
-                color: Colors.white,
+                color: Colors.blue, // Explicitly blue for visibility in light theme
               ),
               const SizedBox(height: 14),
               ModernProgressBar(
@@ -869,14 +868,14 @@ class DashboardView extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppTheme.cardBackground,
+        color: _bgCard,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppTheme.borderSubtle),
+        border: Border.all(color: _borderSubtle),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 12,
-            offset: const Offset(0, 6),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -896,7 +895,7 @@ class DashboardView extends StatelessWidget {
               Container(
                 width: 1,
                 height: 40,
-                color: AppTheme.borderSubtle,
+                color: _borderSubtle,
                 margin: const EdgeInsets.symmetric(horizontal: 12),
               ),
               Expanded(
@@ -911,7 +910,7 @@ class DashboardView extends StatelessWidget {
           ),
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 16),
-            child: Divider(color: AppTheme.borderSubtle, height: 1),
+            child: Divider(color: _borderSubtle, height: 1),
           ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -919,7 +918,7 @@ class DashboardView extends StatelessWidget {
               const Text(
                 'Metrik Beban Cluster',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: _textMain,
                   fontSize: 12,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 0.5,
@@ -928,9 +927,9 @@ class DashboardView extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(3),
                 decoration: BoxDecoration(
-                  color: AppTheme.surfaceBackground,
+                  color: _bgSurface,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppTheme.borderSubtle),
+                  border: Border.all(color: _borderSubtle),
                 ),
                 child: Row(
                   children: ['1h', '24h', '7d'].map((tf) {
@@ -947,7 +946,7 @@ class DashboardView extends StatelessWidget {
                         child: Text(
                           tf.toUpperCase(),
                           style: TextStyle(
-                            color: selected ? Colors.black : Colors.white54,
+                            color: selected ? Colors.white : _textMuted,
                             fontSize: 10,
                             fontWeight: selected ? FontWeight.w900 : FontWeight.bold,
                           ),
@@ -962,7 +961,7 @@ class DashboardView extends StatelessWidget {
           const SizedBox(height: 16),
           const Row(
             children: [
-              ChartLegendItem(color: Colors.white, label: 'CPU %'),
+              ChartLegendItem(color: Colors.blue, label: 'CPU %'),
               SizedBox(width: 16),
               ChartLegendItem(color: AppTheme.statusTeal, label: 'RAM %'),
               SizedBox(width: 16),
@@ -998,7 +997,7 @@ class DashboardView extends StatelessWidget {
               Text(
                 label,
                 style: const TextStyle(
-                  color: Colors.white54,
+                  color: _textMuted,
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
                 ),
@@ -1008,7 +1007,7 @@ class DashboardView extends StatelessWidget {
               Text(
                 value,
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: _textMain,
                   fontSize: 16,
                   fontWeight: FontWeight.w900,
                   fontFamily: 'monospace',
@@ -1026,7 +1025,7 @@ class DashboardView extends StatelessWidget {
       return const Center(
         child: Text(
           'Belum ada data grafik RRD.',
-          style: TextStyle(color: Colors.white38, fontSize: 12),
+          style: TextStyle(color: _textHint, fontSize: 12),
         ),
       );
     }
@@ -1045,18 +1044,17 @@ class DashboardView extends StatelessWidget {
         lineTouchData: LineTouchData(
           handleBuiltInTouches: true,
           touchTooltipData: LineTouchTooltipData(
-            getTooltipColor: (_) => AppTheme.surfaceBackground,
-            tooltipBorder: const BorderSide(color: AppTheme.borderHighlight, width: 1),
+            getTooltipColor: (_) => Colors.white,
+            tooltipBorder: const BorderSide(color: _borderSubtle, width: 1),
             tooltipRoundedRadius: 10,
             tooltipPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             getTooltipItems: (touchedSpots) {
               return List.generate(touchedSpots.length, (i) {
                 final spot = touchedSpots[i];
                 final idx = spot.x.toInt();
-                final timeLabel = (idx >= 0 && idx < chart.labels.length)
-                    ? chart.labels[idx]
-                    : '';
-                final barColor = spot.bar.color ?? Colors.white;
+                final timeLabel =
+                    (idx >= 0 && idx < chart.labels.length) ? chart.labels[idx] : '';
+                final barColor = spot.bar.color ?? Colors.blue;
                 final metricName = barColor == AppTheme.statusTeal
                     ? 'RAM'
                     : (barColor == AppTheme.statusWarning ? 'IO' : 'CPU');
@@ -1081,7 +1079,7 @@ class DashboardView extends StatelessWidget {
           drawVerticalLine: false,
           horizontalInterval: 25,
           getDrawingHorizontalLine: (_) => FlLine(
-            color: Colors.white.withValues(alpha: 0.06),
+            color: Colors.black.withValues(alpha: 0.05),
             strokeWidth: 1,
             dashArray: [4, 4],
           ),
@@ -1101,7 +1099,7 @@ class DashboardView extends StatelessWidget {
                   '${val.toInt()}%',
                   textAlign: TextAlign.right,
                   style: const TextStyle(
-                    color: Colors.white38,
+                    color: _textHint,
                     fontSize: 10,
                     fontWeight: FontWeight.w500,
                   ),
@@ -1124,7 +1122,7 @@ class DashboardView extends StatelessWidget {
                   child: Text(
                     chart.labels[idx],
                     style: const TextStyle(
-                      color: Colors.white38,
+                      color: _textHint,
                       fontSize: 9,
                       fontWeight: FontWeight.w500,
                     ),
@@ -1140,7 +1138,7 @@ class DashboardView extends StatelessWidget {
               spots: toSpots(chart.cpu),
               isCurved: true,
               curveSmoothness: 0.3,
-              color: Colors.white,
+              color: Colors.blue,
               barWidth: 2.5,
               isStrokeCapRound: true,
               dotData: const FlDotData(show: false),
@@ -1150,8 +1148,8 @@ class DashboardView extends StatelessWidget {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.white.withValues(alpha: 0.15),
-                    Colors.white.withValues(alpha: 0.0),
+                    Colors.blue.withValues(alpha: 0.15),
+                    Colors.blue.withValues(alpha: 0.0),
                   ],
                 ),
               ),
@@ -1204,16 +1202,14 @@ class DashboardView extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.cardBackground,
+        color: _bgCard,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: hasDown
-              ? AppTheme.statusDown.withValues(alpha: 0.4)
-              : AppTheme.borderSubtle,
+          color: hasDown ? AppTheme.statusDown.withValues(alpha: 0.4) : _borderSubtle,
         ),
         boxShadow: hasDown
             ? [BoxShadow(color: AppTheme.statusDown.withValues(alpha: 0.1), blurRadius: 10)]
-            : [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 10, offset: const Offset(0, 4))],
+            : [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1226,7 +1222,7 @@ class DashboardView extends StatelessWidget {
                 child: Text(
                   title,
                   style: const TextStyle(
-                    color: Colors.white70,
+                    color: _textSecondary,
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 1.0,
@@ -1243,7 +1239,7 @@ class DashboardView extends StatelessWidget {
               Text(
                 '${data.up}/${data.active}',
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: _textMain,
                   fontSize: 22,
                   fontWeight: FontWeight.w900,
                   fontFamily: 'monospace',
@@ -1260,7 +1256,7 @@ class DashboardView extends StatelessWidget {
           Text(
             'Rata-rata Latency: ${data.avgLatencyMs.toStringAsFixed(1)} ms',
             style: const TextStyle(
-              color: Colors.white54,
+              color: _textMuted,
               fontSize: 11,
               fontFamily: 'monospace',
               fontWeight: FontWeight.w600,
@@ -1273,16 +1269,17 @@ class DashboardView extends StatelessWidget {
 
   Widget _buildRecentIncidentTile(RecentIncidentModel inc) {
     final color = AppTheme.severityColor(inc.severity);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.cardBackground,
+        color: _bgCard,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha: 0.35)),
+        border: Border.all(color: _borderSubtle), // FIXED: Menggunakan _borderSubtle agar selaras dan bukan warna hijau/teal
         boxShadow: [
           BoxShadow(
-            color: color.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: 0.03), // FIXED: Menggunakan warna shadow netral
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -1301,7 +1298,7 @@ class DashboardView extends StatelessWidget {
                   Text(
                     inc.ticketId,
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: _textMain,
                       fontSize: 12,
                       fontFamily: 'monospace',
                       fontWeight: FontWeight.bold,
@@ -1310,7 +1307,7 @@ class DashboardView extends StatelessWidget {
                 ],
               ),
               StatusBadge(
-                label: '${inc.severity.toUpperCase()} • ${inc.statusLabel.toUpperCase()}',
+                label: '${inc.severity.toUpperCase()} • ${inc.statusLabel.toUpperCase()}', // FIXED: Format string 1 baris
                 color: color,
                 showDot: false,
               ),
@@ -1318,12 +1315,12 @@ class DashboardView extends StatelessWidget {
           ),
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 12),
-            child: Divider(color: AppTheme.borderSubtle, height: 1),
+            child: Divider(color: _borderSubtle, height: 1),
           ),
           Text(
             inc.component.isNotEmpty ? inc.component : inc.targetName,
             style: const TextStyle(
-              color: Colors.white,
+              color: _textMain,
               fontSize: 15,
               fontWeight: FontWeight.bold,
             ),
@@ -1331,7 +1328,7 @@ class DashboardView extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             inc.message,
-            style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+            style: const TextStyle(color: _textSecondary, fontSize: 13, height: 1.4),
           ),
           const SizedBox(height: 14),
           Row(
@@ -1339,17 +1336,17 @@ class DashboardView extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.access_time_rounded, size: 14, color: Colors.white38),
+                  const Icon(Icons.access_time_rounded, size: 14, color: _textHint),
                   const SizedBox(width: 4),
                   Text(
                     Formatters.formatDateTime(inc.time),
-                    style: const TextStyle(color: Colors.white54, fontSize: 11),
+                    style: const TextStyle(color: _textMuted, fontSize: 11),
                   ),
                 ],
               ),
               Row(
                 children: [
-                  const Icon(Icons.person_outline_rounded, size: 14, color: Colors.white38),
+                  const Icon(Icons.person_outline_rounded, size: 14, color: _textHint),
                   const SizedBox(width: 4),
                   Text(
                     inc.technicians.isNotEmpty && inc.technicians != '-'

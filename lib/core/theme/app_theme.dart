@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  // Core Surface & Background Palette
+  // Core Surface & Background Palette (Untuk referensi custom painting/widget)
   static const Color background = Color(0xFF05070A);
   static const Color cardBackground = Color(0xFF0D1117);
   static const Color surfaceBackground = Color(0xFF161B22);
@@ -9,20 +9,93 @@ class AppTheme {
   static const Color borderSubtle = Color(0x1AFFFFFF); // Colors.white10
   static const Color borderHighlight = Color(0x33FFFFFF); // Colors.white20
 
-  // Unified Status & Severity Colors
-  static const Color statusTeal = Color(0xFF2DD4BF); // Teal Accent selaras & kontras
+  // Light Theme Specific Colors (Bisa dipanggil manual jika butuh custom shadow/border)
+  static const Color lightBg = Color(0xFFF8F9FA); // slate-50
+  static const Color lightCard = Colors.white;
+  static const Color lightBorder = Color(0xFFE2E8F0); // slate-200
+  static const Color lightText = Color(0xFF0F172A); // slate-900
+
+  // Unified Status & Severity Colors (Dipertahankan agar logic berjalan mulus)
+  static const Color statusTeal = Color(0xFF10B981); // Emerald (menyesuaikan web)
   static const Color statusWarning = Color(0xFFFBBF24); // Amber
   static const Color statusCritical = Color(0xFFFB923C); // Orange
   static const Color statusDown = Color(0xFFF43F5E); // Rose Red
   static const Color statusRecovered = Color(0xFF38BDF8); // Sky / Cyan Info
 
+  // ==========================================
+  // TEMA TERANG (LIGHT THEME)
+  // ==========================================
+  static ThemeData get lightTheme {
+    return ThemeData(
+      brightness: Brightness.light,
+      scaffoldBackgroundColor: lightBg,
+      primaryColor: statusTeal,
+      cardColor: lightCard,
+      fontFamily: 'Inter',
+      colorScheme: const ColorScheme.light(
+        primary: statusTeal,
+        secondary: statusTeal,
+        surface: lightCard,
+        error: statusDown,
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: lightBg,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        toolbarHeight: 64,
+        iconTheme: IconThemeData(color: lightText),
+        titleTextStyle: TextStyle(
+          fontFamily: 'Inter',
+          fontWeight: FontWeight.w900,
+          letterSpacing: -0.5,
+          fontSize: 19,
+          color: lightText,
+        ),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: lightCard,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: lightBorder),
+        ),
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: lightCard,
+        contentTextStyle: const TextStyle(
+          fontFamily: 'Inter',
+          color: lightText,
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: const BorderSide(color: lightBorder),
+        ),
+      ),
+      dividerTheme: const DividerThemeData(
+        color: lightBorder,
+        thickness: 1,
+        space: 1,
+      ),
+    );
+  }
+
+  // ==========================================
+  // TEMA GELAP (DARK THEME)
+  // ==========================================
   static ThemeData get darkTheme {
     return ThemeData(
       brightness: Brightness.dark,
       scaffoldBackgroundColor: background,
       primaryColor: statusTeal,
       cardColor: cardBackground,
-      fontFamily: 'Roboto',
+      fontFamily: 'Inter',
       colorScheme: const ColorScheme.dark(
         primary: statusTeal,
         secondary: statusTeal,
@@ -36,6 +109,7 @@ class AppTheme {
         toolbarHeight: 64,
         iconTheme: IconThemeData(color: Colors.white),
         titleTextStyle: TextStyle(
+          fontFamily: 'Inter',
           fontWeight: FontWeight.w800,
           letterSpacing: 0.5,
           fontSize: 19,
@@ -58,6 +132,7 @@ class AppTheme {
         behavior: SnackBarBehavior.floating,
         backgroundColor: surfaceBackground,
         contentTextStyle: const TextStyle(
+          fontFamily: 'Inter',
           color: Colors.white,
           fontSize: 13,
           fontWeight: FontWeight.w600,
@@ -105,7 +180,7 @@ class AppTheme {
         upper.contains('TERHUBUNG')) {
       return statusTeal;
     }
-    return Colors.white54;
+    return const Color(0xFF94A3B8); // slate-400 sebagai default
   }
 
   static IconData severityIcon(String severity) {

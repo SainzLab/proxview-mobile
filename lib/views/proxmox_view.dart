@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../core/theme/app_theme.dart';
 import '../models/proxmox_model.dart';
 import '../viewmodels/proxmox_viewmodel.dart';
@@ -20,6 +21,16 @@ class ProxmoxView extends StatefulWidget {
 class _ProxmoxViewState extends State<ProxmoxView> {
   final TextEditingController _searchController = TextEditingController();
   late bool _isSummaryMode;
+
+  // Light Theme Specific Colors
+  static const Color _bgMain = Color(0xFFF8F9FA); // slate-50
+  static const Color _bgCard = Colors.white;
+  static const Color _bgSurface = Color(0xFFF1F5F9); // slate-100
+  static const Color _borderSubtle = Color(0xFFE2E8F0); // slate-200
+  static const Color _textMain = Color(0xFF0F172A); // slate-900
+  static const Color _textSecondary = Color(0xFF475569); // slate-600
+  static const Color _textMuted = Color(0xFF64748B); // slate-500
+  static const Color _textHint = Color(0xFF94A3B8); // slate-400
 
   @override
   void initState() {
@@ -58,113 +69,117 @@ class _ProxmoxViewState extends State<ProxmoxView> {
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [
             SliverToBoxAdapter(
-              child: Column(
-                children: [
-                  if (vm.servers.isNotEmpty) _buildServerSelector(context, vm),
-                  Container(
-                    color: AppTheme.background,
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                    child: Row(
-                      children: [
-                        const Expanded(
-                          child: SegmentedTabBar(
-                            tabs: [
-                              Tab(text: 'NODE'),
-                              Tab(text: 'VM & LXC'),
-                              Tab(text: 'STORAGE'),
-                            ],
-                          ),
-                        ),
-                        if (!widget.summaryOnly) ...[
-                          const SizedBox(width: 8),
-                          InkWell(
-                            onTap: () => setState(() => _isSummaryMode = !_isSummaryMode),
-                            borderRadius: BorderRadius.circular(10),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
-                              decoration: BoxDecoration(
-                                color: _isSummaryMode
-                                    ? AppTheme.statusTeal.withValues(alpha: 0.15)
-                                    : AppTheme.surfaceBackground,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: _isSummaryMode
-                                      ? AppTheme.statusTeal.withValues(alpha: 0.5)
-                                      : AppTheme.borderSubtle,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    _isSummaryMode
-                                        ? Icons.pie_chart_rounded
-                                        : Icons.list_alt_rounded,
-                                    size: 14,
-                                    color: _isSummaryMode
-                                        ? AppTheme.statusTeal
-                                        : Colors.white70,
-                                  ),
-                                  const SizedBox(width: 5),
-                                  Text(
-                                    _isSummaryMode ? 'Ringkas' : 'Detail',
-                                    style: TextStyle(
-                                      color: _isSummaryMode
-                                          ? AppTheme.statusTeal
-                                          : Colors.white70,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
+              child: Container(
+                color: _bgMain,
+                child: Column(
+                  children: [
+                    if (vm.servers.isNotEmpty) _buildServerSelector(context, vm),
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                      child: Row(
+                        children: [
+                          const Expanded(
+                            child: SegmentedTabBar(
+                              tabs: [
+                                Tab(text: 'NODE'),
+                                Tab(text: 'VM & LXC'),
+                                Tab(text: 'STORAGE'),
+                              ],
                             ),
                           ),
+                          if (!widget.summaryOnly) ...[
+                            const SizedBox(width: 8),
+                            InkWell(
+                              onTap: () => setState(() => _isSummaryMode = !_isSummaryMode),
+                              borderRadius: BorderRadius.circular(10),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+                                decoration: BoxDecoration(
+                                  color: _isSummaryMode
+                                      ? AppTheme.statusTeal.withValues(alpha: 0.12)
+                                      : _bgCard,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: _isSummaryMode
+                                        ? AppTheme.statusTeal.withValues(alpha: 0.4)
+                                        : _borderSubtle,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      _isSummaryMode
+                                          ? Icons.pie_chart_rounded
+                                          : Icons.list_alt_rounded,
+                                      size: 14,
+                                      color: _isSummaryMode
+                                          ? AppTheme.statusTeal
+                                          : _textSecondary,
+                                    ),
+                                    const SizedBox(width: 5),
+                                    Text(
+                                      _isSummaryMode ? 'Ringkas' : 'Detail',
+                                      style: TextStyle(
+                                        color: _isSummaryMode
+                                            ? AppTheme.statusTeal
+                                            : _textSecondary,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
-                  ),
-                  Container(
-                    color: AppTheme.background,
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                    child: AppSearchField(
-                      controller: _searchController,
-                      onChanged: vm.setSearchQuery,
-                      onClear: _clearSearch,
-                      hintText: _isSummaryMode
-                          ? 'Cari node fisik...'
-                          : 'Cari node, VM, LXC, atau storage...',
-                      hasText: vm.searchQuery.isNotEmpty,
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                      child: AppSearchField(
+                        controller: _searchController,
+                        onChanged: vm.setSearchQuery,
+                        onClear: _clearSearch,
+                        hintText: _isSummaryMode
+                            ? 'Cari node fisik...'
+                            : 'Cari node, VM, LXC, atau storage...',
+                        hasText: vm.searchQuery.isNotEmpty,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ];
         },
-        body: vm.isLoading && vm.servers.isEmpty
-            ? const Center(
-                child: CircularProgressIndicator(
-                  color: AppTheme.statusTeal,
-                  strokeWidth: 2.5,
-                ),
-              )
-            : vm.errorMessage != null && vm.servers.isEmpty
-                ? ErrorStateBox(
-                    message: vm.errorMessage!,
-                    onRetry: () => vm.fetchProxmoxData(showLoading: true),
-                  )
-                : TabBarView(
-                    children: [
-                      _buildNodesTab(context, vm),
-                      _isSummaryMode
-                          ? _buildGuestsSummaryTab(context, vm)
-                          : _buildGuestsTab(context, vm),
-                      _isSummaryMode
-                          ? _buildStoragesSummaryTab(context, vm)
-                          : _buildStoragesTab(context, vm),
-                    ],
+        body: Container(
+          color: _bgMain,
+          child: vm.isLoading && vm.servers.isEmpty
+              ? const Center(
+                  child: CircularProgressIndicator(
+                    color: AppTheme.statusTeal,
+                    strokeWidth: 2.5,
                   ),
+                )
+              : vm.errorMessage != null && vm.servers.isEmpty
+                  ? ErrorStateBox(
+                      message: vm.errorMessage!,
+                      onRetry: () => vm.fetchProxmoxData(showLoading: true),
+                    )
+                  : TabBarView(
+                      children: [
+                        _buildNodesTab(context, vm),
+                        _isSummaryMode
+                            ? _buildGuestsSummaryTab(context, vm)
+                            : _buildGuestsTab(context, vm),
+                        _isSummaryMode
+                            ? _buildStoragesSummaryTab(context, vm)
+                            : _buildStoragesTab(context, vm),
+                      ],
+                    ),
+        ),
       ),
     );
   }
@@ -193,9 +208,9 @@ class _ProxmoxViewState extends State<ProxmoxView> {
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       decoration: BoxDecoration(
-        color: AppTheme.cardBackground,
+        color: _bgCard,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.borderSubtle),
+        border: Border.all(color: _borderSubtle),
       ),
       child: Row(
         children: [
@@ -212,17 +227,17 @@ class _ProxmoxViewState extends State<ProxmoxView> {
             child: DropdownButtonHideUnderline(
               child: DropdownButton<int>(
                 value: selected.id,
-                dropdownColor: AppTheme.elevatedBackground,
+                dropdownColor: _bgCard,
                 borderRadius: BorderRadius.circular(12),
-                icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white54),
+                icon: const Icon(Icons.keyboard_arrow_down_rounded, color: _textHint),
                 isExpanded: true,
                 items: vm.servers.map((server) {
                   return DropdownMenuItem<int>(
                     value: server.id,
                     child: Text(
-                      '${server.name} (PVE ${server.pveVersion} • ${server.latency})',
+                      '${server.name} (PVE ${server.pveVersion}\n${server.latency})',
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: _textMain,
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
                       ),
@@ -247,8 +262,8 @@ class _ProxmoxViewState extends State<ProxmoxView> {
     final nodes = vm.filteredNodes;
 
     return RefreshIndicator(
-      color: Colors.black,
-      backgroundColor: AppTheme.statusTeal,
+      color: AppTheme.statusTeal,
+      backgroundColor: Colors.white,
       onRefresh: () => vm.fetchProxmoxData(showLoading: false),
       child: nodes.isEmpty
           ? (vm.searchQuery.isNotEmpty
@@ -268,12 +283,12 @@ class _ProxmoxViewState extends State<ProxmoxView> {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppTheme.cardBackground,
+        color: _bgCard,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppTheme.borderSubtle),
+        border: Border.all(color: _borderSubtle),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -296,7 +311,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                         fontSize: 18,
                         fontWeight: FontWeight.w900,
                         letterSpacing: 0.8,
-                        color: Colors.white,
+                        color: _textMain,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -304,13 +319,13 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        const Icon(Icons.access_time_rounded, size: 12, color: Colors.white38),
+                        const Icon(Icons.access_time_rounded, size: 12, color: _textHint),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
                             'UPTIME: ${node.uptime}',
                             style: const TextStyle(
-                              color: Colors.white54,
+                              color: _textMuted,
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
                               letterSpacing: 0.5,
@@ -331,16 +346,16 @@ class _ProxmoxViewState extends State<ProxmoxView> {
           const SizedBox(height: 12),
           Text(
             '${node.cpuModel} (${node.cpuCores} Core)',
-            style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w500),
+            style: const TextStyle(color: _textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
           ),
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 16),
-            child: Divider(color: AppTheme.borderSubtle, height: 1),
+            child: Divider(color: _borderSubtle, height: 1),
           ),
           ModernProgressBar(
             label: 'Penggunaan CPU',
             percentage: node.cpuPercentValue,
-            color: Colors.white,
+            color: Colors.blue, // Blue for CPU on Light Theme
             customTrailingText: node.cpuUsage,
           ),
           const SizedBox(height: 16),
@@ -363,9 +378,9 @@ class _ProxmoxViewState extends State<ProxmoxView> {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: AppTheme.surfaceBackground,
+              color: _bgSurface,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppTheme.borderSubtle),
+              border: Border.all(color: _borderSubtle),
             ),
             child: Column(
               children: [
@@ -374,14 +389,14 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                   children: [
                     const Text(
                       'Beban Rata-rata (Load)',
-                      style: TextStyle(color: Colors.white54, fontSize: 11, fontWeight: FontWeight.w600),
+                      style: TextStyle(color: _textMuted, fontSize: 11, fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         node.loadAverage,
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: _textMain,
                           fontSize: 11,
                           fontFamily: 'monospace',
                           fontWeight: FontWeight.bold,
@@ -393,19 +408,19 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                 ),
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 10),
-                  child: Divider(color: AppTheme.borderSubtle, height: 1),
+                  child: Divider(color: _borderSubtle, height: 1),
                 ),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
                       'Trafik Jaringan',
-                      style: TextStyle(color: Colors.white54, fontSize: 11, fontWeight: FontWeight.w600),
+                      style: TextStyle(color: _textMuted, fontSize: 11, fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        '↓ ${node.rxIn} • ↑ ${node.txOut}',
+                        '↓ ${node.rxIn}\n↑ ${node.txOut}',
                         style: const TextStyle(
                           color: AppTheme.statusTeal,
                           fontSize: 11,
@@ -437,8 +452,8 @@ class _ProxmoxViewState extends State<ProxmoxView> {
     }
 
     return RefreshIndicator(
-      color: Colors.black,
-      backgroundColor: AppTheme.statusTeal,
+      color: AppTheme.statusTeal,
+      backgroundColor: Colors.white,
       onRefresh: () => vm.fetchProxmoxData(showLoading: false),
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
@@ -454,7 +469,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
               padding: const EdgeInsets.symmetric(vertical: 12),
               child: Text(
                 vm.searchQuery.isNotEmpty ? 'Tidak ada VM yang cocok.' : 'Tidak ada QEMU VM.',
-                style: const TextStyle(color: Colors.white38, fontSize: 13),
+                style: const TextStyle(color: _textHint, fontSize: 13),
               ),
             )
           else
@@ -471,7 +486,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
               padding: const EdgeInsets.symmetric(vertical: 12),
               child: Text(
                 vm.searchQuery.isNotEmpty ? 'Tidak ada LXC yang cocok.' : 'Tidak ada LXC Container.',
-                style: const TextStyle(color: Colors.white38, fontSize: 13),
+                style: const TextStyle(color: _textHint, fontSize: 13),
               ),
             )
           else
@@ -484,7 +499,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
 
   Widget _buildGuestCard(BuildContext context, ProxmoxGuestModel guest) {
     final isRunning = guest.isRunning;
-    final accentColor = isRunning ? AppTheme.statusTeal : Colors.white38;
+    final accentColor = isRunning ? AppTheme.statusTeal : _textHint;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -494,22 +509,22 @@ class _ProxmoxViewState extends State<ProxmoxView> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            color: AppTheme.cardBackground,
+            color: _bgCard,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: isRunning
                   ? AppTheme.statusTeal.withValues(alpha: 0.3)
-                  : AppTheme.borderSubtle,
+                  : _borderSubtle,
             ),
-            boxShadow: isRunning
-                ? [
-                    BoxShadow(
-                      color: AppTheme.statusTeal.withValues(alpha: 0.05),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
-                    )
-                  ]
-                : [],
+            boxShadow: [
+              BoxShadow(
+                color: isRunning
+                    ? AppTheme.statusTeal.withValues(alpha: 0.05)
+                    : Colors.black.withValues(alpha: 0.03),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              )
+            ],
           ),
           child: Row(
             children: [
@@ -517,14 +532,19 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: isRunning
-                      ? AppTheme.statusTeal.withValues(alpha: 0.14)
-                      : AppTheme.surfaceBackground,
+                      ? AppTheme.statusTeal.withValues(alpha: 0.1)
+                      : _bgSurface,
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isRunning
+                        ? AppTheme.statusTeal.withValues(alpha: 0.25)
+                        : _borderSubtle,
+                  )
                 ),
                 child: Icon(
                   guest.type == 'qemu' ? Icons.computer_rounded : Icons.layers_rounded,
                   size: 20,
-                  color: isRunning ? AppTheme.statusTeal : Colors.white54,
+                  color: isRunning ? AppTheme.statusTeal : _textMuted,
                 ),
               ),
               const SizedBox(width: 16),
@@ -540,7 +560,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 15,
-                              color: isRunning ? Colors.white : Colors.white70,
+                              color: isRunning ? _textMain : _textSecondary,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -560,9 +580,9 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      '${guest.node.toUpperCase()} • ${guest.cpuCores} vCPU • ${guest.ramUsed}/${guest.ramTotal}',
-                      style: const TextStyle(color: Colors.white54, fontSize: 11),
-                      maxLines: 1,
+                      '${guest.node.toUpperCase()}\n${guest.cpuCores} vCPU • ${guest.ramUsed}/${guest.ramTotal}',
+                      style: const TextStyle(color: _textMuted, fontSize: 11),
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
@@ -581,7 +601,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                     Text(
                       guest.cpuUsage,
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: _textMain,
                         fontSize: 11,
                         fontFamily: 'monospace',
                         fontWeight: FontWeight.bold,
@@ -616,13 +636,16 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: isRunning
-                          ? AppTheme.statusTeal.withValues(alpha: 0.15)
-                          : AppTheme.surfaceBackground,
+                          ? AppTheme.statusTeal.withValues(alpha: 0.1)
+                          : _bgSurface,
                       borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: isRunning ? AppTheme.statusTeal.withValues(alpha: 0.25) : _borderSubtle,
+                      ),
                     ),
                     child: Icon(
                       guest.type == 'qemu' ? Icons.computer_rounded : Icons.layers_rounded,
-                      color: isRunning ? AppTheme.statusTeal : Colors.white54,
+                      color: isRunning ? AppTheme.statusTeal : _textMuted,
                       size: 24,
                     ),
                   ),
@@ -634,7 +657,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                         Text(
                           guest.name,
                           style: const TextStyle(
-                            color: Colors.white,
+                            color: _textMain,
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
@@ -643,9 +666,9 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          '${guest.type.toUpperCase()} #${guest.vmid} • Node: ${guest.node}',
-                          style: const TextStyle(color: Colors.white54, fontSize: 12),
-                          maxLines: 1,
+                          '${guest.type.toUpperCase()} #${guest.vmid}\nNode: ${guest.node}',
+                          style: const TextStyle(color: _textMuted, fontSize: 12),
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ],
@@ -662,7 +685,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
               ModernProgressBar(
                 label: 'Penggunaan CPU (${guest.cpuCores} Core)',
                 percentage: guest.cpuPercentValue,
-                color: Colors.white,
+                color: Colors.blue, // CPU Blue
                 customTrailingText: guest.cpuUsage,
               ),
               const SizedBox(height: 18),
@@ -676,9 +699,9 @@ class _ProxmoxViewState extends State<ProxmoxView> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppTheme.surfaceBackground,
+                  color: _bgSurface,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppTheme.borderSubtle),
+                  border: Border.all(color: _borderSubtle),
                 ),
                 child: Column(
                   children: [
@@ -694,7 +717,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                               TextSpan(
                                 text: guest.diskTotal,
                                 style: const TextStyle(
-                                  color: Colors.white,
+                                  color: _textMain,
                                   fontSize: 12,
                                   fontFamily: 'monospace',
                                   fontWeight: FontWeight.bold,
@@ -703,7 +726,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                               const TextSpan(
                                 text: ' (Bootdisk)',
                                 style: TextStyle(
-                                  color: Colors.white54,
+                                  color: _textMuted,
                                   fontSize: 11,
                                   fontFamily: 'monospace',
                                   fontWeight: FontWeight.normal,
@@ -717,12 +740,12 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                       _buildKeyValRow('Penggunaan Disk', '${guest.diskUsed} / ${guest.diskTotal}'),
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 12),
-                      child: Divider(color: AppTheme.borderSubtle, height: 1),
+                      child: Divider(color: _borderSubtle, height: 1),
                     ),
-                    _buildKeyValRow('Trafik Jaringan', '↓ ${guest.netIn} • ↑ ${guest.netOut}'),
+                    _buildKeyValRow('Trafik Jaringan', '↓ ${guest.netIn}\n↑ ${guest.netOut}'),
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 12),
-                      child: Divider(color: AppTheme.borderSubtle, height: 1),
+                      child: Divider(color: _borderSubtle, height: 1),
                     ),
                     _buildKeyValRow('Durasi Aktif (Uptime)', guest.uptime),
                   ],
@@ -742,20 +765,20 @@ class _ProxmoxViewState extends State<ProxmoxView> {
       children: [
         Text(
           key,
-          style: const TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.w600),
+          style: const TextStyle(color: _textMuted, fontSize: 12, fontWeight: FontWeight.w600),
         ),
         const SizedBox(width: 16),
         Expanded(
           child: Text(
             value,
             style: const TextStyle(
-              color: Colors.white,
+              color: _textMain,
               fontSize: 12,
               fontFamily: 'monospace',
               fontWeight: FontWeight.bold,
             ),
             textAlign: TextAlign.right,
-            maxLines: 1,
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
         ),
@@ -769,7 +792,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
       children: [
         Text(
           key,
-          style: const TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.w600),
+          style: const TextStyle(color: _textMuted, fontSize: 12, fontWeight: FontWeight.w600),
         ),
         const SizedBox(width: 16),
         Expanded(
@@ -786,8 +809,8 @@ class _ProxmoxViewState extends State<ProxmoxView> {
     final storages = vm.filteredStorages;
 
     return RefreshIndicator(
-      color: Colors.black,
-      backgroundColor: AppTheme.statusTeal,
+      color: AppTheme.statusTeal,
+      backgroundColor: Colors.white,
       onRefresh: () => vm.fetchProxmoxData(showLoading: false),
       child: storages.isEmpty
           ? (vm.searchQuery.isNotEmpty
@@ -803,17 +826,25 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                   margin: const EdgeInsets.only(bottom: 12),
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: AppTheme.cardBackground,
+                    color: _bgCard,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppTheme.borderSubtle),
+                    border: Border.all(color: _borderSubtle),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.03),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      )
+                    ],
                   ),
                   child: Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: AppTheme.statusTeal.withValues(alpha: 0.14),
+                          color: AppTheme.statusTeal.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: AppTheme.statusTeal.withValues(alpha: 0.2)),
                         ),
                         child: const Icon(
                           Icons.sd_storage_rounded,
@@ -829,7 +860,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                             Text(
                               st.storage,
                               style: const TextStyle(
-                                color: Colors.white,
+                                color: _textMain,
                                 fontSize: 15,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -838,12 +869,12 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              'Node: ${st.node} • Tipe: ${st.type}',
+                              'Node: ${st.node}\nTipe: ${st.type}',
                               style: const TextStyle(
-                                color: Colors.white54,
+                                color: _textMuted,
                                 fontSize: 12,
                               ),
-                              maxLines: 1,
+                              maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ],
@@ -856,7 +887,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                           Text(
                             st.used,
                             style: const TextStyle(
-                              color: Colors.white,
+                              color: _textMain,
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
                               fontFamily: 'monospace',
@@ -866,7 +897,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                           Text(
                             'dari ${st.total}',
                             style: const TextStyle(
-                              color: Colors.white54,
+                              color: _textMuted,
                               fontSize: 11,
                             ),
                           ),
@@ -889,8 +920,8 @@ class _ProxmoxViewState extends State<ProxmoxView> {
 
     if (vms.isEmpty && lxcs.isEmpty) {
       return RefreshIndicator(
-        color: Colors.black,
-        backgroundColor: AppTheme.statusTeal,
+        color: AppTheme.statusTeal,
+        backgroundColor: Colors.white,
         onRefresh: () => vm.fetchProxmoxData(showLoading: false),
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
@@ -923,8 +954,8 @@ class _ProxmoxViewState extends State<ProxmoxView> {
     final totalActivePercent = totalGuests > 0 ? (runningGuests / totalGuests * 100) : 0.0;
 
     return RefreshIndicator(
-      color: Colors.black,
-      backgroundColor: AppTheme.statusTeal,
+      color: AppTheme.statusTeal,
+      backgroundColor: Colors.white,
       onRefresh: () => vm.fetchProxmoxData(showLoading: false),
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
@@ -934,7 +965,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: AppTheme.cardBackground,
+              color: _bgCard,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
                 color: stoppedGuests > 0
@@ -943,7 +974,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.3),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 12,
                   offset: const Offset(0, 5),
                 ),
@@ -973,7 +1004,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                         const Text(
                           'TOTAL STATUS MESIN',
                           style: TextStyle(
-                            color: Colors.white70,
+                            color: _textSecondary,
                             fontSize: 11,
                             fontWeight: FontWeight.w800,
                             letterSpacing: 0.8,
@@ -991,10 +1022,10 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                         label: 'Total Instans',
                         value: '$totalGuests',
                         subtext: 'VM + LXC',
-                        color: Colors.white,
+                        color: _textMain,
                       ),
                     ),
-                    Container(width: 1, height: 44, color: AppTheme.borderSubtle),
+                    Container(width: 1, height: 44, color: _borderSubtle),
                     Expanded(
                       child: _buildMetricCol(
                         label: 'Aktif (Running)',
@@ -1004,7 +1035,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                         icon: Icons.check_circle_rounded,
                       ),
                     ),
-                    Container(width: 1, height: 44, color: AppTheme.borderSubtle),
+                    Container(width: 1, height: 44, color: _borderSubtle),
                     Expanded(
                       child: _buildMetricCol(
                         label: 'Non-Aktif',
@@ -1012,7 +1043,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                         subtext: 'Stopped / Mati',
                         color: stoppedGuests > 0
                             ? AppTheme.statusDown
-                            : Colors.white38,
+                            : _textHint,
                         icon: Icons.cancel_rounded,
                       ),
                     ),
@@ -1085,8 +1116,8 @@ class _ProxmoxViewState extends State<ProxmoxView> {
 
     if (storages.isEmpty) {
       return RefreshIndicator(
-        color: Colors.black,
-        backgroundColor: AppTheme.statusTeal,
+        color: AppTheme.statusTeal,
+        backgroundColor: Colors.white,
         onRefresh: () => vm.fetchProxmoxData(showLoading: false),
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
@@ -1110,8 +1141,8 @@ class _ProxmoxViewState extends State<ProxmoxView> {
         totalStorages > 0 ? (activeStorages / totalStorages * 100) : 0.0;
 
     return RefreshIndicator(
-      color: Colors.black,
-      backgroundColor: AppTheme.statusTeal,
+      color: AppTheme.statusTeal,
+      backgroundColor: Colors.white,
       onRefresh: () => vm.fetchProxmoxData(showLoading: false),
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
@@ -1121,7 +1152,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: AppTheme.cardBackground,
+              color: _bgCard,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
                 color: inactiveStorages > 0
@@ -1130,7 +1161,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.3),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 12,
                   offset: const Offset(0, 5),
                 ),
@@ -1160,7 +1191,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                         const Text(
                           'TOTAL STORAGE PROXMOX',
                           style: TextStyle(
-                            color: Colors.white70,
+                            color: _textSecondary,
                             fontSize: 11,
                             fontWeight: FontWeight.w800,
                             letterSpacing: 0.8,
@@ -1178,10 +1209,10 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                         label: 'Total Storage',
                         value: '$totalStorages',
                         subtext: 'Pool Terdaftar',
-                        color: Colors.white,
+                        color: _textMain,
                       ),
                     ),
-                    Container(width: 1, height: 44, color: AppTheme.borderSubtle),
+                    Container(width: 1, height: 44, color: _borderSubtle),
                     Expanded(
                       child: _buildMetricCol(
                         label: 'Aktif',
@@ -1191,7 +1222,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                         icon: Icons.check_circle_rounded,
                       ),
                     ),
-                    Container(width: 1, height: 44, color: AppTheme.borderSubtle),
+                    Container(width: 1, height: 44, color: _borderSubtle),
                     Expanded(
                       child: _buildMetricCol(
                         label: 'Non-Aktif',
@@ -1199,7 +1230,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                         subtext: 'Offline / Putus',
                         color: inactiveStorages > 0
                             ? AppTheme.statusDown
-                            : Colors.white38,
+                            : _textHint,
                         icon: Icons.cancel_rounded,
                       ),
                     ),
@@ -1246,7 +1277,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                   icon: Icons.error_outline_rounded,
                   color: inactiveStorages > 0
                       ? AppTheme.statusDown
-                      : Colors.white38,
+                      : _textHint,
                   isAlert: inactiveStorages > 0,
                 ),
               ),
@@ -1288,7 +1319,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
         Text(
           label,
           style: const TextStyle(
-            color: Colors.white,
+            color: _textMain,
             fontSize: 11,
             fontWeight: FontWeight.bold,
           ),
@@ -1300,7 +1331,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
         Text(
           subtext,
           style: const TextStyle(
-            color: Colors.white38,
+            color: _textMuted,
             fontSize: 10,
           ),
           textAlign: TextAlign.center,
@@ -1325,9 +1356,16 @@ class _ProxmoxViewState extends State<ProxmoxView> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.cardBackground,
+        color: _bgCard,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.borderSubtle),
+        border: Border.all(color: _borderSubtle),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1337,8 +1375,9 @@ class _ProxmoxViewState extends State<ProxmoxView> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: accentColor.withValues(alpha: 0.15),
+                  color: accentColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: accentColor.withValues(alpha: 0.2)),
                 ),
                 child: Icon(icon, color: accentColor, size: 20),
               ),
@@ -1350,7 +1389,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                     Text(
                       title,
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: _textMain,
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
                       ),
@@ -1359,7 +1398,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                     Text(
                       subtitle,
                       style: const TextStyle(
-                        color: Colors.white38,
+                        color: _textMuted,
                         fontSize: 11,
                       ),
                     ),
@@ -1369,7 +1408,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
               Text(
                 '$total $typeLabel',
                 style: const TextStyle(
-                  color: Colors.white70,
+                  color: _textSecondary,
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
                   fontFamily: 'monospace',
@@ -1384,7 +1423,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   decoration: BoxDecoration(
-                    color: AppTheme.statusTeal.withValues(alpha: 0.08),
+                    color: AppTheme.statusTeal.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: AppTheme.statusTeal.withValues(alpha: 0.2)),
                   ),
@@ -1395,7 +1434,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                         children: [
                           Icon(Icons.play_circle_filled_rounded, size: 14, color: AppTheme.statusTeal),
                           SizedBox(width: 6),
-                          Text('Aktif', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600)),
+                          Text('Aktif', style: TextStyle(color: _textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
                         ],
                       ),
                       Text(
@@ -1412,13 +1451,13 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   decoration: BoxDecoration(
                     color: stopped > 0
-                        ? AppTheme.statusDown.withValues(alpha: 0.08)
-                        : Colors.white.withValues(alpha: 0.04),
+                        ? AppTheme.statusDown.withValues(alpha: 0.05)
+                        : _bgSurface,
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
                       color: stopped > 0
                           ? AppTheme.statusDown.withValues(alpha: 0.25)
-                          : AppTheme.borderSubtle,
+                          : _borderSubtle,
                     ),
                   ),
                   child: Row(
@@ -1429,16 +1468,16 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                           Icon(
                             Icons.stop_circle_rounded,
                             size: 14,
-                            color: stopped > 0 ? AppTheme.statusDown : Colors.white38,
+                            color: stopped > 0 ? AppTheme.statusDown : _textHint,
                           ),
                           const SizedBox(width: 6),
-                          const Text('Non-Aktif', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600)),
+                          const Text('Non-Aktif', style: TextStyle(color: _textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
                         ],
                       ),
                       Text(
                         '$stopped',
                         style: TextStyle(
-                          color: stopped > 0 ? AppTheme.statusDown : Colors.white38,
+                          color: stopped > 0 ? AppTheme.statusDown : _textHint,
                           fontSize: 15,
                           fontWeight: FontWeight.w900,
                           fontFamily: 'monospace',
@@ -1473,13 +1512,22 @@ class _ProxmoxViewState extends State<ProxmoxView> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.cardBackground,
+        color: _bgCard,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isAlert
-              ? AppTheme.statusDown.withValues(alpha: 0.4)
-              : AppTheme.borderSubtle,
+              ? AppTheme.statusDown.withValues(alpha: 0.3)
+              : _borderSubtle,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: isAlert
+                ? AppTheme.statusDown.withValues(alpha: 0.05)
+                : Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1490,7 +1538,8 @@ class _ProxmoxViewState extends State<ProxmoxView> {
               Container(
                 padding: const EdgeInsets.all(7),
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.15),
+                  color: color.withValues(alpha: 0.1),
+                  border: Border.all(color: color.withValues(alpha: 0.2)),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(icon, color: color, size: 16),
@@ -1498,7 +1547,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
               Text(
                 '$count',
                 style: TextStyle(
-                  color: color,
+                  color: color == _textHint ? _textMain : color,
                   fontSize: 22,
                   fontWeight: FontWeight.w900,
                   fontFamily: 'monospace',
@@ -1510,7 +1559,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
           Text(
             title,
             style: const TextStyle(
-              color: Colors.white,
+              color: _textMain,
               fontSize: 13,
               fontWeight: FontWeight.bold,
             ),
@@ -1519,7 +1568,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
           Text(
             description,
             style: const TextStyle(
-              color: Colors.white38,
+              color: _textMuted,
               fontSize: 10.5,
             ),
             maxLines: 2,
@@ -1537,20 +1586,20 @@ class _ProxmoxViewState extends State<ProxmoxView> {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceBackground,
+        color: _bgSurface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.borderSubtle),
+        border: Border.all(color: _borderSubtle),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 16, color: Colors.white38),
+          Icon(icon, size: 16, color: _textHint),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               message,
               style: const TextStyle(
-                color: Colors.white54,
+                color: _textSecondary,
                 fontSize: 11,
                 height: 1.4,
               ),

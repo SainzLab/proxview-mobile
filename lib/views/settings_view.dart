@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
+
 import '../core/theme/app_theme.dart';
 import '../core/utils/formatters.dart';
 import '../viewmodels/auth_viewmodel.dart';
@@ -15,6 +15,14 @@ class SettingsView extends StatefulWidget {
 
 class _SettingsViewState extends State<SettingsView> {
   final TextEditingController _baseUrlController = TextEditingController();
+
+  // Light Theme Specific Colors
+  static const Color _bgCard = Colors.white;
+  static const Color _borderSubtle = Color(0xFFE2E8F0); // slate-200
+  static const Color _textMain = Color(0xFF0F172A); // slate-900
+  static const Color _textSecondary = Color(0xFF475569); // slate-600
+  static const Color _textMuted = Color(0xFF64748B); // slate-500
+  static const Color _textHint = Color(0xFF94A3B8); // slate-400
 
   @override
   void initState() {
@@ -96,12 +104,12 @@ class _SettingsViewState extends State<SettingsView> {
           Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: AppTheme.cardBackground,
+              color: _bgCard,
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: AppTheme.borderSubtle),
+              border: Border.all(color: _borderSubtle),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.2),
+                  color: Colors.black.withValues(alpha: 0.04),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -116,11 +124,11 @@ class _SettingsViewState extends State<SettingsView> {
                       padding: const EdgeInsets.all(2),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        border: Border.all(color: AppTheme.statusTeal.withValues(alpha: 0.5), width: 2),
+                        border: Border.all(color: AppTheme.statusTeal.withValues(alpha: 0.3), width: 2),
                       ),
                       child: CircleAvatar(
                         radius: 24,
-                        backgroundColor: AppTheme.statusTeal.withValues(alpha: 0.15),
+                        backgroundColor: AppTheme.statusTeal.withValues(alpha: 0.1),
                         child: Text(
                           user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
                           style: const TextStyle(
@@ -139,7 +147,7 @@ class _SettingsViewState extends State<SettingsView> {
                           Text(
                             user.name,
                             style: const TextStyle(
-                              color: Colors.white,
+                              color: _textMain,
                               fontSize: 17,
                               fontWeight: FontWeight.bold,
                             ),
@@ -147,7 +155,7 @@ class _SettingsViewState extends State<SettingsView> {
                           const SizedBox(height: 4),
                           Text(
                             '@${user.username}',
-                            style: const TextStyle(color: Colors.white54, fontSize: 12.5),
+                            style: const TextStyle(color: _textSecondary, fontSize: 12.5),
                           ),
                         ],
                       ),
@@ -162,27 +170,27 @@ class _SettingsViewState extends State<SettingsView> {
                 if (user.tokenExpiresAt != null) ...[
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 14),
-                    child: Divider(color: AppTheme.borderSubtle, height: 1),
+                    child: Divider(color: _borderSubtle, height: 1),
                   ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Row(
                         children: [
-                          Icon(Icons.timer_outlined, size: 15, color: Colors.white38),
+                          Icon(Icons.timer_outlined, size: 15, color: _textHint),
                           SizedBox(width: 6),
                           Text(
                             'Batas Waktu Sesi:',
-                            style: TextStyle(color: Colors.white54, fontSize: 12),
+                            style: TextStyle(color: _textMuted, fontSize: 12, fontWeight: FontWeight.w600),
                           ),
                         ],
                       ),
                       Text(
                         Formatters.formatDateTime(user.tokenExpiresAt),
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: _textMain,
                           fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.bold,
                           fontFamily: 'monospace',
                         ),
                       ),
@@ -203,16 +211,23 @@ class _SettingsViewState extends State<SettingsView> {
         Container(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: AppTheme.cardBackground,
+            color: _bgCard,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppTheme.borderSubtle),
+            border: Border.all(color: _borderSubtle),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
                 'Tentukan alamat endpoint API server ProxView yang sedang berjalan.',
-                style: TextStyle(color: Colors.white54, fontSize: 12, height: 1.4),
+                style: TextStyle(color: _textSecondary, fontSize: 12, height: 1.4),
               ),
               const SizedBox(height: 16),
               CustomTextField(
@@ -239,7 +254,7 @@ class _SettingsViewState extends State<SettingsView> {
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.statusTeal,
-                    foregroundColor: Colors.black,
+                    foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
@@ -258,15 +273,15 @@ class _SettingsViewState extends State<SettingsView> {
             label: const Text(
               'KELUAR SISTEM',
               style: TextStyle(
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w900,
                 letterSpacing: 1.0,
                 fontSize: 13,
               ),
             ),
             style: OutlinedButton.styleFrom(
               foregroundColor: AppTheme.statusDown,
-              backgroundColor: AppTheme.statusDown.withValues(alpha: 0.08),
-              side: BorderSide(color: AppTheme.statusDown.withValues(alpha: 0.4)),
+              backgroundColor: AppTheme.statusDown.withValues(alpha: 0.05),
+              side: BorderSide(color: AppTheme.statusDown.withValues(alpha: 0.3)),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),
               ),

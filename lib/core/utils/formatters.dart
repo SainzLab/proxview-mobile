@@ -3,6 +3,7 @@ class Formatters {
   static double parsePercentage(dynamic value) {
     if (value == null) return 0.0;
     if (value is num) return value.toDouble();
+    
     final cleaned = value.toString().replaceAll('%', '').trim();
     return double.tryParse(cleaned) ?? 0.0;
   }
@@ -11,16 +12,20 @@ class Formatters {
   static double parseLatencyMs(dynamic value) {
     if (value == null) return 0.0;
     if (value is num) return value.toDouble();
+    
     final cleaned = value.toString().replaceAll(RegExp(r'[^0-9.]'), '').trim();
     return double.tryParse(cleaned) ?? 0.0;
   }
 
-  /// Format detik menjadi durasi lengkap seperti di Web ViewMox (misal "23j 53m 3d", "6m 57d", "19d")
+  /// Format detik menjadi durasi lengkap (misal: "23j 53m 3d", "6m 57d", "19h")
+  /// Keterangan: h = hari, j = jam, m = menit, d = detik
   static String formatDurationSeconds(dynamic seconds) {
     if (seconds == null) return '0d';
+    
     final int sec = seconds is int
         ? seconds
         : (seconds is num ? seconds.toInt() : int.tryParse(seconds.toString()) ?? 0);
+        
     if (sec <= 0) return '0d';
 
     final int days = sec ~/ 86400;
@@ -37,9 +42,10 @@ class Formatters {
     return parts.join(' ');
   }
 
-  /// Format ISO 8601 atau Unix timestamp ke format tanggal lokal yang mudah dibaca
+  /// Format ISO 8601 atau Unix timestamp ke format tanggal lokal (dd/MM/yyyy HH:mm)
   static String formatDateTime(dynamic rawTime) {
     if (rawTime == null) return '-';
+    
     DateTime? dt;
     if (rawTime is int) {
       dt = DateTime.fromMillisecondsSinceEpoch(rawTime * 1000).toLocal();
@@ -53,6 +59,7 @@ class Formatters {
         dt = DateTime.tryParse(rawTime)?.toLocal();
       }
     }
+    
     if (dt == null) return rawTime.toString();
 
     final day = dt.day.toString().padLeft(2, '0');
@@ -60,12 +67,14 @@ class Formatters {
     final year = dt.year;
     final hour = dt.hour.toString().padLeft(2, '0');
     final min = dt.minute.toString().padLeft(2, '0');
+    
     return '$day/$month/$year $hour:$min';
   }
 
   /// Format ISO 8601 atau Unix timestamp ke format jam lokal (HH:mm:ss)
   static String formatTimeSeconds(dynamic rawTime) {
     if (rawTime == null) return '-';
+    
     DateTime? dt;
     if (rawTime is int) {
       dt = DateTime.fromMillisecondsSinceEpoch(rawTime * 1000).toLocal();
@@ -79,6 +88,7 @@ class Formatters {
         dt = DateTime.tryParse(rawTime)?.toLocal();
       }
     }
+    
     if (dt == null) {
       final str = rawTime.toString();
       if (str.length >= 8 && str.contains(':')) {
@@ -90,6 +100,7 @@ class Formatters {
     final hour = dt.hour.toString().padLeft(2, '0');
     final min = dt.minute.toString().padLeft(2, '0');
     final sec = dt.second.toString().padLeft(2, '0');
+    
     return '$hour:$min:$sec';
   }
 }

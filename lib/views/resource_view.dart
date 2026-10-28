@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../core/theme/app_theme.dart';
 import '../viewmodels/network_viewmodel.dart';
 import '../viewmodels/proxmox_viewmodel.dart';
@@ -15,6 +16,15 @@ class ResourceView extends StatefulWidget {
 
 class _ResourceViewState extends State<ResourceView> {
   int _selectedCategory = 0; // 0 = Cluster Proxmox, 1 = Target Jaringan
+
+  // Light Theme Specific Colors
+  static const Color _bgMain = Color(0xFFF8F9FA); // slate-50
+  static const Color _bgCard = Colors.white;
+  static const Color _borderSubtle = Color(0xFFE2E8F0); // slate-200
+  static const Color _textMain = Color(0xFF0F172A); // slate-900
+  static const Color _textSecondary = Color(0xFF475569); // slate-600
+  static const Color _textMuted = Color(0xFF64748B); // slate-500
+  static const Color _textHint = Color(0xFF94A3B8); // slate-400
 
   @override
   Widget build(BuildContext context) {
@@ -60,7 +70,7 @@ class _ResourceViewState extends State<ResourceView> {
     return Column(
       children: [
         Container(
-          color: AppTheme.background,
+          color: _bgMain,
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
           child: Row(
             children: [
@@ -74,7 +84,7 @@ class _ResourceViewState extends State<ResourceView> {
                       'VM/LXC: $runningGuests Aktif • $stoppedGuests Non-Aktif',
                   tertiaryStat:
                       'Storage: $activeStorages Aktif • $inactiveStorages Non-Aktif',
-                  accentColor: AppTheme.statusTeal,
+                  accentColor: AppTheme.statusTeal, // Emerald
                   hasAlert: hasProxmoxAlert,
                 ),
               ),
@@ -89,21 +99,24 @@ class _ResourceViewState extends State<ResourceView> {
                       ? '$downTargets Target Gangguan'
                       : 'Semua Target Normal',
                   tertiaryStat: '$icmpCount ICMP • $tcpCount TCP Socket',
-                  accentColor: AppTheme.statusRecovered,
+                  accentColor: Colors.blue, // Blue accent for TCP/ICMP separation
                   hasAlert: hasNetworkAlert,
                 ),
               ),
             ],
           ),
         ),
-        const Divider(color: AppTheme.borderSubtle, height: 1),
+        const Divider(color: _borderSubtle, height: 1),
         Expanded(
-          child: IndexedStack(
-            index: _selectedCategory,
-            children: const [
-              ProxmoxView(summaryOnly: true),
-              NetworkTargetsView(),
-            ],
+          child: Container(
+            color: _bgMain,
+            child: IndexedStack(
+              index: _selectedCategory,
+              children: const [
+                ProxmoxView(summaryOnly: true),
+                NetworkTargetsView(),
+              ],
+            ),
           ),
         ),
       ],
@@ -131,15 +144,24 @@ class _ResourceViewState extends State<ResourceView> {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
           color: isSelected
-              ? effectiveColor.withValues(alpha: 0.14)
-              : AppTheme.cardBackground,
+              ? effectiveColor.withValues(alpha: 0.1)
+              : _bgCard,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: isSelected
-                ? effectiveColor.withValues(alpha: 0.6)
-                : AppTheme.borderSubtle,
+                ? effectiveColor.withValues(alpha: 0.5)
+                : _borderSubtle,
             width: isSelected ? 1.3 : 1.0,
           ),
+          boxShadow: isSelected
+              ? []
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  )
+                ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -149,18 +171,26 @@ class _ResourceViewState extends State<ResourceView> {
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: effectiveColor.withValues(alpha: 0.16),
+                    color: isSelected 
+                        ? effectiveColor.withValues(alpha: 0.2)
+                        : _bgMain,
+                    border: Border.all(
+                        color: isSelected ? Colors.transparent : _borderSubtle),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(icon, size: 15, color: effectiveColor),
+                  child: Icon(
+                    icon,
+                    size: 15,
+                    color: isSelected ? effectiveColor : _textHint,
+                  ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     title,
                     style: TextStyle(
-                      color: isSelected ? Colors.white : Colors.white70,
-                      fontSize: 10,
+                      color: isSelected ? effectiveColor : _textSecondary,
+                      fontSize: 10.5,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 0.6,
                     ),
@@ -173,8 +203,8 @@ class _ResourceViewState extends State<ResourceView> {
             const SizedBox(height: 10),
             Text(
               primaryStat,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: isSelected ? _textMain : _textSecondary,
                 fontSize: 14,
                 fontWeight: FontWeight.w900,
                 fontFamily: 'monospace',
@@ -186,7 +216,7 @@ class _ResourceViewState extends State<ResourceView> {
             Text(
               secondaryStat,
               style: TextStyle(
-                color: hasAlert ? AppTheme.statusDown : Colors.white54,
+                color: hasAlert ? AppTheme.statusDown : _textMuted,
                 fontSize: 9.5,
                 fontWeight: hasAlert ? FontWeight.bold : FontWeight.w500,
               ),
@@ -198,7 +228,7 @@ class _ResourceViewState extends State<ResourceView> {
               Text(
                 tertiaryStat,
                 style: const TextStyle(
-                  color: Colors.white38,
+                  color: _textHint,
                   fontSize: 9,
                   fontWeight: FontWeight.normal,
                 ),

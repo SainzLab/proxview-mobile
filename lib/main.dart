@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import 'core/theme/app_theme.dart';
 import 'services/api_service.dart';
 import 'services/notification_service.dart';
@@ -70,7 +71,8 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         title: 'ProxView',
         debugShowCheckedModeBanner: false,
-        theme: AppTheme.darkTheme,
+        // UBAH DI SINI: Gunakan lightTheme agar warna dasar sistem mengikuti tema terang
+        theme: AppTheme.lightTheme, 
         home: const _AuthGate(),
       ),
     );

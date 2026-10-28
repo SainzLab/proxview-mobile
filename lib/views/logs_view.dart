@@ -1,6 +1,8 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../core/theme/app_theme.dart';
 import '../core/utils/formatters.dart';
 import '../models/log_model.dart';
@@ -18,6 +20,16 @@ class _LogsViewState extends State<LogsView> {
   Timer? _pollingTimer;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+
+  // Light Theme Colors
+  static const Color _bgMain = Color(0xFFF8F9FA); // slate-50
+  static const Color _bgCard = Colors.white;
+  static const Color _bgSurface = Color(0xFFF1F5F9); // slate-100
+  static const Color _borderSubtle = Color(0xFFE2E8F0); // slate-200
+  static const Color _textMain = Color(0xFF0F172A); // slate-900
+  static const Color _textSecondary = Color(0xFF475569); // slate-600
+  static const Color _textMuted = Color(0xFF64748B); // slate-500
+  static const Color _textHint = Color(0xFF94A3B8); // slate-400
 
   @override
   void initState() {
@@ -87,6 +99,7 @@ class _LogsViewState extends State<LogsView> {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<LogViewModel>();
+
     final filteredTasks = _filterTasks(vm.taskLogs);
     final filteredCluster = _filterClusterLogs(vm.clusterLogs);
     final filteredSystem = _filterSystemLogs(vm.systemLogs);
@@ -96,7 +109,7 @@ class _LogsViewState extends State<LogsView> {
       child: Column(
         children: [
           Container(
-            color: AppTheme.background,
+            color: _bgMain,
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: SegmentedTabBar(
               tabs: [
@@ -107,7 +120,7 @@ class _LogsViewState extends State<LogsView> {
             ),
           ),
           Container(
-            color: AppTheme.background,
+            color: _bgMain,
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: AppSearchField(
               controller: _searchController,
@@ -122,31 +135,34 @@ class _LogsViewState extends State<LogsView> {
             ),
           ),
           Expanded(
-            child: vm.isLoading &&
-                    vm.taskLogs.isEmpty &&
-                    vm.clusterLogs.isEmpty &&
-                    vm.systemLogs.isEmpty
-                ? const Center(
-                    child: CircularProgressIndicator(
-                      color: AppTheme.statusTeal,
-                      strokeWidth: 2.5,
-                    ),
-                  )
-                : vm.errorMessage != null &&
-                        vm.taskLogs.isEmpty &&
-                        vm.clusterLogs.isEmpty &&
-                        vm.systemLogs.isEmpty
-                    ? ErrorStateBox(
-                        message: vm.errorMessage!,
-                        onRetry: () => vm.fetchLogs(showLoading: true),
-                      )
-                    : TabBarView(
-                        children: [
-                          _buildTasksTab(context, vm, filteredTasks),
-                          _buildClusterSyslogTab(context, vm, filteredCluster),
-                          _buildSystemAuditTab(context, vm, filteredSystem),
-                        ],
+            child: Container(
+              color: _bgMain,
+              child: vm.isLoading &&
+                      vm.taskLogs.isEmpty &&
+                      vm.clusterLogs.isEmpty &&
+                      vm.systemLogs.isEmpty
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: AppTheme.statusTeal,
+                        strokeWidth: 2.5,
                       ),
+                    )
+                  : vm.errorMessage != null &&
+                          vm.taskLogs.isEmpty &&
+                          vm.clusterLogs.isEmpty &&
+                          vm.systemLogs.isEmpty
+                      ? ErrorStateBox(
+                          message: vm.errorMessage!,
+                          onRetry: () => vm.fetchLogs(showLoading: true),
+                        )
+                      : TabBarView(
+                          children: [
+                            _buildTasksTab(context, vm, filteredTasks),
+                            _buildClusterSyslogTab(context, vm, filteredCluster),
+                            _buildSystemAuditTab(context, vm, filteredSystem),
+                          ],
+                        ),
+            ),
           ),
         ],
       ),
@@ -172,8 +188,8 @@ class _LogsViewState extends State<LogsView> {
     List<ProxmoxTaskLogModel> tasks,
   ) {
     return RefreshIndicator(
-      color: Colors.black,
-      backgroundColor: AppTheme.statusTeal,
+      color: AppTheme.statusTeal,
+      backgroundColor: Colors.white,
       onRefresh: () => vm.fetchLogs(showLoading: false),
       child: NotificationListener<ScrollNotification>(
         onNotification: (ScrollNotification scrollInfo) {
@@ -221,17 +237,17 @@ class _LogsViewState extends State<LogsView> {
                           child: Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: AppTheme.cardBackground,
+                              color: _bgCard,
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: isOk
-                                    ? AppTheme.borderSubtle
-                                    : AppTheme.statusDown.withValues(alpha: 0.4),
+                                color: isOk ? _borderSubtle : AppTheme.statusDown.withValues(alpha: 0.35),
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.2),
-                                  blurRadius: 8,
+                                  color: isOk
+                                      ? Colors.black.withValues(alpha: 0.03)
+                                      : AppTheme.statusDown.withValues(alpha: 0.05),
+                                  blurRadius: 10,
                                   offset: const Offset(0, 4),
                                 ),
                               ],
@@ -242,8 +258,11 @@ class _LogsViewState extends State<LogsView> {
                                 Container(
                                   padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
-                                    color: statusColor.withValues(alpha: 0.14),
+                                    color: statusColor.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: statusColor.withValues(alpha: 0.2),
+                                    ),
                                   ),
                                   child: Icon(
                                     isOk
@@ -261,7 +280,7 @@ class _LogsViewState extends State<LogsView> {
                                       Text(
                                         task.type,
                                         style: const TextStyle(
-                                          color: Colors.white,
+                                          color: _textMain,
                                           fontWeight: FontWeight.bold,
                                           fontSize: 15,
                                         ),
@@ -270,7 +289,7 @@ class _LogsViewState extends State<LogsView> {
                                       RichText(
                                         text: TextSpan(
                                           style: const TextStyle(
-                                            color: Colors.white60,
+                                            color: _textSecondary,
                                             fontSize: 12,
                                             height: 1.4,
                                           ),
@@ -279,16 +298,16 @@ class _LogsViewState extends State<LogsView> {
                                             TextSpan(
                                               text: '${task.node}  ',
                                               style: const TextStyle(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.w600,
+                                                color: _textMain,
+                                                fontWeight: FontWeight.w700,
                                               ),
                                             ),
                                             const TextSpan(text: '•  User: '),
                                             TextSpan(
                                               text: task.user,
                                               style: const TextStyle(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.w600,
+                                                color: _textMain,
+                                                fontWeight: FontWeight.w700,
                                               ),
                                             ),
                                           ],
@@ -300,13 +319,13 @@ class _LogsViewState extends State<LogsView> {
                                           const Icon(
                                             Icons.access_time_rounded,
                                             size: 12,
-                                            color: Colors.white38,
+                                            color: _textHint,
                                           ),
                                           const SizedBox(width: 4),
                                           Text(
                                             Formatters.formatDateTime(task.startTime),
                                             style: const TextStyle(
-                                              color: Colors.white54,
+                                              color: _textMuted,
                                               fontSize: 11,
                                             ),
                                           ),
@@ -378,9 +397,9 @@ class _LogsViewState extends State<LogsView> {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: AppTheme.surfaceBackground,
+                          color: _bgSurface,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppTheme.borderSubtle),
+                          border: Border.all(color: _borderSubtle),
                         ),
                         child: const Icon(
                           Icons.terminal_rounded,
@@ -396,7 +415,7 @@ class _LogsViewState extends State<LogsView> {
                             Text(
                               task.type.toUpperCase(),
                               style: const TextStyle(
-                                color: Colors.white,
+                                color: _textMain,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 15,
                               ),
@@ -406,7 +425,7 @@ class _LogsViewState extends State<LogsView> {
                             Text(
                               'Node: ${task.node} • User: ${task.user}',
                               style: const TextStyle(
-                                color: Colors.white54,
+                                color: _textMuted,
                                 fontSize: 12,
                               ),
                               overflow: TextOverflow.ellipsis,
@@ -435,9 +454,17 @@ class _LogsViewState extends State<LogsView> {
                             width: double.infinity,
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
-                              color: AppTheme.background,
+                              color: const Color(0xFF0F172A), // Keep terminal dark for authenticity
                               borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: AppTheme.borderSubtle),
+                              border: Border.all(color: _borderSubtle),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.1),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                  // Hapus baris inset: true, di sini
+                                ),
+                              ],
                             ),
                             child: lines.isEmpty
                                 ? const Center(
@@ -479,8 +506,8 @@ class _LogsViewState extends State<LogsView> {
     List<ProxmoxClusterLogModel> logs,
   ) {
     return RefreshIndicator(
-      color: Colors.black,
-      backgroundColor: AppTheme.statusTeal,
+      color: AppTheme.statusTeal,
+      backgroundColor: Colors.white,
       onRefresh: () => vm.fetchLogs(showLoading: false),
       child: NotificationListener<ScrollNotification>(
         onNotification: (ScrollNotification scrollInfo) {
@@ -523,13 +550,20 @@ class _LogsViewState extends State<LogsView> {
                         margin: const EdgeInsets.only(bottom: 12),
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: AppTheme.cardBackground,
+                          color: _bgCard,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: isErr
-                                ? AppTheme.statusDown.withValues(alpha: 0.4)
-                                : AppTheme.borderSubtle,
+                            color: isErr ? AppTheme.statusDown.withValues(alpha: 0.35) : _borderSubtle,
                           ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: isErr
+                                  ? AppTheme.statusDown.withValues(alpha: 0.05)
+                                  : Colors.black.withValues(alpha: 0.03),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -537,13 +571,12 @@ class _LogsViewState extends State<LogsView> {
                             Container(
                               padding: const EdgeInsets.all(9),
                               decoration: BoxDecoration(
-                                color: statusColor.withValues(alpha: 0.14),
+                                color: statusColor.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: statusColor.withValues(alpha: 0.2)),
                               ),
                               child: Icon(
-                                isErr
-                                    ? Icons.warning_amber_rounded
-                                    : Icons.info_outline_rounded,
+                                isErr ? Icons.warning_amber_rounded : Icons.info_outline_rounded,
                                 color: statusColor,
                                 size: 18,
                               ),
@@ -556,7 +589,7 @@ class _LogsViewState extends State<LogsView> {
                                   Text(
                                     log.msg,
                                     style: TextStyle(
-                                      color: isErr ? AppTheme.statusDown : Colors.white,
+                                      color: isErr ? AppTheme.statusDown : _textMain,
                                       fontSize: 13,
                                       height: 1.4,
                                       fontWeight: isErr ? FontWeight.w600 : FontWeight.normal,
@@ -577,12 +610,12 @@ class _LogsViewState extends State<LogsView> {
                                       const Icon(
                                         Icons.access_time_rounded,
                                         size: 12,
-                                        color: Colors.white38,
+                                        color: _textHint,
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
                                         Formatters.formatDateTime(log.time),
-                                        style: const TextStyle(color: Colors.white54, fontSize: 11),
+                                        style: const TextStyle(color: _textMuted, fontSize: 11),
                                       ),
                                     ],
                                   ),
@@ -604,8 +637,8 @@ class _LogsViewState extends State<LogsView> {
     List<SystemAuditLogModel> logs,
   ) {
     return RefreshIndicator(
-      color: Colors.black,
-      backgroundColor: AppTheme.statusTeal,
+      color: AppTheme.statusTeal,
+      backgroundColor: Colors.white,
       onRefresh: () => vm.fetchLogs(showLoading: false),
       child: NotificationListener<ScrollNotification>(
         onNotification: (ScrollNotification scrollInfo) {
@@ -646,9 +679,16 @@ class _LogsViewState extends State<LogsView> {
                       return Container(
                         margin: const EdgeInsets.only(bottom: 12),
                         decoration: BoxDecoration(
-                          color: AppTheme.cardBackground,
+                          color: _bgCard,
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: AppTheme.borderSubtle),
+                          border: Border.all(color: _borderSubtle),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.03),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(15),
@@ -691,9 +731,10 @@ class _LogsViewState extends State<LogsView> {
                                 Text(
                                   item.message,
                                   style: const TextStyle(
-                                    color: Colors.white,
+                                    color: _textMain,
                                     fontSize: 13,
                                     height: 1.4,
+                                    fontWeight: FontWeight.w500,
                                   ),
                                 ),
                                 const SizedBox(height: 10),
@@ -702,12 +743,12 @@ class _LogsViewState extends State<LogsView> {
                                     const Icon(
                                       Icons.access_time_rounded,
                                       size: 12,
-                                      color: Colors.white38,
+                                      color: _textHint,
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
                                       Formatters.formatDateTime(item.timestamp),
-                                      style: const TextStyle(color: Colors.white54, fontSize: 11),
+                                      style: const TextStyle(color: _textMuted, fontSize: 11),
                                     ),
                                   ],
                                 ),
@@ -726,19 +767,19 @@ class _LogsViewState extends State<LogsView> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceBackground,
+        color: _bgSurface,
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: AppTheme.borderSubtle),
+        border: Border.all(color: _borderSubtle),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 11, color: Colors.white54),
+          Icon(icon, size: 11, color: _textHint),
           const SizedBox(width: 4),
           Text(
             label,
             style: const TextStyle(
-              color: Colors.white70,
+              color: _textSecondary,
               fontSize: 10.5,
               fontWeight: FontWeight.w600,
             ),

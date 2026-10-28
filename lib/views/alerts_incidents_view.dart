@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../core/theme/app_theme.dart';
 import '../core/utils/formatters.dart';
 import '../models/alert_incident_model.dart';
@@ -19,6 +20,15 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
   String _searchQuery = '';
   String _selectedFilter = 'Semua Status';
   final Map<String, bool> _expandedMonitoringCards = {};
+
+  // Light theme specific colors
+  static const Color _bgCard = Colors.white;
+  static const Color _bgSurface = Color(0xFFF8F9FA); // slate-50
+  static const Color _borderSubtle = Color(0xFFE2E8F0); // slate-200
+  static const Color _textMain = Color(0xFF0F172A); // slate-900
+  static const Color _textSecondary = Color(0xFF475569); // slate-600
+  static const Color _textMuted = Color(0xFF64748B); // slate-500
+  static const Color _textHint = Color(0xFF94A3B8); // slate-400
 
   bool _isCardExpanded(String cardKey, {required bool defaultExpanded}) {
     return _expandedMonitoringCards[cardKey] ?? defaultExpanded;
@@ -187,165 +197,169 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [
             SliverToBoxAdapter(
-              child: Column(
-                children: [
-                  _buildIncidentStatsChart(
-                    vm.incidentStats,
-                    isKepalaBidang: isKepalaBidang,
-                    unhandledCount: unhandledCount,
-                  ),
-                  Container(
-                    color: AppTheme.background,
-                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-                    child: SegmentedTabBar(
-                      tabs: isKepalaBidang
-                          ? [
-                              Tab(text: 'AKTIF (${vm.activeAlerts.length})'),
-                              Tab(text: 'RIWAYAT (${vm.historyAlerts.length})'),
-                            ]
-                          : [
-                              Tab(text: 'AKTIF (${vm.activeAlerts.length})'),
-                              Tab(text: 'TIKET (${vm.incidents.length})'),
-                              Tab(text: 'RIWAYAT (${vm.historyAlerts.length})'),
-                            ],
+              child: Container(
+                color: _bgSurface,
+                child: Column(
+                  children: [
+                    _buildIncidentStatsChart(
+                      vm.incidentStats,
+                      isKepalaBidang: isKepalaBidang,
+                      unhandledCount: unhandledCount,
                     ),
-                  ),
-                  Container(
-                    color: AppTheme.background,
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          flex: 3,
-                          child: AppSearchField(
-                            controller: _searchController,
-                            onChanged: (val) => setState(() => _searchQuery = val),
-                            onClear: _clearSearch,
-                            hintText: 'Cari tiket, target, pesan...',
-                            hasText: _searchQuery.isNotEmpty,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          flex: 2,
-                          child: Container(
-                            height: 44,
-                            padding: const EdgeInsets.symmetric(horizontal: 10),
-                            decoration: BoxDecoration(
-                              color: AppTheme.surfaceBackground,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppTheme.borderSubtle),
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                      child: SegmentedTabBar(
+                        tabs: isKepalaBidang
+                            ? [
+                                Tab(text: 'AKTIF (${vm.activeAlerts.length})'),
+                                Tab(text: 'RIWAYAT (${vm.historyAlerts.length})'),
+                              ]
+                            : [
+                                Tab(text: 'AKTIF (${vm.activeAlerts.length})'),
+                                Tab(text: 'TIKET (${vm.incidents.length})'),
+                                Tab(text: 'RIWAYAT (${vm.historyAlerts.length})'),
+                              ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: AppSearchField(
+                              controller: _searchController,
+                              onChanged: (val) => setState(() => _searchQuery = val),
+                              onClear: _clearSearch,
+                              hintText: 'Cari tiket, target, pesan...',
+                              hasText: _searchQuery.isNotEmpty,
                             ),
-                            child: DropdownButtonHideUnderline(
-                              child: DropdownButton<String>(
-                                value: _selectedFilter,
-                                dropdownColor: AppTheme.elevatedBackground,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            flex: 2,
+                            child: Container(
+                              height: 44,
+                              padding: const EdgeInsets.symmetric(horizontal: 10),
+                              decoration: BoxDecoration(
+                                color: _bgCard,
                                 borderRadius: BorderRadius.circular(12),
-                                icon: const Icon(
-                                  Icons.filter_list_rounded,
-                                  color: Colors.white54,
-                                  size: 18,
-                                ),
-                                isExpanded: true,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                items: _filterOptions.map((String option) {
-                                  final isSel = _selectedFilter == option;
-                                  return DropdownMenuItem<String>(
-                                    value: option,
-                                    child: Row(
-                                      children: [
-                                        if (isSel)
-                                          const Padding(
-                                            padding: EdgeInsets.only(right: 6),
-                                            child: Icon(
-                                              Icons.check_rounded,
-                                              size: 14,
-                                              color: AppTheme.statusTeal,
+                                border: Border.all(color: _borderSubtle),
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<String>(
+                                  value: _selectedFilter,
+                                  dropdownColor: _bgCard,
+                                  borderRadius: BorderRadius.circular(12),
+                                  icon: const Icon(
+                                    Icons.filter_list_rounded,
+                                    color: _textHint,
+                                    size: 18,
+                                  ),
+                                  isExpanded: true,
+                                  style: const TextStyle(
+                                    color: _textMain,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  items: _filterOptions.map((String option) {
+                                    final isSel = _selectedFilter == option;
+                                    return DropdownMenuItem<String>(
+                                      value: option,
+                                      child: Row(
+                                        children: [
+                                          if (isSel)
+                                            const Padding(
+                                              padding: EdgeInsets.only(right: 6),
+                                              child: Icon(
+                                                Icons.check_rounded,
+                                                size: 14,
+                                                color: AppTheme.statusTeal,
+                                              ),
+                                            ),
+                                          Expanded(
+                                            child: Text(
+                                              option,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                color: isSel
+                                                    ? AppTheme.statusTeal
+                                                    : _textSecondary,
+                                                fontWeight: isSel
+                                                    ? FontWeight.bold
+                                                    : FontWeight.w500,
+                                              ),
                                             ),
                                           ),
-                                        Expanded(
-                                          child: Text(
-                                            option,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              color: isSel
-                                                  ? AppTheme.statusTeal
-                                                  : Colors.white70,
-                                              fontWeight: isSel
-                                                  ? FontWeight.bold
-                                                  : FontWeight.w500,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                }).toList(),
-                                onChanged: (String? newValue) {
-                                  if (newValue != null) {
-                                    setState(() {
-                                      _selectedFilter = newValue;
-                                    });
-                                  }
-                                },
+                                        ],
+                                      ),
+                                    );
+                                  }).toList(),
+                                  onChanged: (String? newValue) {
+                                    if (newValue != null) {
+                                      setState(() {
+                                        _selectedFilter = newValue;
+                                      });
+                                    }
+                                  },
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ];
         },
-        body: vm.isLoading && vm.activeAlerts.isEmpty && vm.incidents.isEmpty
-            ? const Center(
-                child: CircularProgressIndicator(color: AppTheme.statusTeal, strokeWidth: 2.5),
-              )
-            : vm.errorMessage != null && vm.activeAlerts.isEmpty && vm.incidents.isEmpty
-                ? ErrorStateBox(
-                    message: vm.errorMessage!,
-                    onRetry: () => vm.fetchAll(showLoading: true),
-                  )
-                : TabBarView(
-                    children: [
-                      _buildAlertsList(
-                        context,
-                        vm,
-                        filteredActive,
-                        currentUserName: currentUserName,
-                        isKepalaBidang: isKepalaBidang,
-                        emptyLabel: 'Tidak ada gangguan aktif saat ini.',
-                        isActiveTab: true,
-                        onLoadMore: () => vm.loadMoreActiveAlerts(),
-                      ),
-                      if (!isKepalaBidang)
-                        _buildIncidentsList(
+        body: Container(
+          color: _bgSurface,
+          child: vm.isLoading && vm.activeAlerts.isEmpty && vm.incidents.isEmpty
+              ? const Center(
+                  child: CircularProgressIndicator(color: AppTheme.statusTeal, strokeWidth: 2.5),
+                )
+              : vm.errorMessage != null && vm.activeAlerts.isEmpty && vm.incidents.isEmpty
+                  ? ErrorStateBox(
+                      message: vm.errorMessage!,
+                      onRetry: () => vm.fetchAll(showLoading: true),
+                    )
+                  : TabBarView(
+                      children: [
+                        _buildAlertsList(
                           context,
                           vm,
-                          filteredIncidents,
-                          currentUserName,
+                          filteredActive,
+                          currentUserName: currentUserName,
                           isKepalaBidang: isKepalaBidang,
-                          onLoadMore: () => vm.loadMoreIncidents(),
+                          emptyLabel: 'Tidak ada gangguan aktif saat ini.',
+                          isActiveTab: true,
+                          onLoadMore: () => vm.loadMoreActiveAlerts(),
                         ),
-                      _buildAlertsList(
-                        context,
-                        vm,
-                        filteredHistory,
-                        currentUserName: currentUserName,
-                        isKepalaBidang: isKepalaBidang,
-                        emptyLabel: 'Belum ada riwayat gangguan selesai.',
-                        isActiveTab: false,
-                        onLoadMore: () => vm.loadMoreHistoryAlerts(),
-                      ),
-                    ],
-                  ),
+                        if (!isKepalaBidang)
+                          _buildIncidentsList(
+                            context,
+                            vm,
+                            filteredIncidents,
+                            currentUserName,
+                            isKepalaBidang: isKepalaBidang,
+                            onLoadMore: () => vm.loadMoreIncidents(),
+                          ),
+                        _buildAlertsList(
+                          context,
+                          vm,
+                          filteredHistory,
+                          currentUserName: currentUserName,
+                          isKepalaBidang: isKepalaBidang,
+                          emptyLabel: 'Belum ada riwayat gangguan selesai.',
+                          isActiveTab: false,
+                          onLoadMore: () => vm.loadMoreHistoryAlerts(),
+                        ),
+                      ],
+                    ),
+        ),
       ),
     );
   }
@@ -399,14 +413,21 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
     ];
 
     return Container(
-      color: AppTheme.background,
+      color: _bgSurface,
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppTheme.cardBackground,
+          color: _bgCard,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.borderSubtle),
+          border: Border.all(color: _borderSubtle),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -425,7 +446,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                     Text(
                       'RINGKASAN STATUS INSIDEN',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: _textMuted,
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 0.8,
@@ -446,7 +467,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                     _buildSummaryPill(
                       label: 'Total',
                       value: stats.totalTickets,
-                      color: Colors.white70,
+                      color: _textSecondary,
                     ),
                   ],
                 ),
@@ -459,7 +480,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
               child: SizedBox(
                 height: 8,
                 child: severityTotal <= 0
-                    ? Container(color: Colors.white10)
+                    ? Container(color: const Color(0xFFF1F5F9)) // slate-100
                     : Row(
                         children: [
                           (count: displayDown, color: AppTheme.statusDown),
@@ -509,13 +530,13 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                         ),
                         decoration: BoxDecoration(
                           color: isSelected
-                              ? item.color.withValues(alpha: 0.16)
-                              : Colors.white.withValues(alpha: 0.03),
+                              ? item.color.withValues(alpha: 0.12)
+                              : _bgSurface,
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
                             color: isSelected
-                                ? item.color
-                                : item.color.withValues(alpha: 0.22),
+                                ? item.color.withValues(alpha: 0.5)
+                                : _borderSubtle,
                             width: isSelected ? 1.2 : 1.0,
                           ),
                         ),
@@ -541,7 +562,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                               child: Text(
                                 '${item.count}',
                                 style: const TextStyle(
-                                  color: Colors.white,
+                                  color: _textMain,
                                   fontSize: 18,
                                   fontWeight: FontWeight.w900,
                                   fontFamily: 'monospace',
@@ -559,7 +580,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
             if (isKepalaBidang) ...[
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 12),
-                child: Divider(color: AppTheme.borderSubtle, height: 1),
+                child: Divider(color: _borderSubtle, height: 1),
               ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -592,7 +613,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -600,7 +621,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
           Text(
             '$label: ',
             style: const TextStyle(
-              color: Colors.white54,
+              color: _textMuted,
               fontSize: 10,
               fontWeight: FontWeight.w600,
             ),
@@ -642,8 +663,8 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
     VoidCallback? onLoadMore,
   }) {
     return RefreshIndicator(
-      color: Colors.black,
-      backgroundColor: AppTheme.statusTeal,
+      color: AppTheme.statusTeal,
+      backgroundColor: Colors.white,
       onRefresh: () => vm.fetchAll(showLoading: false),
       child: list.isEmpty
           ? _buildEmptyState(emptyLabel)
@@ -704,7 +725,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
         ticketCode: ticketCode,
         timestamp: alert.createdAt,
         title: alert.message.isNotEmpty ? alert.message : alert.targetName,
-        targetLabel: '${alert.targetType} - ${alert.targetName}',
+        targetLabel: '${alert.targetType}\n${alert.targetName}',
         badgeSeverity: displaySeverity,
         currentSeverity: alert.severity,
         isResolved: alert.isResolved,
@@ -727,11 +748,20 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.cardBackground,
+        color: _bgCard,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isActiveTab ? color.withValues(alpha: 0.35) : AppTheme.borderSubtle,
+          color: isActiveTab ? color.withValues(alpha: 0.35) : _borderSubtle,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: isActiveTab
+                ? color.withValues(alpha: 0.05)
+                : Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -744,9 +774,9 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${alert.targetType} • ${alert.actionType.toUpperCase()}',
+                      '${alert.targetType}\n${alert.actionType.toUpperCase()}',
                       style: TextStyle(
-                        color: isCall ? AppTheme.statusDown : Colors.white54,
+                        color: isCall ? AppTheme.statusDown : _textMuted,
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 1.0,
@@ -756,7 +786,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                     Text(
                       alert.targetName,
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: _textMain,
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
@@ -775,28 +805,32 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
           const SizedBox(height: 12),
           Text(
             alert.message,
-            style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+            style: const TextStyle(color: _textSecondary, fontSize: 13, height: 1.4),
           ),
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 14),
-            child: Divider(color: AppTheme.borderSubtle, height: 1),
+            child: Divider(color: _borderSubtle, height: 1),
           ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
                 children: [
-                  const Icon(Icons.access_time_rounded, size: 14, color: Colors.white38),
+                  const Icon(Icons.access_time_rounded, size: 14, color: _textHint),
                   const SizedBox(width: 6),
                   Text(
                     Formatters.formatDateTime(alert.createdAt),
-                    style: const TextStyle(color: Colors.white54, fontSize: 11),
+                    style: const TextStyle(
+                      color: _textMuted,
+                      fontSize: 11,
+                      fontFamily: 'monospace',
+                    ),
                   ),
                 ],
               ),
               Row(
                 children: [
-                  const Icon(Icons.person_outline_rounded, size: 14, color: Colors.white38),
+                  const Icon(Icons.person_outline_rounded, size: 14, color: _textHint),
                   const SizedBox(width: 6),
                   Text(
                     alert.isBeingHandled ? (alert.technicians ?? '-') : 'Belum Ditangani',
@@ -836,9 +870,9 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                       ),
                     ),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.white,
+                      foregroundColor: _textSecondary,
                       padding: const EdgeInsets.symmetric(vertical: 13),
-                      side: const BorderSide(color: Colors.white24),
+                      side: const BorderSide(color: _borderSubtle),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -866,10 +900,10 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.statusTeal,
-                      foregroundColor: Colors.black,
+                      foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 13),
-                      disabledBackgroundColor: Colors.white10,
-                      disabledForegroundColor: Colors.white24,
+                      disabledBackgroundColor: const Color(0xFFF1F5F9), // slate-100
+                      disabledForegroundColor: _textHint,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -894,8 +928,8 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
     VoidCallback? onLoadMore,
   }) {
     return RefreshIndicator(
-      color: Colors.black,
-      backgroundColor: AppTheme.statusTeal,
+      color: AppTheme.statusTeal,
+      backgroundColor: Colors.white,
       onRefresh: () => vm.fetchAll(showLoading: false),
       child: incidents.isEmpty
           ? _buildEmptyState('Belum ada tiket insiden.')
@@ -957,13 +991,22 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                     margin: const EdgeInsets.only(bottom: 12),
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppTheme.cardBackground,
+                      color: _bgCard,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                         color: !ticket.isResolved
                             ? color.withValues(alpha: 0.35)
-                            : AppTheme.borderSubtle,
+                            : _borderSubtle,
                       ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: !ticket.isResolved
+                              ? color.withValues(alpha: 0.05)
+                              : Colors.black.withValues(alpha: 0.03),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -985,7 +1028,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                                     child: Text(
                                       ticket.ticketCode,
                                       style: const TextStyle(
-                                        color: Colors.white,
+                                        color: _textMain,
                                         fontFamily: 'monospace',
                                         fontWeight: FontWeight.bold,
                                         fontSize: 13,
@@ -1008,7 +1051,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                         Text(
                           ticket.target,
                           style: const TextStyle(
-                            color: Colors.white,
+                            color: _textMain,
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
@@ -1016,11 +1059,11 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                         const SizedBox(height: 6),
                         Text(
                           ticket.title,
-                          style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+                          style: const TextStyle(color: _textSecondary, fontSize: 13, height: 1.4),
                         ),
                         const Padding(
                           padding: EdgeInsets.symmetric(vertical: 14),
-                          child: Divider(color: AppTheme.borderSubtle, height: 1),
+                          child: Divider(color: _borderSubtle, height: 1),
                         ),
                         Wrap(
                           spacing: 10,
@@ -1057,9 +1100,9 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                                     ),
                                   ),
                                   style: OutlinedButton.styleFrom(
-                                    foregroundColor: Colors.white,
+                                    foregroundColor: _textSecondary,
                                     padding: const EdgeInsets.symmetric(vertical: 13),
-                                    side: const BorderSide(color: Colors.white24),
+                                    side: const BorderSide(color: _borderSubtle),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
                                     ),
@@ -1087,10 +1130,10 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                                   ),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: AppTheme.statusTeal,
-                                    foregroundColor: Colors.black,
+                                    foregroundColor: Colors.white,
                                     padding: const EdgeInsets.symmetric(vertical: 13),
-                                    disabledBackgroundColor: Colors.white10,
-                                    disabledForegroundColor: Colors.white24,
+                                    disabledBackgroundColor: const Color(0xFFF1F5F9), // slate-100
+                                    disabledForegroundColor: _textHint,
                                     elevation: 0,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
@@ -1190,16 +1233,18 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
-        color: AppTheme.cardBackground,
+        color: _bgCard,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: !isResolved
               ? sevColor.withValues(alpha: 0.35)
-              : AppTheme.borderSubtle,
+              : _borderSubtle,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.25),
+            color: !isResolved
+                ? sevColor.withValues(alpha: 0.05)
+                : Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -1236,21 +1281,21 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '$ticketCode  •  ${Formatters.formatDateTime(timestamp)}',
+                              '$ticketCode \n${Formatters.formatDateTime(timestamp)}',
                               style: const TextStyle(
-                                color: Colors.white60,
+                                color: _textMuted,
                                 fontSize: 11,
                                 fontFamily: 'monospace',
                                 fontWeight: FontWeight.w700,
                               ),
-                              maxLines: 1,
+                              maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: 6),
                             Text(
                               title,
                               style: const TextStyle(
-                                color: Colors.white,
+                                color: _textMain,
                                 fontSize: 15,
                                 fontWeight: FontWeight.w800,
                                 height: 1.3,
@@ -1270,14 +1315,14 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                                           ? Icons.dns_outlined
                                           : Icons.router_outlined,
                                       size: 14,
-                                      color: Colors.white54,
+                                      color: _textHint,
                                     ),
                                     const SizedBox(width: 5),
                                     Flexible(
                                       child: Text(
                                         targetLabel,
                                         style: const TextStyle(
-                                          color: Colors.white70,
+                                          color: _textSecondary,
                                           fontSize: 12,
                                           fontFamily: 'monospace',
                                           fontWeight: FontWeight.w600,
@@ -1304,18 +1349,18 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
 
               // Body: Laporan Pemantauan (3-Step Stepper + Info Box)
               if (isExpanded) ...[
-                const Divider(color: AppTheme.borderSubtle, height: 1),
+                const Divider(color: _borderSubtle, height: 1),
                 Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
+                      const Row(
                         children: [
-                          const Text(
+                          Text(
                             'LAPORAN PEMANTAUAN',
                             style: TextStyle(
-                              color: Colors.white70,
+                              color: _textMuted,
                               fontSize: 10.5,
                               fontWeight: FontWeight.w800,
                               letterSpacing: 0.9,
@@ -1332,7 +1377,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                       Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: AppTheme.surfaceBackground,
+                          color: _bgSurface,
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
                             color: statusColor.withValues(alpha: 0.3),
@@ -1361,7 +1406,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                                   Text(
                                     statusTitle,
                                     style: const TextStyle(
-                                      color: Colors.white,
+                                      color: _textMain,
                                       fontSize: 13,
                                       fontWeight: FontWeight.w800,
                                     ),
@@ -1370,7 +1415,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                                   Text(
                                     statusSubtitle,
                                     style: const TextStyle(
-                                      color: Colors.white60,
+                                      color: _textSecondary,
                                       fontSize: 11.5,
                                       height: 1.35,
                                     ),
@@ -1435,7 +1480,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
           _buildStepCircle(
             isCompleted: true,
             isCurrent: stage == 1,
-            activeColor: stage == 1 ? Colors.white : activeStepColor,
+            activeColor: stage == 1 ? _textSecondary : activeStepColor,
             icon: Icons.warning,
           ),
           // Connector 1 -> 2
@@ -1444,7 +1489,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
               height: 2,
               color: step2Active
                   ? (stage == 3 ? activeStepColor : currentStep2Color)
-                  : AppTheme.borderSubtle,
+                  : _borderSubtle,
             ),
           ),
           // Step 2 Circle: Perbaikan
@@ -1458,7 +1503,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
           Expanded(
             child: Container(
               height: 2,
-              color: step3Active ? activeStepColor : AppTheme.borderSubtle,
+              color: step3Active ? activeStepColor : _borderSubtle,
             ),
           ),
           // Step 3 Circle: Terkonfirmasi / Selesai
@@ -1481,10 +1526,10 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
   }) {
     final bool lit = isCompleted || isCurrent;
     final Color bgColor = lit
-        ? activeColor.withValues(alpha: 0.18)
-        : AppTheme.surfaceBackground;
-    final Color borderColor = lit ? activeColor : AppTheme.borderHighlight;
-    final Color fgColor = lit ? activeColor : Colors.white38;
+        ? activeColor.withValues(alpha: 0.15)
+        : _bgSurface;
+    final Color borderColor = lit ? activeColor.withValues(alpha: 0.4) : _borderSubtle;
+    final Color fgColor = lit ? activeColor : _textHint;
 
     return Container(
       width: 32,
@@ -1504,21 +1549,22 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceBackground,
+        color: _bgSurface,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppTheme.borderSubtle),
+        border: Border.all(color: _borderSubtle),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: Colors.white54),
+          Icon(icon, size: 14, color: _textHint),
           const SizedBox(width: 6),
           Text(
             text,
             style: const TextStyle(
-              color: Colors.white70,
+              color: _textSecondary,
               fontSize: 11.5,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w600,
+              fontFamily: 'monospace',
             ),
           ),
         ],

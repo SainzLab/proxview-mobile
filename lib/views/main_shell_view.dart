@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../core/theme/app_theme.dart';
 import '../viewmodels/alert_incident_viewmodel.dart';
 import '../viewmodels/analytics_viewmodel.dart';
@@ -27,11 +28,19 @@ class MainShellView extends StatefulWidget {
   State<MainShellView> createState() => _MainShellViewState();
 }
 
-// Tambahkan SingleTickerProviderStateMixin untuk animasi rotasi
 class _MainShellViewState extends State<MainShellView> with SingleTickerProviderStateMixin {
   int _selectedIndex = 0;
   Timer? _pollingTimer;
   late AnimationController _syncController;
+
+  // Light Theme Specific Colors
+  static const Color _bgMain = Color(0xFFF8F9FA); // slate-50
+  static const Color _bgCard = Colors.white;
+  static const Color _borderSubtle = Color(0xFFE2E8F0); // slate-200
+  static const Color _textMain = Color(0xFF0F172A); // slate-900
+  static const Color _textSecondary = Color(0xFF475569); // slate-600
+  static const Color _textMuted = Color(0xFF64748B); // slate-500
+  static const Color _textHint = Color(0xFF94A3B8); // slate-400
 
   static const List<String> _teknisiTitles = [
     'Dashboard',
@@ -197,16 +206,24 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
     }
 
     return Scaffold(
+      backgroundColor: _bgMain,
       drawer: _buildDrawer(context, alertVm.activeAlertCount, isKabid: isKabid),
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: AppTheme.background,
+        backgroundColor: _bgMain,
+        scrolledUnderElevation: 0,
+        iconTheme: const IconThemeData(color: _textMain),
         title: Row(
           children: [
             Expanded(
               child: Text(
                 titles[safeIndex],
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                style: const TextStyle(
+                  color: _textMain,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 20,
+                  letterSpacing: -0.5,
+                ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -218,7 +235,7 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
             IconButton(
               onPressed: () => _selectPage(1),
               icon: Badge(
-                label: Text('${alertVm.activeAlertCount}'),
+                label: Text('${alertVm.activeAlertCount}', style: const TextStyle(color: Colors.white)),
                 backgroundColor: AppTheme.statusDown,
                 child: const Icon(
                   Icons.notifications_active_rounded,
@@ -234,7 +251,7 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
                   parent: _syncController,
                   curve: Curves.easeInOut,
                 )),
-                child: const Icon(Icons.sync_rounded, color: Colors.white),
+                child: const Icon(Icons.sync_rounded, color: _textSecondary),
               ),
             ),
           const SizedBox(width: 8),
@@ -300,23 +317,24 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
     final userInitial = userName.isNotEmpty ? userName[0].toUpperCase() : 'U';
 
     return Drawer(
-      backgroundColor: AppTheme.cardBackground,
+      backgroundColor: _bgCard,
+      surfaceTintColor: Colors.transparent,
       child: Column(
         children: [
-          // Drawer Header with gradient
+          // Drawer Header with very subtle light gradient
           Container(
             width: double.infinity,
             padding: const EdgeInsets.only(top: 48, bottom: 24, left: 24, right: 24),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  AppTheme.statusTeal.withValues(alpha: 0.18),
-                  AppTheme.cardBackground,
+                  AppTheme.statusTeal.withValues(alpha: 0.08),
+                  _bgCard,
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              border: const Border(bottom: BorderSide(color: AppTheme.borderSubtle)),
+              border: const Border(bottom: BorderSide(color: _borderSubtle)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -339,10 +357,10 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
                         const Text(
                           'ProxView',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: _textMain,
                             fontSize: 24,
                             fontWeight: FontWeight.w900,
-                            letterSpacing: 0.2,
+                            letterSpacing: -0.5,
                           ),
                         ),
                       ],
@@ -351,7 +369,7 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
                     const Text(
                       'MONITORING PROXMOX',
                       style: TextStyle(
-                        color: Colors.white54,
+                        color: _textMuted,
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 1.6,
@@ -383,7 +401,7 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
                             Text(
                               userName,
                               style: const TextStyle(
-                                color: Colors.white,
+                                color: _textMain,
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -393,9 +411,9 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
-                                color: AppTheme.statusTeal.withValues(alpha: 0.15),
+                                color: AppTheme.statusTeal.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: AppTheme.statusTeal.withValues(alpha: 0.35)),
+                                border: Border.all(color: AppTheme.statusTeal.withValues(alpha: 0.3)),
                               ),
                               child: Text(
                                 user.role.toUpperCase(),
@@ -449,7 +467,7 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
                           vertical: 12,
                           horizontal: 24,
                         ),
-                        child: Divider(color: AppTheme.borderSubtle, height: 1),
+                        child: Divider(color: _borderSubtle, height: 1),
                       ),
                       _buildDrawerItem(
                         Icons.settings_rounded,
@@ -489,7 +507,7 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
                           vertical: 12,
                           horizontal: 24,
                         ),
-                        child: Divider(color: AppTheme.borderSubtle, height: 1),
+                        child: Divider(color: _borderSubtle, height: 1),
                       ),
                       _buildDrawerItem(
                         Icons.terminal_rounded,
@@ -521,27 +539,22 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
       decoration: BoxDecoration(
         color: isSelected
-            ? AppTheme.statusTeal.withValues(alpha: 0.12)
+            ? AppTheme.statusTeal.withValues(alpha: 0.1)
             : Colors.transparent,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isSelected
-              ? AppTheme.statusTeal.withValues(alpha: 0.35)
-              : Colors.transparent,
-        ),
       ),
       child: ListTile(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
         leading: Icon(
           icon,
-          color: isSelected ? AppTheme.statusTeal : Colors.white54,
+          color: isSelected ? AppTheme.statusTeal : _textHint,
           size: 21,
         ),
         title: Text(
           title,
           style: TextStyle(
-            color: isSelected ? Colors.white : Colors.white70,
+            color: isSelected ? _textMain : _textSecondary,
             fontSize: 13,
             fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
             letterSpacing: 0.2,
@@ -551,9 +564,9 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
             ? Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppTheme.statusDown.withValues(alpha: 0.15),
+                  color: AppTheme.statusDown.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppTheme.statusDown.withValues(alpha: 0.5)),
+                  border: Border.all(color: AppTheme.statusDown.withValues(alpha: 0.25)),
                 ),
                 child: Text(
                   '$badgeCount',

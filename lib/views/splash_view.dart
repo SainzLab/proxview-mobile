@@ -5,10 +5,16 @@ import 'common_widgets.dart';
 class SplashView extends StatelessWidget {
   const SplashView({super.key});
 
+  // Light Theme Specific Colors
+  static const Color _bgMain = Color(0xFFF8F9FA); // slate-50
+  static const Color _bgCard = Colors.white;
+  static const Color _textMain = Color(0xFF0F172A); // slate-900
+  static const Color _textMuted = Color(0xFF64748B); // slate-500
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: _bgMain,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -16,12 +22,12 @@ class SplashView extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(22),
               decoration: BoxDecoration(
-                color: AppTheme.cardBackground,
+                color: _bgCard,
                 shape: BoxShape.circle,
-                border: Border.all(color: AppTheme.statusTeal.withValues(alpha: 0.35)),
+                border: Border.all(color: AppTheme.statusTeal.withValues(alpha: 0.2)),
                 boxShadow: [
                   BoxShadow(
-                    color: AppTheme.statusTeal.withValues(alpha: 0.15),
+                    color: AppTheme.statusTeal.withValues(alpha: 0.12),
                     blurRadius: 24,
                     spreadRadius: 2,
                   ),
@@ -39,17 +45,17 @@ class SplashView extends StatelessWidget {
             const Text(
               'ProxView',
               style: TextStyle(
-                color: Colors.white,
+                color: _textMain,
                 fontSize: 28,
                 fontWeight: FontWeight.w900,
-                letterSpacing: 1.0,
+                letterSpacing: -0.5,
               ),
             ),
             const SizedBox(height: 8),
             const Text(
               'MONITORING & INCIDENT RESPONSE',
               style: TextStyle(
-                color: Colors.white54,
+                color: _textMuted,
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1.8,

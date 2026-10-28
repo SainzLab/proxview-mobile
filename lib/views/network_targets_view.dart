@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../core/theme/app_theme.dart';
 import '../core/utils/formatters.dart';
 import '../models/network_target_model.dart';
@@ -22,6 +23,16 @@ class _NetworkTargetsViewState extends State<NetworkTargetsView>
   late TabController _tabController;
 
   static const List<String> _filters = ['ALL', 'ICMP', 'TCP'];
+
+  // Light Theme Specific Colors
+  static const Color _bgMain = Color(0xFFF8F9FA); // slate-50
+  static const Color _bgCard = Colors.white;
+  static const Color _bgSurface = Color(0xFFF1F5F9); // slate-100
+  static const Color _borderSubtle = Color(0xFFE2E8F0); // slate-200
+  static const Color _textMain = Color(0xFF0F172A); // slate-900
+  static const Color _textSecondary = Color(0xFF475569); // slate-600
+  static const Color _textMuted = Color(0xFF64748B); // slate-500
+  static const Color _textHint = Color(0xFF94A3B8); // slate-400
 
   @override
   void initState() {
@@ -94,12 +105,12 @@ class _NetworkTargetsViewState extends State<NetworkTargetsView>
     return Column(
       children: [
         Container(
-          color: AppTheme.background,
+          color: _bgMain,
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
           child: _buildFilterTabs(vm),
         ),
         Container(
-          color: AppTheme.background,
+          color: _bgMain,
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
           child: AppSearchField(
             controller: _searchController,
@@ -110,31 +121,34 @@ class _NetworkTargetsViewState extends State<NetworkTargetsView>
           ),
         ),
         Expanded(
-          child: RefreshIndicator(
-            color: Colors.black,
-            backgroundColor: AppTheme.statusTeal,
-            onRefresh: () => vm.fetchTargets(showLoading: false),
-            child: vm.targets.isEmpty
-                ? EmptyStateBox(
-                    icon: vm.searchQuery.isNotEmpty
-                        ? Icons.search_off_rounded
-                        : Icons.router_outlined,
-                    message: vm.searchQuery.isNotEmpty
-                        ? 'Tidak ada target yang cocok dengan "${vm.searchQuery}".'
-                        : 'Tidak ada target monitoring jaringan.',
-                    onAction: vm.searchQuery.isNotEmpty ? _clearSearch : null,
-                    actionLabel: vm.searchQuery.isNotEmpty ? 'Hapus Pencarian' : null,
-                  )
-                : ListView.builder(
-                    physics: const AlwaysScrollableScrollPhysics(
-                      parent: BouncingScrollPhysics(),
+          child: Container(
+            color: _bgMain,
+            child: RefreshIndicator(
+              color: AppTheme.statusTeal,
+              backgroundColor: Colors.white,
+              onRefresh: () => vm.fetchTargets(showLoading: false),
+              child: vm.targets.isEmpty
+                  ? EmptyStateBox(
+                      icon: vm.searchQuery.isNotEmpty
+                          ? Icons.search_off_rounded
+                          : Icons.router_outlined,
+                      message: vm.searchQuery.isNotEmpty
+                          ? 'Tidak ada target yang cocok dengan "${vm.searchQuery}".'
+                          : 'Tidak ada target monitoring jaringan.',
+                      onAction: vm.searchQuery.isNotEmpty ? _clearSearch : null,
+                      actionLabel: vm.searchQuery.isNotEmpty ? 'Hapus Pencarian' : null,
+                    )
+                  : ListView.builder(
+                      physics: const AlwaysScrollableScrollPhysics(
+                        parent: BouncingScrollPhysics(),
+                      ),
+                      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                      padding: const EdgeInsets.all(16),
+                      itemCount: vm.targets.length,
+                      itemBuilder: (context, index) =>
+                          _buildTargetCard(context, vm.targets[index]),
                     ),
-                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-                    padding: const EdgeInsets.all(16),
-                    itemCount: vm.targets.length,
-                    itemBuilder: (context, index) =>
-                        _buildTargetCard(context, vm.targets[index]),
-                  ),
+            ),
           ),
         ),
       ],
@@ -173,16 +187,18 @@ class _NetworkTargetsViewState extends State<NetworkTargetsView>
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppTheme.cardBackground,
+            color: _bgCard,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: isUp
-                  ? AppTheme.borderSubtle
-                  : AppTheme.statusDown.withValues(alpha: 0.4),
+                  ? _borderSubtle
+                  : AppTheme.statusDown.withValues(alpha: 0.35),
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.2),
+                color: isUp
+                    ? Colors.black.withValues(alpha: 0.03)
+                    : AppTheme.statusDown.withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -199,7 +215,7 @@ class _NetworkTargetsViewState extends State<NetworkTargetsView>
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: statusColor.withValues(alpha: 0.14),
+                          color: statusColor.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Icon(icon, size: 16, color: statusColor),
@@ -208,7 +224,7 @@ class _NetworkTargetsViewState extends State<NetworkTargetsView>
                       Text(
                         target.protocol.toUpperCase(),
                         style: const TextStyle(
-                          color: Colors.white70,
+                          color: _textSecondary,
                           fontSize: 11,
                           fontWeight: FontWeight.w800,
                           letterSpacing: 1.0,
@@ -223,7 +239,7 @@ class _NetworkTargetsViewState extends State<NetworkTargetsView>
               Text(
                 target.name,
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: _textMain,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
@@ -232,28 +248,28 @@ class _NetworkTargetsViewState extends State<NetworkTargetsView>
                 const SizedBox(height: 4),
                 Text(
                   target.description,
-                  style: const TextStyle(color: Colors.white54, fontSize: 13),
+                  style: const TextStyle(color: _textSecondary, fontSize: 13),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ],
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 14),
-                child: Divider(color: AppTheme.borderSubtle, height: 1),
+                child: Divider(color: _borderSubtle, height: 1),
               ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.link_rounded, size: 14, color: Colors.white38),
+                      const Icon(Icons.link_rounded, size: 14, color: _textHint),
                       const SizedBox(width: 6),
                       Text(
                         target.port != null
                             ? '${target.ipAddress}:${target.port}'
                             : target.ipAddress,
                         style: const TextStyle(
-                          color: Colors.white70,
+                          color: _textSecondary,
                           fontSize: 12.5,
                           fontFamily: 'monospace',
                         ),
@@ -263,9 +279,9 @@ class _NetworkTargetsViewState extends State<NetworkTargetsView>
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha: 0.12),
+                      color: statusColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: statusColor.withValues(alpha: 0.35)),
+                      border: Border.all(color: statusColor.withValues(alpha: 0.25)),
                     ),
                     child: Text(
                       target.lastLatency,
@@ -307,6 +323,13 @@ class _TargetHistoryBottomSheet extends StatefulWidget {
 
 class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
   Timer? _historyTimer;
+
+  static const Color _textMain = Color(0xFF0F172A); // slate-900
+  static const Color _textSecondary = Color(0xFF475569); // slate-600
+  static const Color _textMuted = Color(0xFF64748B); // slate-500
+  static const Color _textHint = Color(0xFF94A3B8); // slate-400
+  static const Color _bgSurface = Color(0xFFF1F5F9); // slate-100
+  static const Color _borderSubtle = Color(0xFFE2E8F0); // slate-200
 
   @override
   void initState() {
@@ -354,16 +377,16 @@ class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
                         Text(
                           target.name,
                           style: const TextStyle(
-                            color: Colors.white,
+                            color: _textMain,
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          '${target.protocol.toUpperCase()} • ${target.ipAddress}${target.port != null ? ":${target.port}" : ""}',
+                          '${target.protocol.toUpperCase()} \n${target.ipAddress}${target.port != null ? ":${target.port}" : ""}',
                           style: const TextStyle(
-                            color: Colors.white54,
+                            color: _textSecondary,
                             fontSize: 12.5,
                             fontFamily: 'monospace',
                           ),
@@ -379,16 +402,16 @@ class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppTheme.surfaceBackground,
+                  color: _bgSurface,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppTheme.borderSubtle),
+                  border: Border.all(color: _borderSubtle),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
                     _buildThresholdInfo('Batas Warning', '${target.latencyWarning} ms', AppTheme.statusWarning),
                     _buildThresholdInfo('Batas Critical', '${target.latencyCritical} ms', AppTheme.statusCritical),
-                    _buildThresholdInfo('Interval Cek', '${target.checkInterval}s', Colors.white70),
+                    _buildThresholdInfo('Interval Cek', '${target.checkInterval}s', _textSecondary),
                   ],
                 ),
               ),
@@ -400,7 +423,7 @@ class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
                     child: Text(
                       'GRAFIK RIWAYAT LATENCY (MS)',
                       style: TextStyle(
-                        color: Colors.white70,
+                        color: _textSecondary,
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 1.0,
@@ -410,9 +433,9 @@ class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
                   ),
                   if (points.isNotEmpty)
                     Text(
-                      '${Formatters.formatTimeSeconds(points.first.time)} - ${Formatters.formatTimeSeconds(points.last.time)}',
+                      '${Formatters.formatTimeSeconds(points.first.time)} \n${Formatters.formatTimeSeconds(points.last.time)}',
                       style: const TextStyle(
-                        color: Colors.white38,
+                        color: _textHint,
                         fontSize: 10,
                         fontFamily: 'monospace',
                       ),
@@ -433,7 +456,7 @@ class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
                         ? const Center(
                             child: Text(
                               'Belum ada riwayat latency.',
-                              style: TextStyle(color: Colors.white38, fontSize: 12),
+                              style: TextStyle(color: _textHint, fontSize: 12),
                             ),
                           )
                         : _buildLatencyChart(points),
@@ -443,7 +466,7 @@ class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
                 Center(
                   child: Text(
                     'Pengecekan terakhir: ${Formatters.formatDateTime(target.lastCheck)}',
-                    style: const TextStyle(color: Colors.white38, fontSize: 11),
+                    style: const TextStyle(color: _textMuted, fontSize: 11),
                   ),
                 ),
             ],
@@ -458,12 +481,21 @@ class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
       children: [
         Text(
           label,
-          style: const TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.w600),
+          style: const TextStyle(
+            color: _textMuted, 
+            fontSize: 10, 
+            fontWeight: FontWeight.w600
+          ),
         ),
         const SizedBox(height: 4),
         Text(
           val,
-          style: TextStyle(color: color, fontSize: 12, fontFamily: 'monospace', fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: color == _textSecondary ? _textMain : color, 
+            fontSize: 12, 
+            fontFamily: 'monospace', 
+            fontWeight: FontWeight.bold
+          ),
         ),
       ],
     );
@@ -493,8 +525,8 @@ class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
         lineTouchData: LineTouchData(
           handleBuiltInTouches: true,
           touchTooltipData: LineTouchTooltipData(
-            getTooltipColor: (_) => AppTheme.surfaceBackground,
-            tooltipBorder: const BorderSide(color: AppTheme.borderHighlight, width: 1),
+            getTooltipColor: (_) => Colors.white,
+            tooltipBorder: const BorderSide(color: _borderSubtle, width: 1),
             tooltipRoundedRadius: 10,
             tooltipPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             getTooltipItems: (touchedSpots) {
@@ -506,7 +538,7 @@ class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
                 return LineTooltipItem(
                   '$timeStr\n$val ms',
                   const TextStyle(
-                    color: Colors.white,
+                    color: _textMain,
                     fontWeight: FontWeight.bold,
                     fontSize: 11,
                     fontFamily: 'monospace',
@@ -535,7 +567,7 @@ class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
           drawVerticalLine: false,
           horizontalInterval: gridInterval,
           getDrawingHorizontalLine: (_) => FlLine(
-            color: Colors.white.withValues(alpha: 0.06),
+            color: Colors.black.withValues(alpha: 0.05),
             strokeWidth: 1,
             dashArray: [4, 4],
           ),
@@ -557,7 +589,7 @@ class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
                   child: Text(
                     Formatters.formatTimeSeconds(points[idx].time),
                     style: const TextStyle(
-                      color: Colors.white38,
+                      color: _textHint,
                       fontSize: 9,
                       fontWeight: FontWeight.w500,
                     ),
@@ -577,7 +609,7 @@ class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
                   '${val.toInt()} ms',
                   textAlign: TextAlign.right,
                   style: const TextStyle(
-                    color: Colors.white38,
+                    color: _textHint,
                     fontSize: 9.5,
                     fontWeight: FontWeight.w500,
                   ),
@@ -606,8 +638,8 @@ class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
               },
             ),
             shadow: Shadow(
-              color: AppTheme.statusTeal.withValues(alpha: 0.35),
-              blurRadius: 6,
+              color: AppTheme.statusTeal.withValues(alpha: 0.2),
+              blurRadius: 4,
               offset: const Offset(0, 2),
             ),
             belowBarData: BarAreaData(
@@ -616,7 +648,7 @@ class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  AppTheme.statusTeal.withValues(alpha: 0.22),
+                  AppTheme.statusTeal.withValues(alpha: 0.15),
                   AppTheme.statusTeal.withValues(alpha: 0.0),
                 ],
               ),
