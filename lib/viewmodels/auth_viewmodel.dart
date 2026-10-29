@@ -1,3 +1,4 @@
+import 'dart:async' show unawaited;
 import 'package:flutter/foundation.dart';
 import '../models/user_model.dart';
 import '../services/api_service.dart';
@@ -62,7 +63,11 @@ class AuthViewModel extends ChangeNotifier {
     } catch (e) {
       _currentUser = null;
       _status = AuthStatus.unauthenticated;
-      _errorMessage = e.toString();
+      if (e is ApiException && (e.statusCode == 401 || e.code == 'ERR-401')) {
+        _errorMessage = null;
+      } else {
+        _errorMessage = e.toString();
+      }
     }
     notifyListeners();
   }
@@ -120,6 +125,9 @@ class AuthViewModel extends ChangeNotifier {
       apiToken: token,
       enabled: enableForTeknisi,
     );
+    if (enableForTeknisi) {
+      unawaited(NotificationService().requestRuntimeAndBackgroundPermissions());
+    }
   }
 
   Future<void> refreshProfile() async {

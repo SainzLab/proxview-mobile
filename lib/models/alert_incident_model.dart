@@ -32,7 +32,12 @@ class AlertModel {
   });
 
   bool get isEmergencyCall => actionType.toLowerCase() == 'call';
-  bool get isBeingHandled => handlerCount > 0;
+  bool get isBeingHandled =>
+      handlerCount > 0 ||
+      (technicians != null &&
+          technicians!.trim().isNotEmpty &&
+          technicians!.trim() != '-' &&
+          technicians!.trim().toLowerCase() != 'null');
   bool get canResolve => severity.toUpperCase() == 'RECOVERED' && !isResolved;
 
   factory AlertModel.fromJson(Map<String, dynamic> json) {

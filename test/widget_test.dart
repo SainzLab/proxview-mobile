@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:proxview/main.dart';
@@ -16,9 +17,18 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('ProxView'), findsOneWidget);
+    expect(find.text('PROX VIEW MONITORING PROXMOX'), findsOneWidget);
     expect(find.text('OTENTIKASI 3-FAKTOR'), findsOneWidget);
     expect(find.text('HUBUNGKAN PERANGKAT'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Image &&
+            widget.image is AssetImage &&
+            (widget.image as AssetImage).assetName == 'assets/diskominfosubang.png',
+      ),
+      findsAtLeastNWidgets(1),
+    );
   });
 
   test('StorageService never persists plaintext token into SharedPreferences',
@@ -55,6 +65,14 @@ void main() {
   });
 
   test('StorageService normalizes and validates server URLs securely', () {
+    expect(
+      StorageService.normalizeBaseUrl('sainzcloud.my.id'),
+      equals('https://proxview.sainzcloud.my.id/api/mobile/v1'),
+    );
+    expect(
+      StorageService.normalizeBaseUrl('https://sainzcloud.my.id/api/mobile/v1'),
+      equals('https://proxview.sainzcloud.my.id/api/mobile/v1'),
+    );
     expect(
       StorageService.normalizeBaseUrl('monitoring.subang.go.id'),
       equals('https://monitoring.subang.go.id/api/mobile/v1'),

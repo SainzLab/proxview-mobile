@@ -1,9 +1,23 @@
 import 'dart:io' show Platform;
 import 'dart:typed_data';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show VoidCallback, ValueChanged, kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../models/alert_incident_model.dart';
+
+class InitialNotificationState {
+  final Map<int, String> knownSeverities;
+  final Set<int> dismissedCallIds;
+  final int? emergencyAlertId;
+  final bool openAlertsTab;
+
+  const InitialNotificationState({
+    this.knownSeverities = const {},
+    this.dismissedCallIds = const {},
+    this.emergencyAlertId,
+    this.openAlertsTab = false,
+  });
+}
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -16,6 +30,10 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
   bool _initialized = false;
+  bool _permissionsRequested = false;
+
+  ValueChanged<int>? onEmergencyAlertOpened;
+  VoidCallback? onOpenAlertsTab;
 
   bool get _isAndroidNative => !kIsWeb && Platform.isAndroid;
 
@@ -36,19 +54,43 @@ class NotificationService {
       );
       await _plugin.initialize(settings);
 
-      // Minta izin runtime Android 13+ (POST_NOTIFICATIONS) & Android 14+ (Full Screen Intent)
       if (_isAndroidNative) {
-        final androidPlugin = _plugin
-            .resolvePlatformSpecificImplementation<
-                AndroidFlutterLocalNotificationsPlugin>();
-        await androidPlugin?.requestNotificationsPermission();
-        await androidPlugin?.requestFullScreenIntentPermission();
+        _bgChannel.setMethodCallHandler(_handleNativeMethodCall);
       }
 
       _initialized = true;
     } catch (_) {
       // Abaikan jika dijalankan pada environment unit test atau platform tanpa plugin
     }
+  }
+
+  Future<dynamic> _handleNativeMethodCall(MethodCall call) async {
+    switch (call.method) {
+      case 'onEmergencyAlertOpened':
+        final id = (call.arguments as num?)?.toInt();
+        if (id != null && id > 0) {
+          onEmergencyAlertOpened?.call(id);
+        }
+        break;
+      case 'onOpenAlertsTab':
+        onOpenAlertsTab?.call();
+        break;
+    }
+  }
+
+  /// Meminta izin notifikasi runtime, full-screen call intent (Android 14+), dan pengecualian baterai
+  /// secara berurutan setelah MainActivity siap agar tidak saling bertabrakan.
+  Future<void> requestRuntimeAndBackgroundPermissions() async {
+    if (!_isAndroidNative || _permissionsRequested) return;
+    _permissionsRequested = true;
+    try {
+      if (!_initialized) await initialize();
+      final androidPlugin = _plugin
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>();
+      await androidPlugin?.requestNotificationsPermission();
+      await _bgChannel.invokeMethod('requestBackgroundPermissions');
+    } catch (_) {}
   }
 
   /// Menjalankan atau memperbarui Android Foreground Service untuk pemantauan background
@@ -70,15 +112,96 @@ class NotificationService {
   /// Menghentikan Android Foreground Service & mematikan dering panggilan darurat
   Future<void> stopBackgroundService() async {
     if (!_isAndroidNative) return;
+    _permissionsRequested = false;
     try {
       await _bgChannel.invokeMethod('stopService');
     } catch (_) {}
+  }
+
+  /// Membaca data diagnostik status polling latar belakang (waktu terakhir, HTTP code, pesan status)
+  Future<Map<String, dynamic>> getBackgroundDiagnostics() async {
+    if (!_isAndroidNative) return {};
+    try {
+      final res = await _bgChannel
+          .invokeMethod<Map<dynamic, dynamic>>('getBackgroundServiceDiagnostics');
+      if (res != null) {
+        return Map<String, dynamic>.from(res);
+      }
+    } catch (_) {}
+    return {};
+  }
+
+  /// Membuka pengaturan Mulai Otomatis (Auto-start / App Battery Manager) OEM (Realme/Oppo/Xiaomi/Vivo)
+  Future<void> openAutoStartSettings() async {
+    if (!_isAndroidNative) return;
+    try {
+      await _bgChannel.invokeMethod('openAutoStartSettings');
+    } catch (_) {}
+  }
+
+  /// Menjalankan uji coba panggilan darurat dan dering alarm di perangkat
+  Future<void> testEmergencyCall() async {
+    if (!_isAndroidNative) return;
+    try {
+      await _bgChannel.invokeMethod('testEmergencyCall');
+    } catch (_) {}
+  }
+
+  /// Menjalankan uji coba notifikasi biasa dan spanduk heads-up di perangkat
+  Future<void> testStandardAlert() async {
+    if (!_isAndroidNative) return;
+    try {
+      await _bgChannel.invokeMethod('testStandardAlert');
+    } catch (_) {}
+  }
+
+  /// Membaca state awal dari SharedPreferences milik Foreground Service saat aplikasi baru dibuka
+  Future<InitialNotificationState> getInitialNotificationState() async {
+    if (!_isAndroidNative) return const InitialNotificationState();
+    try {
+      final raw = await _bgChannel
+          .invokeMethod<Map<dynamic, dynamic>>('getInitialNotificationState');
+      if (raw == null) return const InitialNotificationState();
+
+      final knownMap = <int, String>{};
+      final rawKnown = raw['knownAlerts'];
+      if (rawKnown is Map) {
+        rawKnown.forEach((k, v) {
+          final id = int.tryParse(k.toString());
+          final sev = v?.toString() ?? '';
+          if (id != null && sev.isNotEmpty) {
+            knownMap[id] = sev;
+          }
+        });
+      }
+
+      final dismissedSet = <int>{};
+      final rawDismissed = raw['dismissedCallIds'];
+      if (rawDismissed is List) {
+        for (final item in rawDismissed) {
+          if (item is num) dismissedSet.add(item.toInt());
+        }
+      }
+
+      final emergencyId = (raw['emergencyAlertId'] as num?)?.toInt();
+      final openAlertsTab = raw['openAlertsTab'] == true;
+
+      return InitialNotificationState(
+        knownSeverities: knownMap,
+        dismissedCallIds: dismissedSet,
+        emergencyAlertId: emergencyId,
+        openAlertsTab: openAlertsTab,
+      );
+    } catch (_) {
+      return const InitialNotificationState();
+    }
   }
 
   /// Sinkronisasi state alert antara Dart UI dan Background Service Android
   Future<Set<int>> syncAlertState({
     required Map<int, String> knownSeverities,
     required Set<int> dismissedCallIds,
+    bool overwriteKnown = true,
   }) async {
     if (!_isAndroidNative) return dismissedCallIds;
     try {
@@ -91,6 +214,7 @@ class NotificationService {
         {
           'knownAlerts': stringKeyMap,
           'dismissedCallIds': dismissedCallIds.toList(),
+          'overwriteKnown': overwriteKnown,
         },
       );
       if (res != null) {
@@ -160,7 +284,7 @@ class NotificationService {
           : Int64List.fromList(<int>[0, 400, 200, 400]);
 
       final androidDetails = AndroidNotificationDetails(
-        isCall ? 'proxview_emergency_call_v2' : 'proxview_alerts_v2',
+        isCall ? 'proxview_emergency_call_v4' : 'proxview_alerts_v4',
         isCall ? 'Panggilan Darurat Insiden' : 'Notifikasi Gangguan & Insiden',
         channelDescription:
             'Notifikasi insiden & panggilan darurat sistem ProxView',

@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../core/theme/app_theme.dart';
 import '../models/alert_incident_model.dart';
 import '../models/user_model.dart';
+import '../services/notification_service.dart';
 import '../viewmodels/alert_incident_viewmodel.dart';
 import '../viewmodels/analytics_viewmodel.dart';
 import '../viewmodels/auth_viewmodel.dart';
@@ -69,6 +70,21 @@ class _MainShellViewState extends State<MainShellView>
       vsync: this,
     );
 
+    NotificationService().onEmergencyAlertOpened = (alertId) {
+      if (!mounted) return;
+      final isKabid = context.read<AuthViewModel>().isKepalaBidang;
+      if (!isKabid) {
+        final alertVm = context.read<AlertIncidentViewModel>();
+        alertVm.setTargetEmergencyAlertId(alertId);
+        alertVm.pollActiveAlerts(triggerNotifications: false);
+      }
+    };
+
+    NotificationService().onOpenAlertsTab = () {
+      if (!mounted) return;
+      _selectPage(1);
+    };
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadInitialData();
       _startBackgroundPolling();
@@ -88,8 +104,14 @@ class _MainShellViewState extends State<MainShellView>
 
   void _loadInitialData() {
     if (!mounted) return;
+    final alertVm = context.read<AlertIncidentViewModel>();
     context.read<DashboardViewModel>().fetchDashboard(showLoading: true);
-    context.read<AlertIncidentViewModel>().fetchAll(showLoading: true);
+    alertVm.fetchAll(showLoading: true).then((_) {
+      if (!mounted) return;
+      if (alertVm.consumeOpenAlertsTabRequest()) {
+        _selectPage(1);
+      }
+    });
     context.read<ProxmoxViewModel>().fetchProxmoxData(showLoading: true);
     context.read<NetworkViewModel>().fetchTargets(showLoading: true);
     context.read<AnalyticsViewModel>().fetchAnalytics(showLoading: true);
@@ -222,6 +244,8 @@ class _MainShellViewState extends State<MainShellView>
 
   @override
   void dispose() {
+    NotificationService().onEmergencyAlertOpened = null;
+    NotificationService().onOpenAlertsTab = null;
     WidgetsBinding.instance.removeObserver(this);
     _pollingTimer?.cancel();
     _syncController.dispose();

@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../core/theme/app_theme.dart';
@@ -130,54 +131,34 @@ class _LoginViewState extends State<LoginView> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Optional Logo Box
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: _bgCard,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: _borderSubtle),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.03),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.insights_rounded,
-                          color: _primaryAccent,
-                          size: 26,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    // Trik UI: Drop Shadow Logo agar teks putih terbaca di light mode
+                    RepaintBoundary(
+                      child: Stack(
+                        alignment: Alignment.centerLeft,
                         children: [
-                          Text(
-                            'ProxView',
-                            style: TextStyle(
-                              color: _textMain,
-                              fontSize: 26,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: -0.5,
+                          // Layer 1: Shadow (Glow Gelap) - Ukuran harus SAMA PERSIS dengan logo asli
+                          Transform.translate(
+                            offset: const Offset(0, 1.5),
+                            child: ImageFiltered(
+                              imageFilter: ImageFilter.blur(sigmaX: 2.5, sigmaY: 2.5),
+                              child: Image.asset(
+                                'assets/diskominfosubang.png',
+                                height: 64, // FIXED: Disamakan dengan tinggi asli
+                                fit: BoxFit.contain,
+                                alignment: Alignment.centerLeft,
+                                color: Colors.black.withValues(alpha: 0.55),
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 3),
-                          Text(
-                            'MONITORING PROXMOX & JARINGAN',
-                            style: TextStyle(
-                              color: _textMuted,
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 1.2,
-                            ),
+                          // Layer 2: Original Logo
+                          Image.asset(
+                            'assets/diskominfosubang.png',
+                            height: 64, // FIXED: Disamakan dengan bayangan
+                            fit: BoxFit.contain,
+                            alignment: Alignment.centerLeft,
                           ),
                         ],
                       ),
@@ -191,6 +172,16 @@ class _LoginViewState extends State<LoginView> {
                       ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'PROX VIEW MONITORING PROXMOX',
+                  style: TextStyle(
+                    color: _textMuted,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.2,
+                  ),
                 ),
                 const SizedBox(height: 32),
 
@@ -451,7 +442,7 @@ class _LoginViewState extends State<LoginView> {
                                   width: 22,
                                   height: 22,
                                   child: CircularProgressIndicator(
-                                    color: Colors.white, // Keep loader visible on dark button
+                                    color: Colors.white,
                                     strokeWidth: 2.5,
                                   ),
                                 )

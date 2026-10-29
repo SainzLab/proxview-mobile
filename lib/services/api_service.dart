@@ -1,3 +1,4 @@
+import 'dart:convert' show jsonDecode;
 import 'dart:io' show HttpClient, Platform, X509Certificate;
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
@@ -56,6 +57,10 @@ class ApiException implements Exception {
         title = 'Akses Dibatasi';
       } else if (code == 'ERR-404') {
         title = 'Layanan Tidak Ditemukan';
+      } else if (code == 'ERR-405') {
+        title = 'Endpoint Server Tidak Sesuai (405)';
+      } else if (code == 'ERR-HTML-RESP' || code == 'ERR-RESP-FORMAT') {
+        title = 'Respon Bukan API ProxView';
       } else if (code == 'ERR-429') {
         title = 'Terlalu Banyak Permintaan';
       } else if (code.startsWith('ERR-5')) {
@@ -223,6 +228,12 @@ class ProxViewApiService {
             message: serverMsg ??
                 'Endpoint layanan tidak ditemukan. Pastikan alamat URL server sudah benar.',
           );
+        case 405:
+          return (
+            code: 'ERR-405',
+            message: serverMsg ??
+                'Metode ditolak (HTTP 405). Alamat Base URL tidak mengarah ke backend API ProxView. Pastikan menggunakan subdomain https://proxview.sainzcloud.my.id/api/mobile/v1.',
+          );
         case 408:
           return (
             code: 'ERR-408',
@@ -346,6 +357,36 @@ class ProxViewApiService {
     );
   }
 
+  Map<String, dynamic> _ensureMap(dynamic data) {
+    if (data is Map<String, dynamic>) {
+      return data;
+    }
+    if (data is Map) {
+      return Map<String, dynamic>.from(data);
+    }
+    if (data is String) {
+      final trimmed = data.trim();
+      if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+        try {
+          final decoded = jsonDecode(trimmed);
+          if (decoded is Map) return Map<String, dynamic>.from(decoded);
+        } catch (_) {}
+      }
+      if (trimmed.toLowerCase().contains('<html') ||
+          trimmed.toLowerCase().contains('<!doctype') ||
+          trimmed.toLowerCase().contains('405 not allowed')) {
+        throw ApiException(
+          'Server merespons dengan halaman web (HTML), bukan API ProxView. Pastikan alamat URL server lengkap dengan subdomain (contoh: https://proxview.sainzcloud.my.id/api/mobile/v1).',
+          code: 'ERR-HTML-RESP',
+        );
+      }
+    }
+    throw ApiException(
+      'Format data dari server tidak valid (bukan JSON objek). Periksa kembali konfigurasi Base URL Server.',
+      code: 'ERR-RESP-FORMAT',
+    );
+  }
+
   Never _throwHandled(Object e) {
     if (e is DioException) {
       final info = _extractErrorInfo(e);
@@ -378,7 +419,7 @@ class ProxViewApiService {
           'token': token.trim(),
         },
       );
-      final body = res.data as Map<String, dynamic>;
+      final body = _ensureMap(res.data);
       if (body['success'] != true) {
         throw ApiException(
           body['message']?.toString() ?? 'Otentikasi gagal. Periksa kembali akun Anda.',
@@ -401,7 +442,7 @@ class ProxViewApiService {
   Future<UserModel> getMe() async {
     try {
       final res = await _dio.get('/auth/me');
-      final body = res.data as Map<String, dynamic>;
+      final body = _ensureMap(res.data);
       final user = UserModel.fromJson(body['data'] as Map<String, dynamic>);
       await _storageService.saveCachedUser(user);
       return user;
@@ -418,7 +459,7 @@ class ProxViewApiService {
   Future<SystemStatusModel> getSystemStatus({CancelToken? cancelToken}) async {
     try {
       final res = await _dio.get('/system/status', cancelToken: cancelToken);
-      final body = res.data as Map<String, dynamic>;
+      final body = _ensureMap(res.data);
       return SystemStatusModel.fromJson(
         (body['data'] as Map<String, dynamic>?) ?? const {},
       );
@@ -438,7 +479,7 @@ class ProxViewApiService {
         queryParameters: {'timeframe': timeframe},
         cancelToken: cancelToken,
       );
-      final body = res.data as Map<String, dynamic>;
+      final body = _ensureMap(res.data);
       return DashboardSummaryModel.fromJson(
         (body['data'] as Map<String, dynamic>?) ?? const {},
       );
@@ -455,7 +496,7 @@ class ProxViewApiService {
   Future<List<AlertModel>> getActiveAlerts({CancelToken? cancelToken}) async {
     try {
       final res = await _dio.get('/alerts/active', cancelToken: cancelToken);
-      final body = res.data as Map<String, dynamic>;
+      final body = _ensureMap(res.data);
       final list = (body['data'] as List?) ?? const [];
       return list
           .map((e) => AlertModel.fromJson(e as Map<String, dynamic>))
@@ -476,7 +517,7 @@ class ProxViewApiService {
         queryParameters: {'limit': limit},
         cancelToken: cancelToken,
       );
-      final body = res.data as Map<String, dynamic>;
+      final body = _ensureMap(res.data);
       final list = (body['data'] as List?) ?? const [];
       return list
           .map((e) => AlertModel.fromJson(e as Map<String, dynamic>))
@@ -493,7 +534,7 @@ class ProxViewApiService {
         '/alerts/join',
         data: {'alert_id': alertId},
       );
-      final body = res.data as Map<String, dynamic>;
+      final body = _ensureMap(res.data);
       return body['message']?.toString() ??
           'Berhasil bergabung dalam penanganan tiket';
     } catch (e) {
@@ -508,7 +549,7 @@ class ProxViewApiService {
         '/alerts/resolve',
         data: {'alert_id': alertId},
       );
-      final body = res.data as Map<String, dynamic>;
+      final body = _ensureMap(res.data);
       return body['message']?.toString() ?? 'Tiket berhasil ditandai selesai';
     } catch (e) {
       _throwHandled(e);
@@ -519,7 +560,7 @@ class ProxViewApiService {
   Future<List<IncidentTicketModel>> getIncidents({CancelToken? cancelToken}) async {
     try {
       final res = await _dio.get('/incidents', cancelToken: cancelToken);
-      final body = res.data as Map<String, dynamic>;
+      final body = _ensureMap(res.data);
       final list = (body['data'] as List?) ?? const [];
       return list
           .map((e) => IncidentTicketModel.fromJson(e as Map<String, dynamic>))
@@ -533,7 +574,7 @@ class ProxViewApiService {
   Future<IncidentStatsModel> getIncidentStats({CancelToken? cancelToken}) async {
     try {
       final res = await _dio.get('/incidents/stats', cancelToken: cancelToken);
-      final body = res.data as Map<String, dynamic>;
+      final body = _ensureMap(res.data);
       return IncidentStatsModel.fromJson(
         (body['data'] as Map<String, dynamic>?) ?? const {},
       );
@@ -561,7 +602,7 @@ class ProxViewApiService {
         },
         cancelToken: cancelToken,
       );
-      final body = res.data as Map<String, dynamic>;
+      final body = _ensureMap(res.data);
       return SlaAnalyticsResponseModel.fromJson(body);
     } catch (e) {
       _throwHandled(e);
@@ -576,7 +617,7 @@ class ProxViewApiService {
   Future<List<NetworkTargetModel>> getTargets({CancelToken? cancelToken}) async {
     try {
       final res = await _dio.get('/targets', cancelToken: cancelToken);
-      final body = res.data as Map<String, dynamic>;
+      final body = _ensureMap(res.data);
       final list = (body['data'] as List?) ?? const [];
       return list
           .map((e) => NetworkTargetModel.fromJson(e as Map<String, dynamic>))
@@ -596,7 +637,7 @@ class ProxViewApiService {
         '/targets/$targetId/history',
         cancelToken: cancelToken,
       );
-      final body = res.data as Map<String, dynamic>;
+      final body = _ensureMap(res.data);
       final list = (body['data'] as List?) ?? const [];
       return list
           .map((e) => TargetLatencyPointModel.fromJson(e as Map<String, dynamic>))
@@ -616,7 +657,7 @@ class ProxViewApiService {
   }) async {
     try {
       final res = await _dio.get('/proxmox', cancelToken: cancelToken);
-      final body = res.data as Map<String, dynamic>;
+      final body = _ensureMap(res.data);
       final list = (body['data'] as List?) ?? const [];
       return list
           .map((e) => ProxmoxServerModel.fromJson(e as Map<String, dynamic>))
@@ -636,7 +677,7 @@ class ProxViewApiService {
         '/proxmox/$serverId/status',
         cancelToken: cancelToken,
       );
-      final body = res.data as Map<String, dynamic>;
+      final body = _ensureMap(res.data);
       final list = (body['data'] as List?) ?? const [];
       return list
           .map((e) => ProxmoxNodeStatusModel.fromJson(e as Map<String, dynamic>))
@@ -656,7 +697,7 @@ class ProxViewApiService {
         '/proxmox/$serverId/resources',
         cancelToken: cancelToken,
       );
-      final body = res.data as Map<String, dynamic>;
+      final body = _ensureMap(res.data);
       return ProxmoxResourcesBundle.fromJson(
         (body['data'] as Map<String, dynamic>?) ?? const {},
       );
@@ -678,7 +719,7 @@ class ProxViewApiService {
         '/proxmox/logs/tasks',
         cancelToken: cancelToken,
       );
-      final body = res.data as Map<String, dynamic>;
+      final body = _ensureMap(res.data);
       final list = (body['data'] as List?) ?? const [];
       return list
           .map((e) => ProxmoxTaskLogModel.fromJson(e as Map<String, dynamic>))
@@ -697,7 +738,7 @@ class ProxViewApiService {
         '/proxmox/logs/cluster',
         cancelToken: cancelToken,
       );
-      final body = res.data as Map<String, dynamic>;
+      final body = _ensureMap(res.data);
       final list = (body['data'] as List?) ?? const [];
       return list
           .map((e) => ProxmoxClusterLogModel.fromJson(e as Map<String, dynamic>))
@@ -719,7 +760,7 @@ class ProxViewApiService {
         queryParameters: {'node': node, 'upid': upid},
         cancelToken: cancelToken,
       );
-      final body = res.data as Map<String, dynamic>;
+      final body = _ensureMap(res.data);
       final list = (body['data'] as List?) ?? const [];
       return list.map((e) {
         if (e is Map<String, dynamic>) {
@@ -743,7 +784,7 @@ class ProxViewApiService {
         queryParameters: {'limit': limit},
         cancelToken: cancelToken,
       );
-      final body = res.data as Map<String, dynamic>;
+      final body = _ensureMap(res.data);
       final list = (body['data'] as List?) ?? const [];
       return list
           .map((e) => SystemAuditLogModel.fromJson(e as Map<String, dynamic>))

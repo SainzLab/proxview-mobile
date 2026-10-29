@@ -49,6 +49,20 @@ class StorageService {
     String url = rawUrl.trim();
     if (url.isEmpty) return defaultBaseUrl;
 
+    // Koreksi otomatis jika pengguna memasukkan domain root sainzcloud tanpa subdomain proxview
+    final lowerRaw = url.toLowerCase();
+    if (lowerRaw == 'sainzcloud.my.id' ||
+        lowerRaw == 'https://sainzcloud.my.id' ||
+        lowerRaw == 'http://sainzcloud.my.id' ||
+        lowerRaw.startsWith('https://sainzcloud.my.id/api') ||
+        lowerRaw.startsWith('http://sainzcloud.my.id/api') ||
+        lowerRaw.startsWith('sainzcloud.my.id/api')) {
+      url = url.replaceFirst(
+        RegExp(r'(https?:\/\/)?sainzcloud\.my\.id', caseSensitive: false),
+        'https://proxview.sainzcloud.my.id',
+      );
+    }
+
     final lower = url.toLowerCase();
     if (!lower.startsWith('http://') && !lower.startsWith('https://')) {
       final isLoopbackOrPrivateCustomPort = lower.startsWith('localhost') ||

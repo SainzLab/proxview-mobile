@@ -23,17 +23,17 @@ class CallActionReceiver : BroadcastReceiver() {
                 CallRingtoneManager.stopCallRingtone(context, if (alertId != -1) alertId else null)
             }
             ACTION_ANSWER_CALL -> {
-                // Hentikan notifikasi di status bar dan buka layar utama (EmergencyCallView)
                 CallRingtoneManager.stopRingtoneAndVibrationOnly()
                 val openIntent = Intent(context, MainActivity::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                             Intent.FLAG_ACTIVITY_SINGLE_TOP or
                             Intent.FLAG_ACTIVITY_CLEAR_TOP
                     putExtra("emergency_alert_id", alertId)
+                    putExtra("answer_emergency_call", true)
                 }
                 try {
                     context.startActivity(openIntent)
-                } catch (_: Exception) {
+                } catch (_: Throwable) {
                 }
             }
         }

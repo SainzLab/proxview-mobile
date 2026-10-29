@@ -28,6 +28,9 @@ class AlertIncidentViewModel extends ChangeNotifier {
   final Map<int, String> _knownAlertSeverities = {};
   final Set<int> _dismissedCallAlertIds = {};
   AlertModel? _pendingEmergencyCall;
+  bool _hydratedFromNative = false;
+  bool _pendingOpenAlertsTab = false;
+  int? _targetEmergencyAlertId;
 
   AlertIncidentViewModel(this._apiService, this._notificationService);
 
@@ -161,6 +164,25 @@ class AlertIncidentViewModel extends ChangeNotifier {
   AlertModel? get pendingEmergencyCall => _pendingEmergencyCall;
   int get activeAlertCount => _activeAlerts.length;
 
+  bool consumeOpenAlertsTabRequest() {
+    final shouldOpen = _pendingOpenAlertsTab;
+    _pendingOpenAlertsTab = false;
+    return shouldOpen;
+  }
+
+  void setTargetEmergencyAlertId(int alertId) {
+    _targetEmergencyAlertId = alertId;
+    _dismissedCallAlertIds.remove(alertId);
+    final existing = _activeAlerts.where((a) => a.id == alertId).firstOrNull;
+    if (existing != null &&
+        existing.isEmergencyCall &&
+        !existing.isBeingHandled &&
+        existing.severity.toUpperCase() != 'RECOVERED') {
+      _pendingEmergencyCall = existing;
+      notifyListeners();
+    }
+  }
+
   void dismissEmergencyCall() {
     if (_pendingEmergencyCall != null) {
       final dismissedId = _pendingEmergencyCall!.id;
@@ -170,6 +192,7 @@ class AlertIncidentViewModel extends ChangeNotifier {
       _notificationService.syncAlertState(
         knownSeverities: _knownAlertSeverities,
         dismissedCallIds: _dismissedCallAlertIds,
+        overwriteKnown: false,
       );
       notifyListeners();
     }
@@ -179,13 +202,32 @@ class AlertIncidentViewModel extends ChangeNotifier {
     List<AlertModel> latest, {
     required bool triggerNotifications,
   }) async {
-    final syncedDismissed = await _notificationService.syncAlertState(
-      knownSeverities: _knownAlertSeverities,
-      dismissedCallIds: _dismissedCallAlertIds,
-    );
-    _dismissedCallAlertIds.addAll(syncedDismissed);
+    if (!_hydratedFromNative) {
+      final init = await _notificationService.getInitialNotificationState();
+      _hydratedFromNative = true;
+      for (final entry in init.knownSeverities.entries) {
+        _knownAlertSeverities.putIfAbsent(entry.key, () => entry.value);
+      }
+      _dismissedCallAlertIds.addAll(init.dismissedCallIds);
+      if (init.emergencyAlertId != null && init.emergencyAlertId! > 0) {
+        _targetEmergencyAlertId = init.emergencyAlertId;
+        _dismissedCallAlertIds.remove(init.emergencyAlertId);
+      }
+      if (init.openAlertsTab) {
+        _pendingOpenAlertsTab = true;
+      }
+    } else {
+      final syncedDismissed = await _notificationService.syncAlertState(
+        knownSeverities: _knownAlertSeverities,
+        dismissedCallIds: _dismissedCallAlertIds,
+        overwriteKnown: false,
+      );
+      _dismissedCallAlertIds.addAll(syncedDismissed);
+    }
 
     AlertModel? activeCallCandidate;
+    final targetCallId = _targetEmergencyAlertId;
+    _targetEmergencyAlertId = null;
 
     for (final alert in latest) {
       final prevSeverity = _knownAlertSeverities[alert.id];
@@ -199,7 +241,11 @@ class AlertIncidentViewModel extends ChangeNotifier {
           !_dismissedCallAlertIds.contains(alert.id);
 
       if (isUnhandledCall) {
-        activeCallCandidate ??= alert;
+        if (targetCallId != null && alert.id == targetCallId) {
+          activeCallCandidate = alert;
+        } else {
+          activeCallCandidate ??= alert;
+        }
       }
 
       if (triggerNotifications && isNewOrChanged) {
@@ -221,10 +267,12 @@ class AlertIncidentViewModel extends ChangeNotifier {
 
     final currentIds = latest.map((e) => e.id).toSet();
     _knownAlertSeverities.removeWhere((id, _) => !currentIds.contains(id));
+    _dismissedCallAlertIds.retainAll(currentIds);
 
     await _notificationService.syncAlertState(
       knownSeverities: _knownAlertSeverities,
       dismissedCallIds: _dismissedCallAlertIds,
+      overwriteKnown: true,
     );
   }
 

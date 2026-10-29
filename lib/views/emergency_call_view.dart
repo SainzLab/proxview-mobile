@@ -25,9 +25,9 @@ class EmergencyCallView extends StatelessWidget {
     final alertVm = context.watch<AlertIncidentViewModel>();
     final severityColor = AppTheme.severityColor(alert.severity);
 
-    return Material(
-      color: _bgMain,
-      child: Stack(
+    return Scaffold(
+      backgroundColor: _bgMain,
+      body: Stack(
         children: [
           // Efek Ambient Glow Merah (Halus) di latar belakang
           Positioned(
