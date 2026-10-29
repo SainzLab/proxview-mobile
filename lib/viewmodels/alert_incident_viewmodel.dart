@@ -152,8 +152,14 @@ class AlertIncidentViewModel extends ChangeNotifier {
 
   void dismissEmergencyCall() {
     if (_pendingEmergencyCall != null) {
-      _dismissedCallAlertIds.add(_pendingEmergencyCall!.id);
+      final dismissedId = _pendingEmergencyCall!.id;
+      _dismissedCallAlertIds.add(dismissedId);
       _pendingEmergencyCall = null;
+      _notificationService.stopEmergencyCall(dismissedId);
+      _notificationService.syncAlertState(
+        knownSeverities: _knownAlertSeverities,
+        dismissedCallIds: _dismissedCallAlertIds,
+      );
       notifyListeners();
     }
   }
@@ -161,25 +167,56 @@ class AlertIncidentViewModel extends ChangeNotifier {
   Future<void> pollActiveAlerts({bool triggerNotifications = true}) async {
     try {
       final latest = await _apiService.getActiveAlerts();
+
+      // Sinkronkan daftar panggilan yang mungkin sudah ditutup lewat notifikasi bar Android
+      final syncedDismissed = await _notificationService.syncAlertState(
+        knownSeverities: _knownAlertSeverities,
+        dismissedCallIds: _dismissedCallAlertIds,
+      );
+      _dismissedCallAlertIds.addAll(syncedDismissed);
+
+      AlertModel? activeCallCandidate;
+
       for (final alert in latest) {
         final prevSeverity = _knownAlertSeverities[alert.id];
-        final isNewOrChanged = prevSeverity == null || prevSeverity != alert.severity;
+        final isNewOrChanged =
+            prevSeverity == null || prevSeverity != alert.severity;
         _knownAlertSeverities[alert.id] = alert.severity;
+
+        final isUnhandledCall = alert.isEmergencyCall &&
+            !alert.isBeingHandled &&
+            alert.severity.toUpperCase() != 'RECOVERED' &&
+            !_dismissedCallAlertIds.contains(alert.id);
+
+        if (isUnhandledCall) {
+          activeCallCandidate ??= alert;
+        }
 
         if (triggerNotifications && isNewOrChanged) {
           await _notificationService.showAlertNotification(alert);
-          if (alert.isEmergencyCall &&
-              !alert.isBeingHandled &&
-              alert.severity.toUpperCase() != 'RECOVERED' &&
-              !_dismissedCallAlertIds.contains(alert.id)) {
-            _pendingEmergencyCall = alert;
-          }
+        }
+      }
+
+      // Tampilkan layar panggilan darurat apabila ada alert Call aktif yang belum ditangani
+      if (triggerNotifications) {
+        if (activeCallCandidate != null) {
+          _pendingEmergencyCall = activeCallCandidate;
+        } else if (_pendingEmergencyCall != null) {
+          // Jika panggilan sebelumnya sudah ditangani atau sudah RECOVERED, matikan dering
+          final prevCallId = _pendingEmergencyCall!.id;
+          _pendingEmergencyCall = null;
+          await _notificationService.stopEmergencyCall(prevCallId);
         }
       }
 
       // Bersihkan ID yang sudah tidak aktif
       final currentIds = latest.map((e) => e.id).toSet();
       _knownAlertSeverities.removeWhere((id, _) => !currentIds.contains(id));
+
+      await _notificationService.syncAlertState(
+        knownSeverities: _knownAlertSeverities,
+        dismissedCallIds: _dismissedCallAlertIds,
+      );
 
       _activeAlerts = latest;
       try {
@@ -218,9 +255,23 @@ class AlertIncidentViewModel extends ChangeNotifier {
         _incidentStats = fetchedStats;
       }
 
+      final syncedDismissed = await _notificationService.syncAlertState(
+        knownSeverities: _knownAlertSeverities,
+        dismissedCallIds: _dismissedCallAlertIds,
+      );
+      _dismissedCallAlertIds.addAll(syncedDismissed);
+
+      AlertModel? activeCallCandidate;
       for (final a in _activeAlerts) {
         _knownAlertSeverities[a.id] = a.severity;
+        if (a.isEmergencyCall &&
+            !a.isBeingHandled &&
+            a.severity.toUpperCase() != 'RECOVERED' &&
+            !_dismissedCallAlertIds.contains(a.id)) {
+          activeCallCandidate ??= a;
+        }
       }
+      _pendingEmergencyCall = activeCallCandidate;
       _errorMessage = null;
     } catch (e) {
       if (showLoading || (_activeAlerts.isEmpty && _incidents.isEmpty)) {
@@ -237,10 +288,15 @@ class AlertIncidentViewModel extends ChangeNotifier {
     notifyListeners();
     try {
       final msg = await _apiService.joinAlert(alertId);
+      _dismissedCallAlertIds.add(alertId);
       if (_pendingEmergencyCall?.id == alertId) {
-        _dismissedCallAlertIds.add(alertId);
         _pendingEmergencyCall = null;
       }
+      await _notificationService.stopEmergencyCall(alertId);
+      await _notificationService.syncAlertState(
+        knownSeverities: _knownAlertSeverities,
+        dismissedCallIds: _dismissedCallAlertIds,
+      );
       await fetchAll(showLoading: false);
       return (success: true, message: msg);
     } catch (e) {

@@ -7,7 +7,6 @@ class SplashView extends StatelessWidget {
 
   // Adaptive Theme Colors
   static Color get _bgMain => AppTheme.bgMain;
-  static Color get _textMain => AppTheme.textMain;
   static Color get _textMuted => AppTheme.textMuted;
 
   @override

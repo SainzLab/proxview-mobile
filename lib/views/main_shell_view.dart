@@ -28,7 +28,8 @@ class MainShellView extends StatefulWidget {
   State<MainShellView> createState() => _MainShellViewState();
 }
 
-class _MainShellViewState extends State<MainShellView> with SingleTickerProviderStateMixin {
+class _MainShellViewState extends State<MainShellView>
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   int _selectedIndex = 0;
   Timer? _pollingTimer;
   late AnimationController _syncController;
@@ -63,7 +64,8 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
   @override
   void initState() {
     super.initState();
-    
+    WidgetsBinding.instance.addObserver(this);
+
     // Inisialisasi controller untuk animasi rotasi tombol reload
     _syncController = AnimationController(
       duration: const Duration(milliseconds: 750),
@@ -74,6 +76,16 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
       _loadInitialData();
       _startBackgroundPolling();
     });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      final isKabid = context.read<AuthViewModel>().isKepalaBidang;
+      context.read<AlertIncidentViewModel>().pollActiveAlerts(
+        triggerNotifications: !isKabid,
+      );
+    }
   }
 
   void _loadInitialData() {
@@ -184,6 +196,7 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pollingTimer?.cancel();
     _syncController.dispose();
     super.dispose();
@@ -349,101 +362,43 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                // Trik UI: Drop Shadow Logo agar teks putih terbaca di light mode
+                Stack(
+                  alignment: Alignment.centerLeft,
                   children: [
-                    // Trik UI: Drop Shadow Logo agar teks putih terbaca di light mode
-                    Stack(
-                      alignment: Alignment.centerLeft,
-                      children: [
-                        // Layer 1: Shadow (Glow Gelap)
-                        Transform.translate(
-                          offset: const Offset(0, 1.5),
-                          child: ImageFiltered(
-                            imageFilter: ImageFilter.blur(sigmaX: 2.5, sigmaY: 2.5),
-                            child: Image.asset(
-                              'assets/diskominfosubang.png',
-                              height: 56,
-                              fit: BoxFit.contain,
-                              alignment: Alignment.centerLeft,
-                              color: Colors.black.withValues(alpha: 0.55),
-                            ),
-                          ),
-                        ),
-                        // Layer 2: Original Logo
-                        Image.asset(
+                    // Layer 1: Shadow (Glow Gelap)
+                    Transform.translate(
+                      offset: const Offset(0, 1.5),
+                      child: ImageFiltered(
+                        imageFilter: ImageFilter.blur(sigmaX: 2.5, sigmaY: 2.5),
+                        child: Image.asset(
                           'assets/diskominfosubang.png',
                           height: 56,
                           fit: BoxFit.contain,
                           alignment: Alignment.centerLeft,
+                          color: Colors.black.withValues(alpha: 0.55),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'ProxView Monitoring Server Proxmox',
-                      style: TextStyle(
-                        color: _textMuted,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.6,
                       ),
+                    ),
+                    // Layer 2: Original Logo
+                    Image.asset(
+                      'assets/diskominfosubang.png',
+                      height: 56,
+                      fit: BoxFit.contain,
+                      alignment: Alignment.centerLeft,
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
-                if (user != null)
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 20,
-                        backgroundColor: AppTheme.statusTeal.withValues(alpha: 0.15),
-                        child: Text(
-                          userInitial,
-                          style: const TextStyle(
-                            color: AppTheme.statusTeal,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              userName,
-                              style: TextStyle(
-                                color: _textMain,
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 4),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: AppTheme.statusTeal.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: AppTheme.statusTeal.withValues(alpha: 0.3)),
-                              ),
-                              child: Text(
-                                user.role.toUpperCase(),
-                                style: const TextStyle(
-                                  color: AppTheme.statusTeal,
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 0.6,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                const SizedBox(height: 12),
+                Text(
+                  'ProxView Monitoring Server Proxmox',
+                  style: TextStyle(
+                    color: _textMuted,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.6,
                   ),
+                ),
               ],
             ),
           ),
@@ -536,6 +491,70 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
                     ],
             ),
           ),
+
+          // Drawer Footer (User Info)
+          if (user != null)
+            SafeArea(
+              top: false,
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: _bgCard,
+                  border: Border(top: BorderSide(color: _borderSubtle)),
+                ),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 20,
+                      backgroundColor: AppTheme.statusTeal.withValues(alpha: 0.15),
+                      child: Text(
+                        userInitial,
+                        style: const TextStyle(
+                          color: AppTheme.statusTeal,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            userName,
+                            style: TextStyle(
+                              color: _textMain,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppTheme.statusTeal.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: AppTheme.statusTeal.withValues(alpha: 0.3)),
+                            ),
+                            child: Text(
+                              user.role.toUpperCase(),
+                              style: const TextStyle(
+                                color: AppTheme.statusTeal,
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.6,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../models/user_model.dart';
 import '../services/api_service.dart';
+import '../services/notification_service.dart';
 import '../services/storage_service.dart';
 
 enum AuthStatus { checking, authenticated, unauthenticated }
@@ -20,6 +21,7 @@ class AuthViewModel extends ChangeNotifier {
       _currentUser = null;
       _status = AuthStatus.unauthenticated;
       _errorMessage = message;
+      NotificationService().stopBackgroundService();
       notifyListeners();
     };
   }
@@ -49,11 +51,13 @@ class AuthViewModel extends ChangeNotifier {
       final user = await _apiService.getMe();
       if (!user.isActive) {
         await _storageService.clearSession();
+        await NotificationService().stopBackgroundService();
         _status = AuthStatus.unauthenticated;
         _errorMessage = '[ERR-403] Akun Anda sedang dinonaktifkan oleh Administrator.';
       } else {
         _currentUser = user;
         _status = AuthStatus.authenticated;
+        await _syncBackgroundService(token);
       }
     } catch (e) {
       _currentUser = null;
@@ -86,6 +90,8 @@ class AuthViewModel extends ChangeNotifier {
       _currentUser = user;
       _status = AuthStatus.authenticated;
       _isLoading = false;
+      final savedToken = await _storageService.getApiToken() ?? token;
+      await _syncBackgroundService(savedToken);
       notifyListeners();
       return true;
     } catch (e) {
@@ -99,7 +105,21 @@ class AuthViewModel extends ChangeNotifier {
   Future<void> updateBaseUrl(String newUrl) async {
     await _storageService.setBaseUrl(newUrl);
     _baseUrl = await _storageService.getBaseUrl();
+    final token = await _storageService.getApiToken();
+    if (token != null && token.isNotEmpty) {
+      await _syncBackgroundService(token);
+    }
     notifyListeners();
+  }
+
+  Future<void> _syncBackgroundService(String token) async {
+    final enableForTeknisi =
+        _status == AuthStatus.authenticated && !isKepalaBidang;
+    await NotificationService().configureBackgroundService(
+      baseUrl: _baseUrl,
+      apiToken: token,
+      enabled: enableForTeknisi,
+    );
   }
 
   Future<void> refreshProfile() async {
@@ -118,6 +138,7 @@ class AuthViewModel extends ChangeNotifier {
 
   Future<void> logout({String? reason}) async {
     await _storageService.clearSession();
+    await NotificationService().stopBackgroundService();
     _currentUser = null;
     _status = AuthStatus.unauthenticated;
     _errorMessage = reason;
