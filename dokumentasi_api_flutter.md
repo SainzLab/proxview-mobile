@@ -746,3 +746,5 @@ class ProxViewApiService {
 
 note
 1. menu analitik grafik Uptime & Downtime ui nya blom konsisten sama MTTR juga
+2. bug notif dan call gajalan klo di close
+3. ui login blm pake logo dinas

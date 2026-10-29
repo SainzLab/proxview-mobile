@@ -27,8 +27,116 @@ class ThemeViewModel extends ChangeNotifier {
   Future<void> toggleTheme() => setDarkMode(!_isDarkMode);
 }
 
+@immutable
+class ProxViewThemeColors extends ThemeExtension<ProxViewThemeColors> {
+  final bool isDark;
+  final Color bgMain;
+  final Color bgCard;
+  final Color bgSurface;
+  final Color borderColor;
+  final Color textMain;
+  final Color textSecondary;
+  final Color textMuted;
+  final Color textHint;
+  final Color gridLineColor;
+
+  const ProxViewThemeColors({
+    required this.isDark,
+    required this.bgMain,
+    required this.bgCard,
+    required this.bgSurface,
+    required this.borderColor,
+    required this.textMain,
+    required this.textSecondary,
+    required this.textMuted,
+    required this.textHint,
+    required this.gridLineColor,
+  });
+
+  static final ProxViewThemeColors light = ProxViewThemeColors(
+    isDark: false,
+    bgMain: AppTheme.lightBg,
+    bgCard: AppTheme.lightCard,
+    bgSurface: AppTheme.lightSurface,
+    borderColor: AppTheme.lightBorder,
+    textMain: AppTheme.lightText,
+    textSecondary: AppTheme.lightTextSecondary,
+    textMuted: AppTheme.lightTextMuted,
+    textHint: AppTheme.lightTextHint,
+    gridLineColor: Colors.black.withValues(alpha: 0.05),
+  );
+
+  static final ProxViewThemeColors dark = ProxViewThemeColors(
+    isDark: true,
+    bgMain: AppTheme.background,
+    bgCard: AppTheme.cardBackground,
+    bgSurface: AppTheme.surfaceBackground,
+    borderColor: AppTheme.borderSubtle,
+    textMain: AppTheme.darkTextMain,
+    textSecondary: AppTheme.darkTextSecondary,
+    textMuted: AppTheme.darkTextMuted,
+    textHint: AppTheme.darkTextHint,
+    gridLineColor: Colors.white.withValues(alpha: 0.07),
+  );
+
+  @override
+  ProxViewThemeColors copyWith({
+    bool? isDark,
+    Color? bgMain,
+    Color? bgCard,
+    Color? bgSurface,
+    Color? borderColor,
+    Color? textMain,
+    Color? textSecondary,
+    Color? textMuted,
+    Color? textHint,
+    Color? gridLineColor,
+  }) {
+    return ProxViewThemeColors(
+      isDark: isDark ?? this.isDark,
+      bgMain: bgMain ?? this.bgMain,
+      bgCard: bgCard ?? this.bgCard,
+      bgSurface: bgSurface ?? this.bgSurface,
+      borderColor: borderColor ?? this.borderColor,
+      textMain: textMain ?? this.textMain,
+      textSecondary: textSecondary ?? this.textSecondary,
+      textMuted: textMuted ?? this.textMuted,
+      textHint: textHint ?? this.textHint,
+      gridLineColor: gridLineColor ?? this.gridLineColor,
+    );
+  }
+
+  @override
+  ProxViewThemeColors lerp(ThemeExtension<ProxViewThemeColors>? other, double t) {
+    if (other is! ProxViewThemeColors) return this;
+    return ProxViewThemeColors(
+      isDark: t < 0.5 ? isDark : other.isDark,
+      bgMain: Color.lerp(bgMain, other.bgMain, t) ?? bgMain,
+      bgCard: Color.lerp(bgCard, other.bgCard, t) ?? bgCard,
+      bgSurface: Color.lerp(bgSurface, other.bgSurface, t) ?? bgSurface,
+      borderColor: Color.lerp(borderColor, other.borderColor, t) ?? borderColor,
+      textMain: Color.lerp(textMain, other.textMain, t) ?? textMain,
+      textSecondary:
+          Color.lerp(textSecondary, other.textSecondary, t) ?? textSecondary,
+      textMuted: Color.lerp(textMuted, other.textMuted, t) ?? textMuted,
+      textHint: Color.lerp(textHint, other.textHint, t) ?? textHint,
+      gridLineColor:
+          Color.lerp(gridLineColor, other.gridLineColor, t) ?? gridLineColor,
+    );
+  }
+}
+
 class AppTheme {
   static bool isDark = false;
+
+  /// Mengambil palet warna secara reaktif melalui `InheritedTheme` (tanpa bergantung state statis).
+  static ProxViewThemeColors of(BuildContext context) {
+    final theme = Theme.of(context);
+    return theme.extension<ProxViewThemeColors>() ??
+        (theme.brightness == Brightness.dark
+            ? ProxViewThemeColors.dark
+            : ProxViewThemeColors.light);
+  }
 
   // Core Surface & Background Palette (Dark Mode)
   static const Color background = Color(0xFF0B0F19); // Deep Slate Midnight
@@ -133,6 +241,9 @@ class AppTheme {
         thickness: 1,
         space: 1,
       ),
+      extensions: <ThemeExtension<dynamic>>[
+        ProxViewThemeColors.light,
+      ],
     );
   }
 
@@ -194,6 +305,9 @@ class AppTheme {
         thickness: 1,
         space: 1,
       ),
+      extensions: <ThemeExtension<dynamic>>[
+        ProxViewThemeColors.dark,
+      ],
     );
   }
 

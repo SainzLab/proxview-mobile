@@ -308,7 +308,7 @@ class HeaderGreeting extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Theme.of(context);
+    AppTheme.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Column(
@@ -382,7 +382,7 @@ class SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Theme.of(context);
+    AppTheme.of(context);
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -473,7 +473,7 @@ class ModernProgressBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Theme.of(context);
+    AppTheme.of(context);
     final clamped = (percentage / 100).clamp(0.0, 1.0);
 
     return Column(
@@ -549,7 +549,7 @@ class ErrorStateBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Theme.of(context);
+    AppTheme.of(context);
     final parsed = ApiException.parse(message);
     return Center(
       child: Padding(
@@ -671,7 +671,7 @@ class EmptyStateBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Theme.of(context);
+    AppTheme.of(context);
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
       children: [
@@ -748,6 +748,8 @@ class CustomTextField extends StatelessWidget {
   final bool obscureText;
   final TextInputType? keyboardType;
   final Widget? suffixIcon;
+  final int? maxLength;
+  final bool autocorrect;
 
   const CustomTextField({
     super.key,
@@ -758,18 +760,20 @@ class CustomTextField extends StatelessWidget {
     this.obscureText = false,
     this.keyboardType,
     this.suffixIcon,
+    this.maxLength,
+    this.autocorrect = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    Theme.of(context);
+    final colors = AppTheme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
           style: TextStyle(
-            color: AppTheme.textSecondary,
+            color: colors.textSecondary,
             fontSize: 13,
             fontWeight: FontWeight.bold,
           ),
@@ -781,19 +785,23 @@ class CustomTextField extends StatelessWidget {
           controller: controller,
           obscureText: obscureText,
           keyboardType: keyboardType,
-          style: TextStyle(color: AppTheme.textMain, fontSize: 14),
+          maxLength: maxLength,
+          autocorrect: autocorrect,
+          enableSuggestions: !obscureText && autocorrect,
+          style: TextStyle(color: colors.textMain, fontSize: 14),
           cursorColor: AppTheme.statusTeal,
           decoration: InputDecoration(
+            counterText: '',
             hintText: hint,
-            hintStyle: TextStyle(color: AppTheme.textHint, fontSize: 13),
-            prefixIcon: Icon(icon, color: AppTheme.textMuted, size: 20),
+            hintStyle: TextStyle(color: colors.textHint, fontSize: 13),
+            prefixIcon: Icon(icon, color: colors.textMuted, size: 20),
             suffixIcon: suffixIcon,
             filled: true,
-            fillColor: AppTheme.isDark ? AppTheme.bgSurface : AppTheme.bgCard,
+            fillColor: colors.isDark ? colors.bgSurface : colors.bgCard,
             contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 16),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: AppTheme.borderColor),
+              borderSide: BorderSide(color: colors.borderColor),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -824,32 +832,32 @@ class AppSearchField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Theme.of(context);
+    final colors = AppTheme.of(context);
     return SizedBox(
       height: 44,
       child: TextField(
         controller: controller,
         onChanged: onChanged,
-        style: TextStyle(color: AppTheme.textMain, fontSize: 13),
+        style: TextStyle(color: colors.textMain, fontSize: 13),
         cursorColor: AppTheme.statusTeal,
         decoration: InputDecoration(
           hintText: hintText,
-          hintStyle: TextStyle(color: AppTheme.textHint, fontSize: 13),
-          prefixIcon: Icon(Icons.search_rounded, color: AppTheme.textMuted, size: 20),
+          hintStyle: TextStyle(color: colors.textHint, fontSize: 13),
+          prefixIcon: Icon(Icons.search_rounded, color: colors.textMuted, size: 20),
           suffixIcon: hasText
               ? IconButton(
-                  icon: Icon(Icons.clear_rounded, color: AppTheme.textMuted, size: 18),
+                  icon: Icon(Icons.clear_rounded, color: colors.textMuted, size: 18),
                   onPressed: onClear,
                   tooltip: 'Hapus pencarian',
                 )
               : null,
           filled: true,
-          fillColor: AppTheme.bgCard,
+          fillColor: colors.bgCard,
           isDense: true,
           contentPadding: const EdgeInsets.symmetric(vertical: 11, horizontal: 14),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: AppTheme.borderColor),
+            borderSide: BorderSide(color: colors.borderColor),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
@@ -875,13 +883,13 @@ class SegmentedTabBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Theme.of(context);
+    final colors = AppTheme.of(context);
     return Container(
       height: 44,
       decoration: BoxDecoration(
-        color: AppTheme.isDark ? AppTheme.bgCard : AppTheme.bgMain,
+        color: colors.isDark ? colors.bgCard : colors.bgMain,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.borderColor),
+        border: Border.all(color: colors.borderColor),
       ),
       child: TabBar(
         controller: controller,
@@ -889,9 +897,9 @@ class SegmentedTabBar extends StatelessWidget {
         indicatorSize: TabBarIndicatorSize.tab,
         indicator: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
-          color: AppTheme.isDark ? AppTheme.bgSurface : Colors.white,
+          color: colors.isDark ? colors.bgSurface : Colors.white,
           border: Border.all(
-            color: AppTheme.isDark
+            color: colors.isDark
                 ? AppTheme.statusTeal.withValues(alpha: 0.4)
                 : const Color(0xFFCBD5E1),
           ),
@@ -903,8 +911,8 @@ class SegmentedTabBar extends StatelessWidget {
             ),
           ],
         ),
-        labelColor: AppTheme.isDark ? AppTheme.statusTeal : AppTheme.textMain,
-        unselectedLabelColor: AppTheme.textMuted,
+        labelColor: colors.isDark ? AppTheme.statusTeal : colors.textMain,
+        unselectedLabelColor: colors.textMuted,
         dividerColor: Colors.transparent,
         labelStyle: const TextStyle(
           fontWeight: FontWeight.bold,
@@ -929,7 +937,7 @@ class ChartLegendItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Theme.of(context);
+    final colors = AppTheme.of(context);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -946,7 +954,7 @@ class ChartLegendItem extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
-            color: AppTheme.textSecondary,
+            color: colors.textSecondary,
             fontSize: 11,
             fontWeight: FontWeight.w600,
           ),
@@ -968,14 +976,14 @@ class BottomSheetContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Theme.of(context);
+    final colors = AppTheme.of(context);
     return Container(
       height: height,
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
       decoration: BoxDecoration(
-        color: AppTheme.bgCard,
+        color: colors.bgCard,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border(top: BorderSide(color: AppTheme.borderColor)),
+        border: Border(top: BorderSide(color: colors.borderColor)),
       ),
       child: Column(
         mainAxisSize: height != null ? MainAxisSize.max : MainAxisSize.min,
@@ -987,7 +995,7 @@ class BottomSheetContainer extends StatelessWidget {
               height: 4,
               margin: const EdgeInsets.only(bottom: 20),
               decoration: BoxDecoration(
-                color: AppTheme.borderColor,
+                color: colors.borderColor,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),

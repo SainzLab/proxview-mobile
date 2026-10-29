@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../core/theme/app_theme.dart';
 import '../core/utils/formatters.dart';
+import '../services/storage_service.dart';
 import '../viewmodels/auth_viewmodel.dart';
 import 'common_widgets.dart';
 
@@ -50,11 +51,22 @@ class _SettingsViewState extends State<SettingsView> {
       return;
     }
 
+    if (!StorageService.isValidServerUrl(trimmed)) {
+      AppFeedback.showSnackBar(
+        context,
+        message:
+            'Format URL Server tidak valid. Contoh: https://domain-anda.com atau http://192.168.1.10:7060',
+        isWarning: true,
+      );
+      return;
+    }
+
+    final normalizedPreview = StorageService.normalizeBaseUrl(trimmed);
     final confirmed = await AppFeedback.showConfirmDialog(
       context,
       title: 'Simpan Konfigurasi Server?',
       message:
-          'Endpoint API akan diperbarui ke "$trimmed". Pastikan alamat server dapat diakses oleh perangkat ini.',
+          'Endpoint API akan diperbarui ke "$normalizedPreview". Pastikan alamat server dapat diakses oleh perangkat ini.',
       confirmLabel: 'SIMPAN',
       accentColor: AppTheme.statusTeal,
       icon: Icons.dns_rounded,
@@ -64,6 +76,7 @@ class _SettingsViewState extends State<SettingsView> {
     final authVm = context.read<AuthViewModel>();
     await authVm.updateBaseUrl(trimmed);
     if (mounted) {
+      _baseUrlController.text = authVm.baseUrl;
       AppFeedback.showSnackBar(
         context,
         message: 'Endpoint Server berhasil diperbarui.',
@@ -88,6 +101,7 @@ class _SettingsViewState extends State<SettingsView> {
 
   @override
   Widget build(BuildContext context) {
+    AppTheme.of(context);
     final themeVm = context.watch<ThemeViewModel>();
     final authVm = context.watch<AuthViewModel>();
     final user = authVm.currentUser;
@@ -304,6 +318,8 @@ class _SettingsViewState extends State<SettingsView> {
                 hint: 'http(s)://ip-atau-domain:port',
                 icon: Icons.language_rounded,
                 keyboardType: TextInputType.url,
+                maxLength: 256,
+                autocorrect: false,
               ),
               const SizedBox(height: 16),
               SizedBox(

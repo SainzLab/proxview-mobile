@@ -179,7 +179,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
 
   @override
   Widget build(BuildContext context) {
-    Theme.of(context);
+    AppTheme.of(context);
     final vm = context.watch<AlertIncidentViewModel>();
     final authVm = context.watch<AuthViewModel>();
     final currentUserName = authVm.currentUser?.name;
@@ -337,6 +337,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                           isKepalaBidang: isKepalaBidang,
                           emptyLabel: 'Tidak ada gangguan aktif saat ini.',
                           isActiveTab: true,
+                          hasMore: vm.hasMoreActiveAlerts,
                           onLoadMore: () => vm.loadMoreActiveAlerts(),
                         ),
                         if (!isKepalaBidang)
@@ -346,6 +347,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                             filteredIncidents,
                             currentUserName,
                             isKepalaBidang: isKepalaBidang,
+                            hasMore: vm.hasMoreIncidents,
                             onLoadMore: () => vm.loadMoreIncidents(),
                           ),
                         _buildAlertsList(
@@ -356,6 +358,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                           isKepalaBidang: isKepalaBidang,
                           emptyLabel: 'Belum ada riwayat gangguan selesai.',
                           isActiveTab: false,
+                          hasMore: vm.hasMoreHistoryAlerts,
                           onLoadMore: () => vm.loadMoreHistoryAlerts(),
                         ),
                       ],
@@ -661,8 +664,10 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
     required bool isKepalaBidang,
     required String emptyLabel,
     required bool isActiveTab,
+    required bool hasMore,
     VoidCallback? onLoadMore,
   }) {
+    final showBottomLoader = hasMore && vm.isLoadingMore;
     return RefreshIndicator(
       color: AppTheme.statusTeal,
       backgroundColor: _bgCard,
@@ -671,7 +676,8 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
           ? _buildEmptyState(emptyLabel)
           : NotificationListener<ScrollNotification>(
               onNotification: (ScrollNotification scrollInfo) {
-                if (!vm.isLoadingMore &&
+                if (hasMore &&
+                    !vm.isLoadingMore &&
                     scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 50) {
                   onLoadMore?.call();
                 }
@@ -680,7 +686,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
               child: ListView.builder(
                 physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
                 padding: const EdgeInsets.all(16),
-                itemCount: list.length + (vm.isLoadingMore ? 1 : 0),
+                itemCount: list.length + (showBottomLoader ? 1 : 0),
                 itemBuilder: (context, index) {
                   if (index == list.length) {
                     return const Padding(
@@ -926,8 +932,10 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
     List<IncidentTicketModel> incidents,
     String? currentUserName, {
     required bool isKepalaBidang,
+    required bool hasMore,
     VoidCallback? onLoadMore,
   }) {
+    final showBottomLoader = hasMore && vm.isLoadingMore;
     return RefreshIndicator(
       color: AppTheme.statusTeal,
       backgroundColor: _bgCard,
@@ -936,7 +944,8 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
           ? _buildEmptyState('Belum ada tiket insiden.')
           : NotificationListener<ScrollNotification>(
               onNotification: (ScrollNotification scrollInfo) {
-                if (!vm.isLoadingMore &&
+                if (hasMore &&
+                    !vm.isLoadingMore &&
                     scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 50) {
                   onLoadMore?.call();
                 }
@@ -945,7 +954,7 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
               child: ListView.builder(
                 physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
                 padding: const EdgeInsets.all(16),
-                itemCount: incidents.length + (vm.isLoadingMore ? 1 : 0),
+                itemCount: incidents.length + (showBottomLoader ? 1 : 0),
                 itemBuilder: (context, index) {
                   if (index == incidents.length) {
                     return const Padding(

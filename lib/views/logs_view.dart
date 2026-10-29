@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -17,7 +15,6 @@ class LogsView extends StatefulWidget {
 }
 
 class _LogsViewState extends State<LogsView> {
-  Timer? _pollingTimer;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
@@ -34,18 +31,21 @@ class _LogsViewState extends State<LogsView> {
   @override
   void initState() {
     super.initState();
-    // Real-time update setiap 10 detik
-    _pollingTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
-      if (mounted) {
-        // Memperbarui data tanpa menampilkan indikator loading penuh
-        context.read<LogViewModel>().fetchLogs(showLoading: false);
+    // Pembaruan berkala dikelola terpusat oleh MainShellView saat tab Log aktif
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final vm = context.read<LogViewModel>();
+      if (vm.taskLogs.isEmpty &&
+          vm.clusterLogs.isEmpty &&
+          vm.systemLogs.isEmpty &&
+          !vm.isLoading) {
+        vm.fetchLogs(showLoading: true);
       }
     });
   }
 
   @override
   void dispose() {
-    _pollingTimer?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -98,7 +98,7 @@ class _LogsViewState extends State<LogsView> {
 
   @override
   Widget build(BuildContext context) {
-    Theme.of(context);
+    AppTheme.of(context);
     final vm = context.watch<LogViewModel>();
 
     final filteredTasks = _filterTasks(vm.taskLogs);
@@ -192,38 +192,22 @@ class _LogsViewState extends State<LogsView> {
       color: AppTheme.statusTeal,
       backgroundColor: _bgCard,
       onRefresh: () => vm.fetchLogs(showLoading: false),
-      child: NotificationListener<ScrollNotification>(
-        onNotification: (ScrollNotification scrollInfo) {
-          if (!vm.isLoadingMore &&
-              scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 50) {
-            // Pagination hook
-          }
-          return false;
-        },
-        child: vm.taskLogs.isEmpty
-            ? _buildEmptyState('Tidak ada riwayat task Proxmox.', Icons.task_alt_rounded)
-            : tasks.isEmpty
-                ? _buildEmptyState(
-                    'Tidak ada task yang cocok dengan "$_searchQuery".',
-                    Icons.search_off_rounded,
-                    onClearSearch: _clearSearch,
-                  )
-                : ListView.builder(
-                    physics: const AlwaysScrollableScrollPhysics(
-                      parent: BouncingScrollPhysics(),
-                    ),
-                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-                    padding: const EdgeInsets.all(16),
-                    itemCount: tasks.length + (vm.isLoadingMore ? 1 : 0),
-                    itemBuilder: (context, index) {
-                      if (index == tasks.length) {
-                        return const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 20),
-                          child: Center(
-                            child: CircularProgressIndicator(color: AppTheme.statusTeal),
-                          ),
-                        );
-                      }
+      child: vm.taskLogs.isEmpty
+          ? _buildEmptyState('Tidak ada riwayat task Proxmox.', Icons.task_alt_rounded)
+          : tasks.isEmpty
+              ? _buildEmptyState(
+                  'Tidak ada task yang cocok dengan "$_searchQuery".',
+                  Icons.search_off_rounded,
+                  onClearSearch: _clearSearch,
+                )
+              : ListView.builder(
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics(),
+                  ),
+                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                  padding: const EdgeInsets.all(16),
+                  itemCount: tasks.length,
+                  itemBuilder: (context, index) {
 
                       final task = tasks[index];
                       final isOk = task.isOk;
@@ -370,7 +354,6 @@ class _LogsViewState extends State<LogsView> {
                       );
                     },
                   ),
-      ),
     );
   }
 
@@ -510,38 +493,22 @@ class _LogsViewState extends State<LogsView> {
       color: AppTheme.statusTeal,
       backgroundColor: _bgCard,
       onRefresh: () => vm.fetchLogs(showLoading: false),
-      child: NotificationListener<ScrollNotification>(
-        onNotification: (ScrollNotification scrollInfo) {
-          if (!vm.isLoadingMore &&
-              scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 50) {
-            // Pagination hook
-          }
-          return false;
-        },
-        child: vm.clusterLogs.isEmpty
-            ? _buildEmptyState('Tidak ada log cluster Proxmox.', Icons.dns_outlined)
-            : logs.isEmpty
-                ? _buildEmptyState(
-                    'Tidak ada log cluster yang cocok dengan "$_searchQuery".',
-                    Icons.search_off_rounded,
-                    onClearSearch: _clearSearch,
-                  )
-                : ListView.builder(
-                    physics: const AlwaysScrollableScrollPhysics(
-                      parent: BouncingScrollPhysics(),
-                    ),
-                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-                    padding: const EdgeInsets.all(16),
-                    itemCount: logs.length + (vm.isLoadingMore ? 1 : 0),
-                    itemBuilder: (context, index) {
-                      if (index == logs.length) {
-                        return const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 20),
-                          child: Center(
-                            child: CircularProgressIndicator(color: AppTheme.statusTeal),
-                          ),
-                        );
-                      }
+      child: vm.clusterLogs.isEmpty
+          ? _buildEmptyState('Tidak ada log cluster Proxmox.', Icons.dns_outlined)
+          : logs.isEmpty
+              ? _buildEmptyState(
+                  'Tidak ada log cluster yang cocok dengan "$_searchQuery".',
+                  Icons.search_off_rounded,
+                  onClearSearch: _clearSearch,
+                )
+              : ListView.builder(
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics(),
+                  ),
+                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                  padding: const EdgeInsets.all(16),
+                  itemCount: logs.length,
+                  itemBuilder: (context, index) {
 
                       final log = logs[index];
                       final isErr = log.isError;
@@ -628,7 +595,6 @@ class _LogsViewState extends State<LogsView> {
                       );
                     },
                   ),
-      ),
     );
   }
 
@@ -637,15 +603,17 @@ class _LogsViewState extends State<LogsView> {
     LogViewModel vm,
     List<SystemAuditLogModel> logs,
   ) {
+    final showBottomLoader = vm.hasMoreSystemLogs && vm.isLoadingMore;
     return RefreshIndicator(
       color: AppTheme.statusTeal,
       backgroundColor: _bgCard,
       onRefresh: () => vm.fetchLogs(showLoading: false),
       child: NotificationListener<ScrollNotification>(
         onNotification: (ScrollNotification scrollInfo) {
-          if (!vm.isLoadingMore &&
+          if (vm.hasMoreSystemLogs &&
+              !vm.isLoadingMore &&
               scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 50) {
-            // Pagination hook
+            vm.loadMoreSystemLogs();
           }
           return false;
         },
@@ -663,7 +631,7 @@ class _LogsViewState extends State<LogsView> {
                     ),
                     keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                     padding: const EdgeInsets.all(16),
-                    itemCount: logs.length + (vm.isLoadingMore ? 1 : 0),
+                    itemCount: logs.length + (showBottomLoader ? 1 : 0),
                     itemBuilder: (context, index) {
                       if (index == logs.length) {
                         return const Padding(

@@ -61,7 +61,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
 
   @override
   Widget build(BuildContext context) {
-    Theme.of(context);
+    AppTheme.of(context);
     final vm = context.watch<ProxmoxViewModel>();
 
     return DefaultTabController(

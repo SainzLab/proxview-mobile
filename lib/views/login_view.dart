@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../core/theme/app_theme.dart';
 import '../services/api_service.dart';
+import '../services/storage_service.dart';
 import '../viewmodels/auth_viewmodel.dart';
 import 'common_widgets.dart';
 
@@ -49,6 +50,9 @@ class _LoginViewState extends State<LoginView> {
     super.dispose();
   }
 
+  static final RegExp _hexTokenPattern = RegExp(r'^[a-fA-F0-9]{32,128}$');
+  static final RegExp _usernamePattern = RegExp(r'^\S{2,64}$');
+
   Future<void> _submitLogin() async {
     final username = _usernameController.text.trim();
     final password = _passwordController.text;
@@ -59,6 +63,35 @@ class _LoginViewState extends State<LoginView> {
       AppFeedback.showSnackBar(
         context,
         message: 'Username, Password, dan API Token (64-hex) wajib diisi.',
+        isWarning: true,
+      );
+      return;
+    }
+
+    if (!_usernamePattern.hasMatch(username)) {
+      AppFeedback.showSnackBar(
+        context,
+        message: 'Username harus terdiri dari 2–64 karakter tanpa spasi.',
+        isWarning: true,
+      );
+      return;
+    }
+
+    if (!_hexTokenPattern.hasMatch(token)) {
+      AppFeedback.showSnackBar(
+        context,
+        message: 'Format API Token tidak valid. Gunakan token heksadesimal dari Web Admin.',
+        isWarning: true,
+      );
+      return;
+    }
+
+    if (serverUrl.isNotEmpty && !StorageService.isValidServerUrl(serverUrl)) {
+      setState(() => _showServerConfig = true);
+      AppFeedback.showSnackBar(
+        context,
+        message:
+            'Format Base URL Server tidak valid. Contoh: https://domain-anda.com atau http://192.168.1.10:7060',
         isWarning: true,
       );
       return;
@@ -83,6 +116,7 @@ class _LoginViewState extends State<LoginView> {
 
   @override
   Widget build(BuildContext context) {
+    AppTheme.of(context);
     final themeVm = context.watch<ThemeViewModel>();
     final authVm = context.watch<AuthViewModel>();
 
@@ -317,6 +351,8 @@ class _LoginViewState extends State<LoginView> {
                         label: 'Username',
                         hint: 'Contoh: Asep_NOC',
                         icon: Icons.person_outline_rounded,
+                        maxLength: 64,
+                        autocorrect: false,
                       ),
                       const SizedBox(height: 18),
 
@@ -326,6 +362,8 @@ class _LoginViewState extends State<LoginView> {
                         hint: 'Masukkan password akun',
                         icon: Icons.lock_outline_rounded,
                         obscureText: _obscurePassword,
+                        maxLength: 128,
+                        autocorrect: false,
                         suffixIcon: IconButton(
                           icon: Icon(
                             _obscurePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded,
@@ -344,6 +382,8 @@ class _LoginViewState extends State<LoginView> {
                         label: 'API Token',
                         hint: 'hex token dari Web Admin',
                         icon: Icons.vpn_key_outlined,
+                        maxLength: 128,
+                        autocorrect: false,
                       ),
                       const SizedBox(height: 18),
 
@@ -384,6 +424,8 @@ class _LoginViewState extends State<LoginView> {
                           hint: 'http(s)://ip-domain-atau-localhost:port',
                           icon: Icons.dns_outlined,
                           keyboardType: TextInputType.url,
+                          maxLength: 256,
+                          autocorrect: false,
                         ),
                       ],
 

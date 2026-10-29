@@ -1,6 +1,9 @@
+import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:proxview/main.dart';
+import 'package:proxview/models/user_model.dart';
+import 'package:proxview/services/storage_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -16,5 +19,52 @@ void main() {
     expect(find.text('ProxView'), findsOneWidget);
     expect(find.text('OTENTIKASI 3-FAKTOR'), findsOneWidget);
     expect(find.text('HUBUNGKAN PERANGKAT'), findsOneWidget);
+  });
+
+  test('StorageService never persists plaintext token into SharedPreferences',
+      () async {
+    SharedPreferences.setMockInitialValues({
+      'proxview_api_token': 'legacy_plaintext_token',
+    });
+    FlutterSecureStorage.setMockInitialValues({});
+
+    final storage = StorageService();
+    const secretToken =
+        '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
+
+    await storage.saveApiToken(secretToken);
+    await storage.saveCachedUser(
+      const UserModel(
+        id: 1,
+        name: 'Asep NOC',
+        username: 'asep_noc',
+        role: 'Teknisi',
+        isActive: true,
+        apiToken: secretToken,
+      ),
+    );
+
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString('proxview_api_token'), isNull);
+
+    final cachedRaw = prefs.getString('proxview_cached_user');
+    expect(cachedRaw, isNotNull);
+    final cachedMap = jsonDecode(cachedRaw!) as Map<String, dynamic>;
+    expect(cachedMap.containsKey('api_token'), isFalse);
+    expect(await storage.getApiToken(), equals(secretToken));
+  });
+
+  test('StorageService normalizes and validates server URLs securely', () {
+    expect(
+      StorageService.normalizeBaseUrl('monitoring.subang.go.id'),
+      equals('https://monitoring.subang.go.id/api/mobile/v1'),
+    );
+    expect(
+      StorageService.normalizeBaseUrl('192.168.8.10:7060'),
+      equals('http://192.168.8.10:7060/api/mobile/v1'),
+    );
+    expect(StorageService.isValidServerUrl('https://pve.example.com'), isTrue);
+    expect(StorageService.isValidServerUrl('invalid host with spaces'), isFalse);
+    expect(StorageService.isValidServerUrl(''), isFalse);
   });
 }

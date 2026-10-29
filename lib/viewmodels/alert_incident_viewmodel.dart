@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../models/alert_incident_model.dart';
 import '../services/api_service.dart';
@@ -14,8 +15,15 @@ class AlertIncidentViewModel extends ChangeNotifier {
 
   bool _isLoading = false;
   bool _isSubmittingAction = false;
-  bool _isLoadingMore = false; 
+  bool _isLoadingMore = false;
+  bool _isPolling = false;
+  bool _isFetchingAll = false;
+  int _historyLimit = 100;
+  bool _hasMoreHistoryAlerts = true;
   String? _errorMessage;
+
+  CancelToken? _pollCancelToken;
+  CancelToken? _fetchCancelToken;
 
   final Map<int, String> _knownAlertSeverities = {};
   final Set<int> _dismissedCallAlertIds = {};
@@ -145,7 +153,10 @@ class AlertIncidentViewModel extends ChangeNotifier {
   }
   bool get isLoading => _isLoading;
   bool get isSubmittingAction => _isSubmittingAction;
-  bool get isLoadingMore => _isLoadingMore; 
+  bool get isLoadingMore => _isLoadingMore;
+  bool get hasMoreActiveAlerts => false;
+  bool get hasMoreIncidents => false;
+  bool get hasMoreHistoryAlerts => _hasMoreHistoryAlerts && _historyLimit < 500;
   String? get errorMessage => _errorMessage;
   AlertModel? get pendingEmergencyCall => _pendingEmergencyCall;
   int get activeAlertCount => _activeAlerts.length;
@@ -164,120 +175,145 @@ class AlertIncidentViewModel extends ChangeNotifier {
     }
   }
 
+  Future<void> _syncNotificationsAndEmergencyState(
+    List<AlertModel> latest, {
+    required bool triggerNotifications,
+  }) async {
+    final syncedDismissed = await _notificationService.syncAlertState(
+      knownSeverities: _knownAlertSeverities,
+      dismissedCallIds: _dismissedCallAlertIds,
+    );
+    _dismissedCallAlertIds.addAll(syncedDismissed);
+
+    AlertModel? activeCallCandidate;
+
+    for (final alert in latest) {
+      final prevSeverity = _knownAlertSeverities[alert.id];
+      final isNewOrChanged =
+          prevSeverity == null || prevSeverity != alert.severity;
+      _knownAlertSeverities[alert.id] = alert.severity;
+
+      final isUnhandledCall = alert.isEmergencyCall &&
+          !alert.isBeingHandled &&
+          alert.severity.toUpperCase() != 'RECOVERED' &&
+          !_dismissedCallAlertIds.contains(alert.id);
+
+      if (isUnhandledCall) {
+        activeCallCandidate ??= alert;
+      }
+
+      if (triggerNotifications && isNewOrChanged) {
+        await _notificationService.showAlertNotification(alert);
+      }
+    }
+
+    if (triggerNotifications) {
+      if (activeCallCandidate != null) {
+        _pendingEmergencyCall = activeCallCandidate;
+      } else if (_pendingEmergencyCall != null) {
+        final prevCallId = _pendingEmergencyCall!.id;
+        _pendingEmergencyCall = null;
+        await _notificationService.stopEmergencyCall(prevCallId);
+      }
+    } else {
+      _pendingEmergencyCall = activeCallCandidate;
+    }
+
+    final currentIds = latest.map((e) => e.id).toSet();
+    _knownAlertSeverities.removeWhere((id, _) => !currentIds.contains(id));
+
+    await _notificationService.syncAlertState(
+      knownSeverities: _knownAlertSeverities,
+      dismissedCallIds: _dismissedCallAlertIds,
+    );
+  }
+
   Future<void> pollActiveAlerts({bool triggerNotifications = true}) async {
+    if (_isPolling || _isFetchingAll) return;
+    _isPolling = true;
+    final token = CancelToken();
+    _pollCancelToken = token;
+
     try {
-      final latest = await _apiService.getActiveAlerts();
+      final latest = await _apiService.getActiveAlerts(cancelToken: token);
 
-      // Sinkronkan daftar panggilan yang mungkin sudah ditutup lewat notifikasi bar Android
-      final syncedDismissed = await _notificationService.syncAlertState(
-        knownSeverities: _knownAlertSeverities,
-        dismissedCallIds: _dismissedCallAlertIds,
-      );
-      _dismissedCallAlertIds.addAll(syncedDismissed);
-
-      AlertModel? activeCallCandidate;
-
-      for (final alert in latest) {
-        final prevSeverity = _knownAlertSeverities[alert.id];
-        final isNewOrChanged =
-            prevSeverity == null || prevSeverity != alert.severity;
-        _knownAlertSeverities[alert.id] = alert.severity;
-
-        final isUnhandledCall = alert.isEmergencyCall &&
-            !alert.isBeingHandled &&
-            alert.severity.toUpperCase() != 'RECOVERED' &&
-            !_dismissedCallAlertIds.contains(alert.id);
-
-        if (isUnhandledCall) {
-          activeCallCandidate ??= alert;
-        }
-
-        if (triggerNotifications && isNewOrChanged) {
-          await _notificationService.showAlertNotification(alert);
-        }
-      }
-
-      // Tampilkan layar panggilan darurat apabila ada alert Call aktif yang belum ditangani
-      if (triggerNotifications) {
-        if (activeCallCandidate != null) {
-          _pendingEmergencyCall = activeCallCandidate;
-        } else if (_pendingEmergencyCall != null) {
-          // Jika panggilan sebelumnya sudah ditangani atau sudah RECOVERED, matikan dering
-          final prevCallId = _pendingEmergencyCall!.id;
-          _pendingEmergencyCall = null;
-          await _notificationService.stopEmergencyCall(prevCallId);
-        }
-      }
-
-      // Bersihkan ID yang sudah tidak aktif
-      final currentIds = latest.map((e) => e.id).toSet();
-      _knownAlertSeverities.removeWhere((id, _) => !currentIds.contains(id));
-
-      await _notificationService.syncAlertState(
-        knownSeverities: _knownAlertSeverities,
-        dismissedCallIds: _dismissedCallAlertIds,
+      await _syncNotificationsAndEmergencyState(
+        latest,
+        triggerNotifications: triggerNotifications,
       );
 
       _activeAlerts = latest;
       try {
-        _incidentStats = await _apiService.getIncidentStats();
+        _incidentStats = await _apiService.getIncidentStats(cancelToken: token);
       } catch (_) {}
       notifyListeners();
     } catch (_) {
       // Abaikan error saat background polling
+    } finally {
+      _isPolling = false;
     }
   }
 
-  Future<void> fetchAll({bool showLoading = true}) async {
+  Future<void> fetchAll({
+    bool showLoading = true,
+    bool triggerNotifications = false,
+  }) async {
+    if (!showLoading && _isFetchingAll) return;
+
     if (showLoading) {
+      _fetchCancelToken?.cancel('Refresh baru dimulai');
+      _historyLimit = 100;
+      _hasMoreHistoryAlerts = true;
       _isLoading = true;
       _errorMessage = null;
       notifyListeners();
     }
 
+    _isFetchingAll = true;
+    final token = CancelToken();
+    _fetchCancelToken = token;
+
     try {
       final statsFuture = _apiService
-          .getIncidentStats()
+          .getIncidentStats(cancelToken: token)
           .then<IncidentStatsModel?>((v) => v)
           .catchError((_) => null);
 
       final results = await Future.wait([
-        _apiService.getActiveAlerts(),
-        _apiService.getAlertHistory(limit: 100),
-        _apiService.getIncidents(),
+        _apiService.getActiveAlerts(cancelToken: token),
+        _apiService.getAlertHistory(limit: _historyLimit, cancelToken: token),
+        _apiService.getIncidents(cancelToken: token),
         statsFuture,
       ]);
+      if (token.isCancelled) return;
+
       _activeAlerts = results[0] as List<AlertModel>;
       _historyAlerts = results[1] as List<AlertModel>;
       _incidents = results[2] as List<IncidentTicketModel>;
+      _hasMoreHistoryAlerts =
+          _historyAlerts.length >= _historyLimit && _historyLimit < 500;
+
       final fetchedStats = results[3] as IncidentStatsModel?;
       if (fetchedStats != null) {
         _incidentStats = fetchedStats;
       }
 
-      final syncedDismissed = await _notificationService.syncAlertState(
-        knownSeverities: _knownAlertSeverities,
-        dismissedCallIds: _dismissedCallAlertIds,
+      await _syncNotificationsAndEmergencyState(
+        _activeAlerts,
+        triggerNotifications: triggerNotifications,
       );
-      _dismissedCallAlertIds.addAll(syncedDismissed);
-
-      AlertModel? activeCallCandidate;
-      for (final a in _activeAlerts) {
-        _knownAlertSeverities[a.id] = a.severity;
-        if (a.isEmergencyCall &&
-            !a.isBeingHandled &&
-            a.severity.toUpperCase() != 'RECOVERED' &&
-            !_dismissedCallAlertIds.contains(a.id)) {
-          activeCallCandidate ??= a;
-        }
-      }
-      _pendingEmergencyCall = activeCallCandidate;
       _errorMessage = null;
+    } on ApiException catch (e) {
+      if (e.isCancelled) return;
+      if (showLoading || (_activeAlerts.isEmpty && _incidents.isEmpty)) {
+        _errorMessage = e.toString();
+      }
     } catch (e) {
       if (showLoading || (_activeAlerts.isEmpty && _incidents.isEmpty)) {
         _errorMessage = e.toString();
       }
     } finally {
+      _isFetchingAll = false;
       _isLoading = false;
       notifyListeners();
     }
@@ -325,50 +361,49 @@ class AlertIncidentViewModel extends ChangeNotifier {
   // --- Fungsi Infinite Scroll / Load More ---
 
   Future<void> loadMoreActiveAlerts() async {
-    if (_isLoadingMore) return;
-    _isLoadingMore = true;
-    notifyListeners();
-    
-    try {
-      // TODO: Ganti dengan pemanggilan API pagination Anda (contoh: offset)
-      await Future.delayed(const Duration(seconds: 1)); // Simulasi proses loading
-    } catch (e) {
-      debugPrint('Gagal load more active alerts: $e');
-    } finally {
-      _isLoadingMore = false;
-      notifyListeners();
-    }
+    // Endpoint /alerts/active sudah mengembalikan seluruh alert aktif sekaligus.
+    return;
   }
 
   Future<void> loadMoreIncidents() async {
-    if (_isLoadingMore) return;
-    _isLoadingMore = true;
-    notifyListeners();
-    
-    try {
-      // TODO: Ganti dengan pemanggilan API pagination Anda (contoh: offset)
-      await Future.delayed(const Duration(seconds: 1)); // Simulasi proses loading
-    } catch (e) {
-      debugPrint('Gagal load more incidents: $e');
-    } finally {
-      _isLoadingMore = false;
-      notifyListeners();
-    }
+    // Endpoint /incidents sudah mengembalikan seluruh tiket insiden sekaligus.
+    return;
   }
 
   Future<void> loadMoreHistoryAlerts() async {
-    if (_isLoadingMore) return;
+    if (_isLoadingMore || !hasMoreHistoryAlerts) return;
     _isLoadingMore = true;
     notifyListeners();
-    
+
     try {
-      // TODO: Ganti dengan pemanggilan API pagination Anda (contoh: offset)
-      await Future.delayed(const Duration(seconds: 1)); // Simulasi proses loading
+      final nextLimit = (_historyLimit + 100).clamp(100, 500);
+      final updated = await _apiService.getAlertHistory(
+        limit: nextLimit,
+        cancelToken: _fetchCancelToken,
+      );
+      if (updated.length <= _historyAlerts.length ||
+          updated.length < nextLimit ||
+          nextLimit >= 500) {
+        _hasMoreHistoryAlerts = false;
+      }
+      _historyLimit = nextLimit;
+      _historyAlerts = updated;
+    } on ApiException catch (e) {
+      if (!e.isCancelled) {
+        debugPrint('Gagal load more history alerts: $e');
+      }
     } catch (e) {
       debugPrint('Gagal load more history alerts: $e');
     } finally {
       _isLoadingMore = false;
       notifyListeners();
     }
+  }
+
+  @override
+  void dispose() {
+    _pollCancelToken?.cancel('ViewModel disposed');
+    _fetchCancelToken?.cancel('ViewModel disposed');
+    super.dispose();
   }
 }

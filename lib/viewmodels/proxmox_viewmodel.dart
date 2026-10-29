@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../models/proxmox_model.dart';
 import '../services/api_service.dart';
@@ -15,8 +16,12 @@ class ProxmoxViewModel extends ChangeNotifier {
   );
 
   bool _isLoading = false;
+  bool _isFetching = false;
   String? _errorMessage;
   String _searchQuery = '';
+
+  CancelToken? _serversCancelToken;
+  CancelToken? _detailCancelToken;
 
   ProxmoxViewModel(this._apiService);
 
@@ -86,14 +91,26 @@ class ProxmoxViewModel extends ChangeNotifier {
   }
 
   Future<void> fetchProxmoxData({bool showLoading = true}) async {
+    if (!showLoading && _isFetching) return;
+
     if (showLoading) {
+      _serversCancelToken?.cancel('Refresh baru dimulai');
+      _detailCancelToken?.cancel('Refresh baru dimulai');
       _isLoading = true;
       _errorMessage = null;
       notifyListeners();
     }
 
+    _isFetching = true;
+    final serversToken = CancelToken();
+    _serversCancelToken = serversToken;
+
     try {
-      final rawServers = await _apiService.getProxmoxServers();
+      final rawServers = await _apiService.getProxmoxServers(
+        cancelToken: serversToken,
+      );
+      if (serversToken.isCancelled) return;
+
       // Urutkan daftar server secara deterministik berdasarkan id
       _servers = List<ProxmoxServerModel>.from(rawServers)
         ..sort((a, b) => a.id.compareTo(b.id));
@@ -112,18 +129,25 @@ class ProxmoxViewModel extends ChangeNotifier {
         await _fetchSelectedServerDetails(_selectedServer!.id);
       }
       _errorMessage = null;
+    } on ApiException catch (e) {
+      if (e.isCancelled) return;
+      if (showLoading || _servers.isEmpty) {
+        _errorMessage = e.toString();
+      }
     } catch (e) {
       if (showLoading || _servers.isEmpty) {
         _errorMessage = e.toString();
       }
     } finally {
+      _isFetching = false;
       _isLoading = false;
       notifyListeners();
     }
   }
 
   Future<void> selectServer(ProxmoxServerModel server) async {
-    if (_selectedServer?.id == server.id) return;
+    if (_selectedServer?.id == server.id && !_isLoading) return;
+    _detailCancelToken?.cancel('Berpindah ke server lain');
     _selectedServer = server;
     _isLoading = true;
     _errorMessage = null;
@@ -131,19 +155,30 @@ class ProxmoxViewModel extends ChangeNotifier {
 
     try {
       await _fetchSelectedServerDetails(server.id);
+    } on ApiException catch (e) {
+      if (e.isCancelled) return;
+      _errorMessage = e.toString();
     } catch (e) {
       _errorMessage = e.toString();
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (_selectedServer?.id == server.id) {
+        _isLoading = false;
+        notifyListeners();
+      }
     }
   }
 
   Future<void> _fetchSelectedServerDetails(int serverId) async {
+    _detailCancelToken?.cancel('Memuat detail server terbaru');
+    final detailToken = CancelToken();
+    _detailCancelToken = detailToken;
+
     final results = await Future.wait([
-      _apiService.getProxmoxNodeStatus(serverId),
-      _apiService.getProxmoxResources(serverId),
+      _apiService.getProxmoxNodeStatus(serverId, cancelToken: detailToken),
+      _apiService.getProxmoxResources(serverId, cancelToken: detailToken),
     ]);
+    if (detailToken.isCancelled || _selectedServer?.id != serverId) return;
+
     final rawNodes = results[0] as List<ProxmoxNodeStatusModel>;
     final rawResources = results[1] as ProxmoxResourcesBundle;
 
@@ -172,5 +207,12 @@ class ProxmoxViewModel extends ChangeNotifier {
       lxcs: sortedLxcs,
       storages: sortedStorages,
     );
+  }
+
+  @override
+  void dispose() {
+    _serversCancelToken?.cancel('ViewModel disposed');
+    _detailCancelToken?.cancel('ViewModel disposed');
+    super.dispose();
   }
 }

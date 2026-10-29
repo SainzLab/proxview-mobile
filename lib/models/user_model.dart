@@ -50,4 +50,16 @@ class UserModel {
       'token_expires_at': tokenExpiresAt,
     };
   }
+
+  /// Serialisasi profil pengguna tanpa menyertakan kredensial sensitif (api_token)
+  Map<String, dynamic> toSafeCacheJson() {
+    return {
+      'id': id,
+      'name': name,
+      'username': username,
+      'role': role,
+      'is_active': isActive ? 1 : 0,
+      'token_expires_at': tokenExpiresAt,
+    };
+  }
 }

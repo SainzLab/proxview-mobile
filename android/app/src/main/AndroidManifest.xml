@@ -12,6 +12,8 @@
     <application
         android:label="ProxView"
         android:name="${applicationName}"
+        android:allowBackup="false"
+        android:fullBackupContent="false"
         android:usesCleartextTraffic="true"
         android:icon="@mipmap/launcher_icon">
         <activity

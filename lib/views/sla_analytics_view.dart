@@ -23,7 +23,7 @@ class SlaAnalyticsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Theme.of(context);
+    AppTheme.of(context);
     final vm = context.watch<AnalyticsViewModel>();
 
     if (vm.isLoading && vm.analytics == null) {
@@ -85,7 +85,7 @@ class SlaMetricsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Theme.of(context);
+    AppTheme.of(context);
     final vm = context.watch<AnalyticsViewModel>();
     final data = vm.analytics;
 

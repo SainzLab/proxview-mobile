@@ -35,7 +35,7 @@ class DashboardView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Theme.of(context);
+    AppTheme.of(context);
     final vm = context.watch<DashboardViewModel>();
     final authVm = context.watch<AuthViewModel>();
     final isKepalaBidang = authVm.isKepalaBidang;

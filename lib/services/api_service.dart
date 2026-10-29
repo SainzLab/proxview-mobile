@@ -22,6 +22,8 @@ class ApiException implements Exception {
     this.statusCode,
   });
 
+  bool get isCancelled => code == 'ERR-CANCEL';
+
   @override
   String toString() => '[$code] $message';
 
@@ -68,14 +70,17 @@ class ApiException implements Exception {
 class ProxViewApiService {
   final StorageService _storageService;
   late final Dio _dio;
+  String? _trustedHost = StorageService.extractHost(StorageService.defaultBaseUrl);
   void Function(int statusCode, String message)? onUnauthorizedOrForbidden;
 
   ProxViewApiService(this._storageService) {
     _dio = Dio(
       BaseOptions(
         baseUrl: StorageService.defaultBaseUrl,
-        connectTimeout: const Duration(seconds: 12),
-        receiveTimeout: const Duration(seconds: 15),
+        // Timeout dijaga di bawah interval polling agar tidak terjadi penumpukan request
+        connectTimeout: const Duration(seconds: 6),
+        receiveTimeout: const Duration(seconds: 8),
+        sendTimeout: const Duration(seconds: 6),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -83,13 +88,24 @@ class ProxViewApiService {
       ),
     );
 
-    // Izinkan self-signed HTTPS certificate untuk IP/Domain lokal maupun publik
+    // Hanya izinkan self-signed HTTPS certificate khusus untuk host server yang dikonfigurasi
     if (!kIsWeb) {
       _dio.httpClientAdapter = IOHttpClientAdapter(
         createHttpClient: () {
           final client = HttpClient();
           client.badCertificateCallback =
-              (X509Certificate cert, String host, int port) => true;
+              (X509Certificate cert, String host, int port) {
+            final normalizedHost = host.trim().toLowerCase();
+            final trusted = _trustedHost;
+            if (trusted != null && normalizedHost == trusted) return true;
+            const loopbackHosts = {'localhost', '127.0.0.1', '10.0.2.2'};
+            if (trusted != null &&
+                loopbackHosts.contains(trusted) &&
+                loopbackHosts.contains(normalizedHost)) {
+              return true;
+            }
+            return false;
+          };
           return client;
         },
       );
@@ -102,6 +118,7 @@ class ProxViewApiService {
             final currentBaseUrl = await _storageService.getBaseUrl();
             options.baseUrl = currentBaseUrl;
           }
+          _trustedHost = StorageService.extractHost(options.baseUrl);
 
           if (!options.path.contains('/auth/login')) {
             final token = await _storageService.getApiToken();
@@ -161,6 +178,12 @@ class ProxViewApiService {
         },
       ),
     );
+  }
+
+  /// Menutup seluruh koneksi socket HTTP aktif untuk mencegah kebocoran resource
+  void dispose() {
+    onUnauthorizedOrForbidden = null;
+    _dio.close(force: true);
   }
 
   ({String code, String message}) _extractErrorInfo(DioException e) {
@@ -392,9 +415,9 @@ class ProxViewApiService {
   // ===========================================================================
 
   /// 3. GET /api/mobile/v1/system/status
-  Future<SystemStatusModel> getSystemStatus() async {
+  Future<SystemStatusModel> getSystemStatus({CancelToken? cancelToken}) async {
     try {
-      final res = await _dio.get('/system/status');
+      final res = await _dio.get('/system/status', cancelToken: cancelToken);
       final body = res.data as Map<String, dynamic>;
       return SystemStatusModel.fromJson(
         (body['data'] as Map<String, dynamic>?) ?? const {},
@@ -405,11 +428,15 @@ class ProxViewApiService {
   }
 
   /// 4. GET /api/mobile/v1/dashboard?timeframe=1h
-  Future<DashboardSummaryModel> getDashboardSummary({String timeframe = '1h'}) async {
+  Future<DashboardSummaryModel> getDashboardSummary({
+    String timeframe = '1h',
+    CancelToken? cancelToken,
+  }) async {
     try {
       final res = await _dio.get(
         '/dashboard',
         queryParameters: {'timeframe': timeframe},
+        cancelToken: cancelToken,
       );
       final body = res.data as Map<String, dynamic>;
       return DashboardSummaryModel.fromJson(
@@ -425,9 +452,9 @@ class ProxViewApiService {
   // ===========================================================================
 
   /// 5. GET /api/mobile/v1/alerts/active
-  Future<List<AlertModel>> getActiveAlerts() async {
+  Future<List<AlertModel>> getActiveAlerts({CancelToken? cancelToken}) async {
     try {
-      final res = await _dio.get('/alerts/active');
+      final res = await _dio.get('/alerts/active', cancelToken: cancelToken);
       final body = res.data as Map<String, dynamic>;
       final list = (body['data'] as List?) ?? const [];
       return list
@@ -439,11 +466,15 @@ class ProxViewApiService {
   }
 
   /// 6. GET /api/mobile/v1/alerts/history?limit=100
-  Future<List<AlertModel>> getAlertHistory({int limit = 100}) async {
+  Future<List<AlertModel>> getAlertHistory({
+    int limit = 100,
+    CancelToken? cancelToken,
+  }) async {
     try {
       final res = await _dio.get(
         '/alerts/history',
         queryParameters: {'limit': limit},
+        cancelToken: cancelToken,
       );
       final body = res.data as Map<String, dynamic>;
       final list = (body['data'] as List?) ?? const [];
@@ -485,9 +516,9 @@ class ProxViewApiService {
   }
 
   /// 9. GET /api/mobile/v1/incidents
-  Future<List<IncidentTicketModel>> getIncidents() async {
+  Future<List<IncidentTicketModel>> getIncidents({CancelToken? cancelToken}) async {
     try {
-      final res = await _dio.get('/incidents');
+      final res = await _dio.get('/incidents', cancelToken: cancelToken);
       final body = res.data as Map<String, dynamic>;
       final list = (body['data'] as List?) ?? const [];
       return list
@@ -499,9 +530,9 @@ class ProxViewApiService {
   }
 
   /// 9b. GET /api/mobile/v1/incidents/stats
-  Future<IncidentStatsModel> getIncidentStats() async {
+  Future<IncidentStatsModel> getIncidentStats({CancelToken? cancelToken}) async {
     try {
-      final res = await _dio.get('/incidents/stats');
+      final res = await _dio.get('/incidents/stats', cancelToken: cancelToken);
       final body = res.data as Map<String, dynamic>;
       return IncidentStatsModel.fromJson(
         (body['data'] as Map<String, dynamic>?) ?? const {},
@@ -519,6 +550,7 @@ class ProxViewApiService {
   Future<SlaAnalyticsResponseModel> getAnalytics({
     String period = '24h',
     String severity = 'ALL',
+    CancelToken? cancelToken,
   }) async {
     try {
       final res = await _dio.get(
@@ -527,6 +559,7 @@ class ProxViewApiService {
           'period': period,
           'severity': severity,
         },
+        cancelToken: cancelToken,
       );
       final body = res.data as Map<String, dynamic>;
       return SlaAnalyticsResponseModel.fromJson(body);
@@ -540,9 +573,9 @@ class ProxViewApiService {
   // ===========================================================================
 
   /// 11. GET /api/mobile/v1/targets
-  Future<List<NetworkTargetModel>> getTargets() async {
+  Future<List<NetworkTargetModel>> getTargets({CancelToken? cancelToken}) async {
     try {
-      final res = await _dio.get('/targets');
+      final res = await _dio.get('/targets', cancelToken: cancelToken);
       final body = res.data as Map<String, dynamic>;
       final list = (body['data'] as List?) ?? const [];
       return list
@@ -554,9 +587,15 @@ class ProxViewApiService {
   }
 
   /// 12. GET /api/mobile/v1/targets/:id/history
-  Future<List<TargetLatencyPointModel>> getTargetHistory(int targetId) async {
+  Future<List<TargetLatencyPointModel>> getTargetHistory(
+    int targetId, {
+    CancelToken? cancelToken,
+  }) async {
     try {
-      final res = await _dio.get('/targets/$targetId/history');
+      final res = await _dio.get(
+        '/targets/$targetId/history',
+        cancelToken: cancelToken,
+      );
       final body = res.data as Map<String, dynamic>;
       final list = (body['data'] as List?) ?? const [];
       return list
@@ -572,9 +611,11 @@ class ProxViewApiService {
   // ===========================================================================
 
   /// 13. GET /api/mobile/v1/proxmox
-  Future<List<ProxmoxServerModel>> getProxmoxServers() async {
+  Future<List<ProxmoxServerModel>> getProxmoxServers({
+    CancelToken? cancelToken,
+  }) async {
     try {
-      final res = await _dio.get('/proxmox');
+      final res = await _dio.get('/proxmox', cancelToken: cancelToken);
       final body = res.data as Map<String, dynamic>;
       final list = (body['data'] as List?) ?? const [];
       return list
@@ -586,9 +627,15 @@ class ProxViewApiService {
   }
 
   /// 14. GET /api/mobile/v1/proxmox/:id/status
-  Future<List<ProxmoxNodeStatusModel>> getProxmoxNodeStatus(int serverId) async {
+  Future<List<ProxmoxNodeStatusModel>> getProxmoxNodeStatus(
+    int serverId, {
+    CancelToken? cancelToken,
+  }) async {
     try {
-      final res = await _dio.get('/proxmox/$serverId/status');
+      final res = await _dio.get(
+        '/proxmox/$serverId/status',
+        cancelToken: cancelToken,
+      );
       final body = res.data as Map<String, dynamic>;
       final list = (body['data'] as List?) ?? const [];
       return list
@@ -600,9 +647,15 @@ class ProxViewApiService {
   }
 
   /// 15. GET /api/mobile/v1/proxmox/:id/resources
-  Future<ProxmoxResourcesBundle> getProxmoxResources(int serverId) async {
+  Future<ProxmoxResourcesBundle> getProxmoxResources(
+    int serverId, {
+    CancelToken? cancelToken,
+  }) async {
     try {
-      final res = await _dio.get('/proxmox/$serverId/resources');
+      final res = await _dio.get(
+        '/proxmox/$serverId/resources',
+        cancelToken: cancelToken,
+      );
       final body = res.data as Map<String, dynamic>;
       return ProxmoxResourcesBundle.fromJson(
         (body['data'] as Map<String, dynamic>?) ?? const {},
@@ -617,9 +670,14 @@ class ProxViewApiService {
   // ===========================================================================
 
   /// 16. GET /api/mobile/v1/proxmox/logs/tasks
-  Future<List<ProxmoxTaskLogModel>> getProxmoxTaskLogs() async {
+  Future<List<ProxmoxTaskLogModel>> getProxmoxTaskLogs({
+    CancelToken? cancelToken,
+  }) async {
     try {
-      final res = await _dio.get('/proxmox/logs/tasks');
+      final res = await _dio.get(
+        '/proxmox/logs/tasks',
+        cancelToken: cancelToken,
+      );
       final body = res.data as Map<String, dynamic>;
       final list = (body['data'] as List?) ?? const [];
       return list
@@ -631,9 +689,14 @@ class ProxViewApiService {
   }
 
   /// 17. GET /api/mobile/v1/proxmox/logs/cluster
-  Future<List<ProxmoxClusterLogModel>> getProxmoxClusterLogs() async {
+  Future<List<ProxmoxClusterLogModel>> getProxmoxClusterLogs({
+    CancelToken? cancelToken,
+  }) async {
     try {
-      final res = await _dio.get('/proxmox/logs/cluster');
+      final res = await _dio.get(
+        '/proxmox/logs/cluster',
+        cancelToken: cancelToken,
+      );
       final body = res.data as Map<String, dynamic>;
       final list = (body['data'] as List?) ?? const [];
       return list
@@ -648,11 +711,13 @@ class ProxViewApiService {
   Future<List<String>> getProxmoxTaskDetail({
     required String node,
     required String upid,
+    CancelToken? cancelToken,
   }) async {
     try {
       final res = await _dio.get(
         '/proxmox/logs/task-detail',
         queryParameters: {'node': node, 'upid': upid},
+        cancelToken: cancelToken,
       );
       final body = res.data as Map<String, dynamic>;
       final list = (body['data'] as List?) ?? const [];
@@ -668,11 +733,15 @@ class ProxViewApiService {
   }
 
   /// 19. GET /api/mobile/v1/logs/system?limit=200
-  Future<List<SystemAuditLogModel>> getSystemAuditLogs({int limit = 200}) async {
+  Future<List<SystemAuditLogModel>> getSystemAuditLogs({
+    int limit = 200,
+    CancelToken? cancelToken,
+  }) async {
     try {
       final res = await _dio.get(
         '/logs/system',
         queryParameters: {'limit': limit},
+        cancelToken: cancelToken,
       );
       final body = res.data as Map<String, dynamic>;
       final list = (body['data'] as List?) ?? const [];

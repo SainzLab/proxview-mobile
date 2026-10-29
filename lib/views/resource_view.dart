@@ -28,7 +28,7 @@ class _ResourceViewState extends State<ResourceView> {
 
   @override
   Widget build(BuildContext context) {
-    Theme.of(context);
+    AppTheme.of(context);
     final pveVm = context.watch<ProxmoxViewModel>();
     final netVm = context.watch<NetworkViewModel>();
 

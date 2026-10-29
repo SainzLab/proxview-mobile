@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../core/theme/app_theme.dart';
+import '../models/alert_incident_model.dart';
+import '../models/user_model.dart';
 import '../viewmodels/alert_incident_viewmodel.dart';
 import '../viewmodels/analytics_viewmodel.dart';
 import '../viewmodels/auth_viewmodel.dart';
@@ -31,17 +33,12 @@ class MainShellView extends StatefulWidget {
 class _MainShellViewState extends State<MainShellView>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   int _selectedIndex = 0;
+  final Set<int> _visitedTabs = {0};
+  bool? _lastIsKabid;
+  AppLifecycleState _lifecycleState = AppLifecycleState.resumed;
+  int _pollTick = 0;
   Timer? _pollingTimer;
   late AnimationController _syncController;
-
-  // Adaptive Theme Colors
-  static Color get _bgMain => AppTheme.bgMain;
-  static Color get _bgCard => AppTheme.bgCard;
-  static Color get _borderSubtle => AppTheme.borderColor;
-  static Color get _textMain => AppTheme.textMain;
-  static Color get _textSecondary => AppTheme.textSecondary;
-  static Color get _textMuted => AppTheme.textMuted;
-  static Color get _textHint => AppTheme.textHint;
 
   static const List<String> _teknisiTitles = [
     'Dashboard',
@@ -80,6 +77,7 @@ class _MainShellViewState extends State<MainShellView>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    _lifecycleState = state;
     if (state == AppLifecycleState.resumed && mounted) {
       final isKabid = context.read<AuthViewModel>().isKepalaBidang;
       context.read<AlertIncidentViewModel>().pollActiveAlerts(
@@ -99,22 +97,35 @@ class _MainShellViewState extends State<MainShellView>
 
   void _startBackgroundPolling() {
     _pollingTimer?.cancel();
-    _pollingTimer = Timer.periodic(const Duration(seconds: 7), (_) {
-      if (!mounted) return;
+    // Interval 12 detik (> receiveTimeout 8s) mencegah tumpukan request paralel
+    _pollingTimer = Timer.periodic(const Duration(seconds: 12), (_) {
+      if (!mounted || _lifecycleState != AppLifecycleState.resumed) return;
+      _pollTick++;
+
       final isKabid = context.read<AuthViewModel>().isKepalaBidang;
-      context.read<AlertIncidentViewModel>().pollActiveAlerts(
-        triggerNotifications: !isKabid,
-      );
+      final refreshAlertsFull = isKabid
+          ? (_selectedIndex == 0 || _selectedIndex == 1)
+          : (_selectedIndex == 1);
+
+      if (refreshAlertsFull) {
+        // Satu panggilan terpadu tanpa duplikasi pollActiveAlerts + fetchAll
+        context.read<AlertIncidentViewModel>().fetchAll(
+          showLoading: false,
+          triggerNotifications: !isKabid,
+        );
+      } else {
+        context.read<AlertIncidentViewModel>().pollActiveAlerts(
+          triggerNotifications: !isKabid,
+        );
+      }
 
       if (isKabid) {
         switch (_selectedIndex) {
           case 0:
             context.read<DashboardViewModel>().fetchDashboard(showLoading: false);
-            context.read<AlertIncidentViewModel>().fetchAll(showLoading: false);
-            context.read<AnalyticsViewModel>().fetchAnalytics(showLoading: false);
-            break;
-          case 1:
-            context.read<AlertIncidentViewModel>().fetchAll(showLoading: false);
+            if (_pollTick % 3 == 0) {
+              context.read<AnalyticsViewModel>().fetchAnalytics(showLoading: false);
+            }
             break;
           case 2:
             context.read<ProxmoxViewModel>().fetchProxmoxData(showLoading: false);
@@ -128,13 +139,21 @@ class _MainShellViewState extends State<MainShellView>
         switch (_selectedIndex) {
           case 0:
             context.read<DashboardViewModel>().fetchDashboard(showLoading: false);
-            context.read<AnalyticsViewModel>().fetchAnalytics(showLoading: false);
+            if (_pollTick % 3 == 0) {
+              context.read<AnalyticsViewModel>().fetchAnalytics(showLoading: false);
+            }
             break;
           case 2:
             context.read<ProxmoxViewModel>().fetchProxmoxData(showLoading: false);
             break;
           case 3:
             context.read<NetworkViewModel>().fetchTargets(showLoading: false);
+            break;
+          case 4:
+            context.read<AnalyticsViewModel>().fetchAnalytics(showLoading: false);
+            break;
+          case 5:
+            context.read<LogViewModel>().fetchLogs(showLoading: false);
             break;
         }
       }
@@ -143,7 +162,10 @@ class _MainShellViewState extends State<MainShellView>
 
   void _selectPage(int index) {
     final isKabid = context.read<AuthViewModel>().isKepalaBidang;
-    setState(() => _selectedIndex = index);
+    setState(() {
+      _selectedIndex = index;
+      _visitedTabs.add(index);
+    });
     if (isKabid) {
       switch (index) {
         case 0:
@@ -183,7 +205,11 @@ class _MainShellViewState extends State<MainShellView>
         context.read<AnalyticsViewModel>().fetchAnalytics(showLoading: false);
         break;
       case 5:
-        context.read<LogViewModel>().fetchLogs(showLoading: true);
+        final logVm = context.read<LogViewModel>();
+        final hasExistingLogs = logVm.taskLogs.isNotEmpty ||
+            logVm.clusterLogs.isNotEmpty ||
+            logVm.systemLogs.isNotEmpty;
+        logVm.fetchLogs(showLoading: !hasExistingLogs);
         break;
     }
   }
@@ -204,15 +230,34 @@ class _MainShellViewState extends State<MainShellView>
 
   @override
   Widget build(BuildContext context) {
-    final themeVm = context.watch<ThemeViewModel>();
-    final authVm = context.watch<AuthViewModel>();
-    final isKabid = authVm.isKepalaBidang;
+    final colors = AppTheme.of(context);
+    final isDarkMode = context.select<ThemeViewModel, bool>(
+      (vm) => vm.isDarkMode,
+    );
+    final isKabid = context.select<AuthViewModel, bool>(
+      (vm) => vm.isKepalaBidang,
+    );
+    if (_lastIsKabid != isKabid) {
+      _lastIsKabid = isKabid;
+      _visitedTabs
+        ..clear()
+        ..add(0);
+      if (_selectedIndex >= (isKabid ? _kabidTitles.length : _teknisiTitles.length)) {
+        _selectedIndex = 0;
+      }
+    }
+
     final titles = isKabid ? _kabidTitles : _teknisiTitles;
     final settingsIndex = isKabid ? 4 : 6;
     final safeIndex = _selectedIndex >= titles.length ? 0 : _selectedIndex;
+    _visitedTabs.add(safeIndex);
 
-    final alertVm = context.watch<AlertIncidentViewModel>();
-    final pendingCall = alertVm.pendingEmergencyCall;
+    final pendingCall = context.select<AlertIncidentViewModel, AlertModel?>(
+      (vm) => vm.pendingEmergencyCall,
+    );
+    final activeAlertCount = context.select<AlertIncidentViewModel, int>(
+      (vm) => vm.activeAlertCount,
+    );
 
     // Jika ada Emergency Call aktif ("action_type" == "Call") untuk Teknisi, tampilkan layar alarm penuh
     if (!isKabid && pendingCall != null) {
@@ -220,20 +265,25 @@ class _MainShellViewState extends State<MainShellView>
     }
 
     return Scaffold(
-      backgroundColor: _bgMain,
-      drawer: _buildDrawer(context, alertVm.activeAlertCount, isKabid: isKabid),
+      backgroundColor: colors.bgMain,
+      drawer: _buildDrawer(
+        context,
+        activeAlertCount,
+        isKabid: isKabid,
+        colors: colors,
+      ),
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: _bgMain,
+        backgroundColor: colors.bgMain,
         scrolledUnderElevation: 0,
-        iconTheme: IconThemeData(color: _textMain),
+        iconTheme: IconThemeData(color: colors.textMain),
         title: Row(
           children: [
             Expanded(
               child: Text(
                 titles[safeIndex],
                 style: TextStyle(
-                  color: _textMain,
+                  color: colors.textMain,
                   fontWeight: FontWeight.w900,
                   fontSize: 20,
                   letterSpacing: -0.5,
@@ -246,19 +296,19 @@ class _MainShellViewState extends State<MainShellView>
         ),
         actions: [
           IconButton(
-            onPressed: () => themeVm.toggleTheme(),
-            tooltip: themeVm.isDarkMode ? 'Beralih ke Mode Terang' : 'Beralih ke Mode Gelap',
+            onPressed: () => context.read<ThemeViewModel>().toggleTheme(),
+            tooltip: isDarkMode ? 'Beralih ke Mode Terang' : 'Beralih ke Mode Gelap',
             icon: Icon(
-              themeVm.isDarkMode ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-              color: themeVm.isDarkMode ? AppTheme.statusWarning : _textSecondary,
+              isDarkMode ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+              color: isDarkMode ? AppTheme.statusWarning : colors.textSecondary,
               size: 21,
             ),
           ),
-          if (alertVm.activeAlertCount > 0 && safeIndex != 1)
+          if (activeAlertCount > 0 && safeIndex != 1)
             IconButton(
               onPressed: () => _selectPage(1),
               icon: Badge(
-                label: Text('${alertVm.activeAlertCount}', style: const TextStyle(color: Colors.white)),
+                label: Text('$activeAlertCount', style: const TextStyle(color: Colors.white)),
                 backgroundColor: AppTheme.statusDown,
                 child: const Icon(
                   Icons.notifications_active_rounded,
@@ -274,7 +324,7 @@ class _MainShellViewState extends State<MainShellView>
                   parent: _syncController,
                   curve: Curves.easeInOut,
                 )),
-                child: Icon(Icons.sync_rounded, color: _textSecondary),
+                child: Icon(Icons.sync_rounded, color: colors.textSecondary),
               ),
             ),
           const SizedBox(width: 8),
@@ -285,8 +335,21 @@ class _MainShellViewState extends State<MainShellView>
   }
 
   Widget _buildBody({required bool isKabid, required int safeIndex}) {
+    final tabCount = isKabid ? _kabidTitles.length : _teknisiTitles.length;
+    return IndexedStack(
+      index: safeIndex,
+      children: List.generate(tabCount, (index) {
+        if (!_visitedTabs.contains(index)) {
+          return const SizedBox.shrink();
+        }
+        return _buildTabPage(isKabid: isKabid, index: index);
+      }),
+    );
+  }
+
+  Widget _buildTabPage({required bool isKabid, required int index}) {
     if (isKabid) {
-      switch (safeIndex) {
+      switch (index) {
         case 0:
           return DashboardView(
             onOpenIncidentsTab: () => _selectPage(1),
@@ -302,15 +365,11 @@ class _MainShellViewState extends State<MainShellView>
         case 4:
           return const SettingsView();
         default:
-          return DashboardView(
-            onOpenIncidentsTab: () => _selectPage(1),
-            onOpenResourceTab: () => _selectPage(2),
-            onOpenAnalyticsTab: () => _selectPage(3),
-          );
+          return const SizedBox.shrink();
       }
     }
 
-    switch (safeIndex) {
+    switch (index) {
       case 0:
         return DashboardView(onOpenIncidentsTab: () => _selectPage(1));
       case 1:
@@ -326,7 +385,7 @@ class _MainShellViewState extends State<MainShellView>
       case 6:
         return const SettingsView();
       default:
-        return DashboardView(onOpenIncidentsTab: () => _selectPage(1));
+        return const SizedBox.shrink();
     }
   }
 
@@ -334,13 +393,16 @@ class _MainShellViewState extends State<MainShellView>
     BuildContext context,
     int activeAlerts, {
     required bool isKabid,
+    required ProxViewThemeColors colors,
   }) {
-    final user = context.watch<AuthViewModel>().currentUser;
+    final user = context.select<AuthViewModel, UserModel?>(
+      (vm) => vm.currentUser,
+    );
     final userName = user?.name ?? 'User';
     final userInitial = userName.isNotEmpty ? userName[0].toUpperCase() : 'U';
 
     return Drawer(
-      backgroundColor: _bgCard,
+      backgroundColor: colors.bgCard,
       surfaceTintColor: Colors.transparent,
       child: Column(
         children: [
@@ -352,48 +414,50 @@ class _MainShellViewState extends State<MainShellView>
               gradient: LinearGradient(
                 colors: [
                   AppTheme.statusTeal.withValues(alpha: 0.08),
-                  _bgCard,
+                  colors.bgCard,
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              border: Border(bottom: BorderSide(color: _borderSubtle)),
+              border: Border(bottom: BorderSide(color: colors.borderColor)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Trik UI: Drop Shadow Logo agar teks putih terbaca di light mode
-                Stack(
-                  alignment: Alignment.centerLeft,
-                  children: [
-                    // Layer 1: Shadow (Glow Gelap)
-                    Transform.translate(
-                      offset: const Offset(0, 1.5),
-                      child: ImageFiltered(
-                        imageFilter: ImageFilter.blur(sigmaX: 2.5, sigmaY: 2.5),
-                        child: Image.asset(
-                          'assets/diskominfosubang.png',
-                          height: 56,
-                          fit: BoxFit.contain,
-                          alignment: Alignment.centerLeft,
-                          color: Colors.black.withValues(alpha: 0.55),
+                RepaintBoundary(
+                  child: Stack(
+                    alignment: Alignment.centerLeft,
+                    children: [
+                      // Layer 1: Shadow (Glow Gelap)
+                      Transform.translate(
+                        offset: const Offset(0, 1.5),
+                        child: ImageFiltered(
+                          imageFilter: ImageFilter.blur(sigmaX: 2.5, sigmaY: 2.5),
+                          child: Image.asset(
+                            'assets/diskominfosubang.png',
+                            height: 56,
+                            fit: BoxFit.contain,
+                            alignment: Alignment.centerLeft,
+                            color: Colors.black.withValues(alpha: 0.55),
+                          ),
                         ),
                       ),
-                    ),
-                    // Layer 2: Original Logo
-                    Image.asset(
-                      'assets/diskominfosubang.png',
-                      height: 56,
-                      fit: BoxFit.contain,
-                      alignment: Alignment.centerLeft,
-                    ),
-                  ],
+                      // Layer 2: Original Logo
+                      Image.asset(
+                        'assets/diskominfosubang.png',
+                        height: 56,
+                        fit: BoxFit.contain,
+                        alignment: Alignment.centerLeft,
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Text(
                   'ProxView Monitoring Server Proxmox',
                   style: TextStyle(
-                    color: _textMuted,
+                    color: colors.textMuted,
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 1.6,
@@ -414,34 +478,39 @@ class _MainShellViewState extends State<MainShellView>
                         Icons.space_dashboard_rounded,
                         _kabidTitles[0],
                         0,
+                        colors: colors,
                       ),
                       _buildDrawerItem(
                         Icons.assignment_late_rounded,
                         _kabidTitles[1],
                         1,
+                        colors: colors,
                         badgeCount: activeAlerts,
                       ),
                       _buildDrawerItem(
                         Icons.hub_rounded,
                         _kabidTitles[2],
                         2,
+                        colors: colors,
                       ),
                       _buildDrawerItem(
                         Icons.insert_chart_rounded,
                         _kabidTitles[3],
                         3,
+                        colors: colors,
                       ),
                       Padding(
                         padding: const EdgeInsets.symmetric(
                           vertical: 12,
                           horizontal: 24,
                         ),
-                        child: Divider(color: _borderSubtle, height: 1),
+                        child: Divider(color: colors.borderColor, height: 1),
                       ),
                       _buildDrawerItem(
                         Icons.settings_rounded,
                         _kabidTitles[4],
                         4,
+                        colors: colors,
                       ),
                     ]
                   : [
@@ -449,44 +518,51 @@ class _MainShellViewState extends State<MainShellView>
                         Icons.dashboard_customize_rounded,
                         _teknisiTitles[0],
                         0,
+                        colors: colors,
                       ),
                       _buildDrawerItem(
                         Icons.crisis_alert_rounded,
                         _teknisiTitles[1],
                         1,
+                        colors: colors,
                         badgeCount: activeAlerts,
                       ),
                       _buildDrawerItem(
                         Icons.dns_rounded,
                         _teknisiTitles[2],
                         2,
+                        colors: colors,
                       ),
                       _buildDrawerItem(
                         Icons.router_rounded,
                         _teknisiTitles[3],
                         3,
+                        colors: colors,
                       ),
                       _buildDrawerItem(
                         Icons.insert_chart_rounded,
                         _teknisiTitles[4],
                         4,
+                        colors: colors,
                       ),
                       Padding(
                         padding: const EdgeInsets.symmetric(
                           vertical: 12,
                           horizontal: 24,
                         ),
-                        child: Divider(color: _borderSubtle, height: 1),
+                        child: Divider(color: colors.borderColor, height: 1),
                       ),
                       _buildDrawerItem(
                         Icons.terminal_rounded,
                         _teknisiTitles[5],
                         5,
+                        colors: colors,
                       ),
                       _buildDrawerItem(
                         Icons.settings_rounded,
                         _teknisiTitles[6],
                         6,
+                        colors: colors,
                       ),
                     ],
             ),
@@ -499,8 +575,8 @@ class _MainShellViewState extends State<MainShellView>
               child: Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: _bgCard,
-                  border: Border(top: BorderSide(color: _borderSubtle)),
+                  color: colors.bgCard,
+                  border: Border(top: BorderSide(color: colors.borderColor)),
                 ),
                 child: Row(
                   children: [
@@ -524,7 +600,7 @@ class _MainShellViewState extends State<MainShellView>
                           Text(
                             userName,
                             style: TextStyle(
-                              color: _textMain,
+                              color: colors.textMain,
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
                             ),
@@ -564,6 +640,7 @@ class _MainShellViewState extends State<MainShellView>
     IconData icon,
     String title,
     int index, {
+    required ProxViewThemeColors colors,
     int badgeCount = 0,
   }) {
     final isSelected = _selectedIndex == index;
@@ -581,13 +658,13 @@ class _MainShellViewState extends State<MainShellView>
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
         leading: Icon(
           icon,
-          color: isSelected ? AppTheme.statusTeal : _textHint,
+          color: isSelected ? AppTheme.statusTeal : colors.textHint,
           size: 21,
         ),
         title: Text(
           title,
           style: TextStyle(
-            color: isSelected ? _textMain : _textSecondary,
+            color: isSelected ? colors.textMain : colors.textSecondary,
             fontSize: 13,
             fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
             letterSpacing: 0.2,

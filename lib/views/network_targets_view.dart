@@ -18,7 +18,6 @@ class NetworkTargetsView extends StatefulWidget {
 
 class _NetworkTargetsViewState extends State<NetworkTargetsView>
     with SingleTickerProviderStateMixin {
-  Timer? _pollingTimer;
   final TextEditingController _searchController = TextEditingController();
   late TabController _tabController;
 
@@ -35,21 +34,15 @@ class _NetworkTargetsViewState extends State<NetworkTargetsView>
   @override
   void initState() {
     super.initState();
-    final initialFilter = context.read<NetworkViewModel>().protocolFilter;
-    final initialIndex = _filters.indexOf(initialFilter);
+    final vm = context.read<NetworkViewModel>();
+    _searchController.text = vm.searchQuery;
+    final initialIndex = _filters.indexOf(vm.protocolFilter);
     _tabController = TabController(
       length: _filters.length,
       vsync: this,
       initialIndex: initialIndex >= 0 ? initialIndex : 0,
     );
     _tabController.addListener(_onTabChanged);
-
-    // Real-time update setiap 10 detik
-    _pollingTimer = Timer.periodic(const Duration(seconds: 10), (_) {
-      if (mounted) {
-        context.read<NetworkViewModel>().fetchTargets(showLoading: false);
-      }
-    });
   }
 
   void _onTabChanged() {
@@ -64,7 +57,6 @@ class _NetworkTargetsViewState extends State<NetworkTargetsView>
 
   @override
   void dispose() {
-    _pollingTimer?.cancel();
     _searchController.dispose();
     _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
@@ -78,14 +70,20 @@ class _NetworkTargetsViewState extends State<NetworkTargetsView>
 
   @override
   Widget build(BuildContext context) {
-    Theme.of(context);
+    AppTheme.of(context);
     final vm = context.watch<NetworkViewModel>();
 
     final filterIndex = _filters.indexOf(vm.protocolFilter);
     if (filterIndex >= 0 &&
         _tabController.index != filterIndex &&
         !_tabController.indexIsChanging) {
-      _tabController.animateTo(filterIndex);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted &&
+            _tabController.index != filterIndex &&
+            !_tabController.indexIsChanging) {
+          _tabController.animateTo(filterIndex);
+        }
+      });
     }
 
     if (vm.isLoading && vm.allTargets.isEmpty) {
@@ -322,6 +320,7 @@ class _TargetHistoryBottomSheet extends StatefulWidget {
 
 class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
   Timer? _historyTimer;
+  late final NetworkViewModel _networkVm;
 
   static Color get _textMain => AppTheme.textMain;
   static Color get _textSecondary => AppTheme.textSecondary;
@@ -333,29 +332,43 @@ class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
   @override
   void initState() {
     super.initState();
+    _networkVm = context.read<NetworkViewModel>();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        context.read<NetworkViewModel>().fetchTargetHistory(widget.target.id, showLoading: true);
+        _networkVm.fetchTargetHistory(widget.target.id, showLoading: true);
       }
     });
 
-    final intervalSec = widget.target.checkInterval > 0 ? widget.target.checkInterval : 5;
-    _historyTimer = Timer.periodic(Duration(seconds: intervalSec), (_) {
+    // Batasi interval minimum >= 8 detik agar tidak membanjiri soket jaringan
+    final rawInterval = widget.target.checkInterval > 0
+        ? widget.target.checkInterval
+        : 10;
+    final safeIntervalSec = rawInterval < 8
+        ? 8
+        : (rawInterval > 300 ? 300 : rawInterval);
+    _historyTimer = Timer.periodic(Duration(seconds: safeIntervalSec), (_) {
       if (mounted) {
-        context.read<NetworkViewModel>().fetchTargetHistory(widget.target.id, showLoading: false);
+        _networkVm.fetchTargetHistory(widget.target.id, showLoading: false);
       }
     });
+  }
+
+  @override
+  void deactivate() {
+    _historyTimer?.cancel();
+    super.deactivate();
   }
 
   @override
   void dispose() {
     _historyTimer?.cancel();
+    _networkVm.cancelHistoryFetch();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    Theme.of(context);
+    AppTheme.of(context);
     final target = widget.target;
     final statusColor = target.isUp ? AppTheme.statusTeal : AppTheme.statusDown;
 

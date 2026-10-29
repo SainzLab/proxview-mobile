@@ -9,16 +9,24 @@ import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
+import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyProperties
+import android.util.Base64
 import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
+import java.security.KeyStore
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
+import javax.crypto.Cipher
+import javax.crypto.KeyGenerator
+import javax.crypto.SecretKey
+import javax.crypto.spec.GCMParameterSpec
 import javax.net.ssl.HostnameVerifier
 import javax.net.ssl.HttpsURLConnection
 import javax.net.ssl.SSLContext
@@ -29,11 +37,122 @@ class MonitoringForegroundService : Service() {
     companion object {
         const val PREFS_NAME = "proxview_bg_prefs"
         const val KEY_BASE_URL = "base_url"
-        const val KEY_API_TOKEN = "api_token"
+        const val KEY_API_TOKEN_ENC = "api_token_enc"
+        private const val LEGACY_KEY_API_TOKEN = "api_token"
         const val KEY_ENABLED = "enabled"
         const val KEY_KNOWN_ALERTS = "known_alerts_json"
         const val KEY_DISMISSED_CALLS = "dismissed_calls_csv"
         private const val FG_NOTIFICATION_ID = 99001
+        private const val KEYSTORE_ALIAS = "ProxViewBgTokenKey"
+        private const val ANDROID_KEYSTORE = "AndroidKeyStore"
+
+        private fun getOrCreateSecretKey(): SecretKey? {
+            return try {
+                val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }
+                val existing = keyStore.getEntry(KEYSTORE_ALIAS, null) as? KeyStore.SecretKeyEntry
+                if (existing != null) return existing.secretKey
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    val keyGenerator = KeyGenerator.getInstance(
+                        KeyProperties.KEY_ALGORITHM_AES,
+                        ANDROID_KEYSTORE
+                    )
+                    val spec = KeyGenParameterSpec.Builder(
+                        KEYSTORE_ALIAS,
+                        KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
+                    )
+                        .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+                        .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+                        .setKeySize(256)
+                        .build()
+                    keyGenerator.init(spec)
+                    keyGenerator.generateKey()
+                } else {
+                    null
+                }
+            } catch (_: Exception) {
+                null
+            }
+        }
+
+        private fun encryptToken(plainText: String): String? {
+            if (plainText.isBlank()) return null
+            return try {
+                val secretKey = getOrCreateSecretKey() ?: return null
+                val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+                cipher.init(Cipher.ENCRYPT_MODE, secretKey)
+                val iv = cipher.iv
+                val encrypted = cipher.doFinal(plainText.toByteArray(Charsets.UTF_8))
+                val ivB64 = Base64.encodeToString(iv, Base64.NO_WRAP)
+                val encB64 = Base64.encodeToString(encrypted, Base64.NO_WRAP)
+                "$ivB64:$encB64"
+            } catch (_: Exception) {
+                null
+            }
+        }
+
+        private fun decryptToken(payload: String?): String? {
+            if (payload.isNullOrBlank()) return null
+            val parts = payload.split(":")
+            if (parts.size != 2) return null
+            return try {
+                val secretKey = getOrCreateSecretKey() ?: return null
+                val iv = Base64.decode(parts[0], Base64.NO_WRAP)
+                val cipherBytes = Base64.decode(parts[1], Base64.NO_WRAP)
+                val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+                cipher.init(Cipher.DECRYPT_MODE, secretKey, GCMParameterSpec(128, iv))
+                String(cipher.doFinal(cipherBytes), Charsets.UTF_8)
+            } catch (_: Exception) {
+                null
+            }
+        }
+
+        fun saveServiceConfig(
+            context: Context,
+            baseUrl: String,
+            apiToken: String,
+            enabled: Boolean
+        ) {
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val encrypted = encryptToken(apiToken)
+            val editor = prefs.edit()
+                .putString(KEY_BASE_URL, baseUrl)
+                .putBoolean(KEY_ENABLED, enabled)
+                .remove(LEGACY_KEY_API_TOKEN)
+            if (encrypted != null) {
+                editor.putString(KEY_API_TOKEN_ENC, encrypted)
+            } else {
+                editor.remove(KEY_API_TOKEN_ENC)
+            }
+            editor.apply()
+        }
+
+        fun clearServiceConfig(context: Context) {
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            prefs.edit()
+                .putBoolean(KEY_ENABLED, false)
+                .remove(KEY_API_TOKEN_ENC)
+                .remove(LEGACY_KEY_API_TOKEN)
+                .apply()
+        }
+
+        fun readDecryptedToken(context: Context): String? {
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val enc = prefs.getString(KEY_API_TOKEN_ENC, null)
+            if (!enc.isNullOrBlank()) {
+                return decryptToken(enc)
+            }
+            // Migrasi otomatis bila masih ada token lama yang belum terenkripsi
+            val legacy = prefs.getString(LEGACY_KEY_API_TOKEN, null)?.trim()
+            if (!legacy.isNullOrEmpty()) {
+                val newEnc = encryptToken(legacy)
+                val editor = prefs.edit().remove(LEGACY_KEY_API_TOKEN)
+                if (newEnc != null) editor.putString(KEY_API_TOKEN_ENC, newEnc)
+                editor.apply()
+                return legacy
+            }
+            return null
+        }
 
         fun markCallDismissed(context: Context, alertId: Int) {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -72,12 +191,10 @@ class MonitoringForegroundService : Service() {
     }
 
     private var scheduler: ScheduledExecutorService? = null
-    private var wakeLock: PowerManager.WakeLock? = null
 
     override fun onCreate() {
         super.onCreate()
         CallRingtoneManager.ensureChannels(this)
-        acquireWakeLock()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -102,7 +219,6 @@ class MonitoringForegroundService : Service() {
 
     override fun onDestroy() {
         stopPollingLoop()
-        releaseWakeLock()
         super.onDestroy()
     }
 
@@ -147,8 +263,8 @@ class MonitoringForegroundService : Service() {
                 } catch (_: Exception) {
                 }
             },
-            4L,
-            7L,
+            5L,
+            15L,
             TimeUnit.SECONDS
         )
     }
@@ -163,94 +279,112 @@ class MonitoringForegroundService : Service() {
     }
 
     private fun pollActiveAlertsInBackground() {
-        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val enabled = prefs.getBoolean(KEY_ENABLED, false)
-        val baseUrl = prefs.getString(KEY_BASE_URL, null)?.trim()
-        val token = prefs.getString(KEY_API_TOKEN, null)?.trim()
+        val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+        val tempWakeLock = pm.newWakeLock(
+            PowerManager.PARTIAL_WAKE_LOCK,
+            "ProxView:TempPollWakeLock"
+        ).apply { setReferenceCounted(false) }
 
-        if (!enabled || baseUrl.isNullOrEmpty() || token.isNullOrEmpty()) return
+        try {
+            // WakeLock sementara dengan batas waktu 10 detik agar CPU tetap bisa masuk Doze Mode
+            tempWakeLock.acquire(10_000L)
 
-        val responseStr = fetchAlertsJson(baseUrl, token) ?: return
-        val root = JSONObject(responseStr)
-        if (!root.optBoolean("success", false)) return
+            val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val enabled = prefs.getBoolean(KEY_ENABLED, false)
+            val baseUrl = prefs.getString(KEY_BASE_URL, null)?.trim()
+            val token = readDecryptedToken(this)?.trim()
 
-        val dataArray = root.optJSONArray("data") ?: return
+            if (!enabled || baseUrl.isNullOrEmpty() || token.isNullOrEmpty()) return
 
-        val knownJsonStr = prefs.getString(KEY_KNOWN_ALERTS, "{}") ?: "{}"
-        val knownObj = try {
-            JSONObject(knownJsonStr)
-        } catch (_: Exception) {
-            JSONObject()
-        }
-        val dismissedSet = getDismissedSet(this)
+            val responseStr = fetchAlertsJson(baseUrl, token) ?: return
+            val root = JSONObject(responseStr)
+            if (!root.optBoolean("success", false)) return
 
-        val currentIds = mutableSetOf<String>()
-        var activeCallStillPresent = false
+            val dataArray = root.optJSONArray("data") ?: return
 
-        for (i in 0 until dataArray.length()) {
-            val item = dataArray.optJSONObject(i) ?: continue
-            val id = item.optInt("id", -1)
-            if (id <= 0) continue
-            val idKey = id.toString()
-            currentIds.add(idKey)
+            val knownJsonStr = prefs.getString(KEY_KNOWN_ALERTS, "{}") ?: "{}"
+            val knownObj = try {
+                JSONObject(knownJsonStr)
+            } catch (_: Exception) {
+                JSONObject()
+            }
+            val dismissedSet = getDismissedSet(this)
 
-            val severity = item.optString("severity", "WARNING").trim()
-            val targetType = item.optString("target_type", "SYSTEM").trim()
-            val targetName = item.optString("target_name", "Target").trim()
-            val message = item.optString("message", "Terdeteksi gangguan sistem").trim()
-            val actionType = item.optString("action_type", "Pesan").trim()
-            val handlerCount = item.optInt("handler_count", 0)
-            val technicians = item.optString("technicians", "").trim()
-            val isBeingHandled = handlerCount > 0 || technicians.isNotEmpty()
-            val isCall = actionType.equals("call", ignoreCase = true)
+            val currentIds = mutableSetOf<String>()
+            var activeCallStillPresent = false
 
-            val prevSeverity = if (knownObj.has(idKey)) knownObj.optString(idKey) else null
-            val isNewOrChanged = prevSeverity == null || !prevSeverity.equals(severity, ignoreCase = true)
-            knownObj.put(idKey, severity)
+            for (i in 0 until dataArray.length()) {
+                val item = dataArray.optJSONObject(i) ?: continue
+                val id = item.optInt("id", -1)
+                if (id <= 0) continue
+                val idKey = id.toString()
+                currentIds.add(idKey)
 
-            if (isCall && !isBeingHandled && !severity.equals("RECOVERED", ignoreCase = true) && !dismissedSet.contains(id)) {
-                activeCallStillPresent = true
-                if (isNewOrChanged) {
-                    CallRingtoneManager.triggerIncomingCall(
+                val severity = item.optString("severity", "WARNING").trim()
+                val targetType = item.optString("target_type", "SYSTEM").trim()
+                val targetName = item.optString("target_name", "Target").trim()
+                val message = item.optString("message", "Terdeteksi gangguan sistem").trim()
+                val actionType = item.optString("action_type", "Pesan").trim()
+                val handlerCount = item.optInt("handler_count", 0)
+                val technicians = item.optString("technicians", "").trim()
+                val isBeingHandled = handlerCount > 0 || technicians.isNotEmpty()
+                val isCall = actionType.equals("call", ignoreCase = true)
+
+                val prevSeverity = if (knownObj.has(idKey)) knownObj.optString(idKey) else null
+                val isNewOrChanged = prevSeverity == null || !prevSeverity.equals(severity, ignoreCase = true)
+                knownObj.put(idKey, severity)
+
+                if (isCall && !isBeingHandled && !severity.equals("RECOVERED", ignoreCase = true) && !dismissedSet.contains(id)) {
+                    activeCallStillPresent = true
+                    if (isNewOrChanged) {
+                        CallRingtoneManager.triggerIncomingCall(
+                            context = this,
+                            alertId = id,
+                            severity = severity,
+                            targetType = targetType,
+                            targetName = targetName,
+                            message = message,
+                            launchActivityIfBackground = true
+                        )
+                    }
+                } else if (isNewOrChanged) {
+                    CallRingtoneManager.showStandardAlertNotification(
                         context = this,
                         alertId = id,
                         severity = severity,
-                        targetType = targetType,
                         targetName = targetName,
-                        message = message,
-                        launchActivityIfBackground = true
+                        message = message
                     )
                 }
-            } else if (isNewOrChanged) {
-                CallRingtoneManager.showStandardAlertNotification(
-                    context = this,
-                    alertId = id,
-                    severity = severity,
-                    targetName = targetName,
-                    message = message
-                )
+            }
+
+            // Jika semua panggilan darurat sudah RECOVERED atau sudah ditangani teknisi lain, hentikan dering
+            if (!activeCallStillPresent) {
+                CallRingtoneManager.stopRingtoneAndVibrationOnly()
+            }
+
+            // Bersihkan ID alert yang sudah tidak aktif dari knownObj
+            val keysToRemove = mutableListOf<String>()
+            val keysIter = knownObj.keys()
+            while (keysIter.hasNext()) {
+                val k = keysIter.next()
+                if (!currentIds.contains(k)) {
+                    keysToRemove.add(k)
+                }
+            }
+            for (k in keysToRemove) {
+                knownObj.remove(k)
+            }
+
+            prefs.edit().putString(KEY_KNOWN_ALERTS, knownObj.toString()).apply()
+        } finally {
+            try {
+                if (tempWakeLock.isHeld) {
+                    tempWakeLock.release()
+                }
+            } catch (_: Exception) {
             }
         }
-
-        // Jika semua panggilan darurat sudah RECOVERED atau sudah ditangani teknisi lain, hentikan dering
-        if (!activeCallStillPresent) {
-            CallRingtoneManager.stopRingtoneAndVibrationOnly()
-        }
-
-        // Bersihkan ID alert yang sudah tidak aktif dari knownObj
-        val keysToRemove = mutableListOf<String>()
-        val keysIter = knownObj.keys()
-        while (keysIter.hasNext()) {
-            val k = keysIter.next()
-            if (!currentIds.contains(k)) {
-                keysToRemove.add(k)
-            }
-        }
-        for (k in keysToRemove) {
-            knownObj.remove(k)
-        }
-
-        prefs.edit().putString(KEY_KNOWN_ALERTS, knownObj.toString()).apply()
     }
 
     private fun fetchAlertsJson(baseUrl: String, token: String): String? {
@@ -273,13 +407,14 @@ class MonitoringForegroundService : Service() {
         var conn: HttpURLConnection? = null
         return try {
             val url = URL(urlStr)
+            val expectedHost = url.host ?: ""
             conn = (url.openConnection() as HttpURLConnection).apply {
                 if (this is HttpsURLConnection) {
-                    trustAllHttps(this)
+                    configureTargetHttps(this, expectedHost)
                 }
                 requestMethod = "GET"
-                connectTimeout = 10_000
-                readTimeout = 12_000
+                connectTimeout = 6_000
+                readTimeout = 8_000
                 setRequestProperty("Accept", "application/json")
                 setRequestProperty("Content-Type", "application/json")
                 setRequestProperty("Authorization", "Bearer $token")
@@ -296,45 +431,30 @@ class MonitoringForegroundService : Service() {
         }
     }
 
-    private fun trustAllHttps(conn: HttpsURLConnection) {
+    private fun configureTargetHttps(conn: HttpsURLConnection, expectedHost: String) {
         try {
-            val trustAllCerts = arrayOf<TrustManager>(
+            val targetHostLower = expectedHost.trim().lowercase()
+            if (targetHostLower.isEmpty()) return
+
+            val selfSignedTargetTrust = arrayOf<TrustManager>(
                 object : X509TrustManager {
                     override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String) {}
-                    override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) {}
+                    override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) {
+                        if (chain.isEmpty()) throw java.security.cert.CertificateException("Empty certificate chain")
+                    }
                     override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
                 }
             )
             val sslContext = SSLContext.getInstance("TLS")
-            sslContext.init(null, trustAllCerts, SecureRandom())
+            sslContext.init(null, selfSignedTargetTrust, SecureRandom())
             conn.sslSocketFactory = sslContext.socketFactory
-            conn.hostnameVerifier = HostnameVerifier { _, _ -> true }
-        } catch (_: Exception) {
-        }
-    }
-
-    private fun acquireWakeLock() {
-        try {
-            val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
-            wakeLock = pm.newWakeLock(
-                PowerManager.PARTIAL_WAKE_LOCK,
-                "ProxView:BackgroundMonitorWakeLock"
-            ).apply {
-                setReferenceCounted(false)
-                acquire()
+            conn.hostnameVerifier = HostnameVerifier { hostname, _ ->
+                val actual = hostname?.trim()?.lowercase() ?: ""
+                actual == targetHostLower ||
+                    (targetHostLower in setOf("localhost", "127.0.0.1", "10.0.2.2") &&
+                        actual in setOf("localhost", "127.0.0.1", "10.0.2.2"))
             }
         } catch (_: Exception) {
-        }
-    }
-
-    private fun releaseWakeLock() {
-        try {
-            wakeLock?.let {
-                if (it.isHeld) it.release()
-            }
-        } catch (_: Exception) {
-        } finally {
-            wakeLock = null
         }
     }
 }

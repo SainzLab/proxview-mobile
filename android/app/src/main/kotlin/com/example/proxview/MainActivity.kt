@@ -44,15 +44,12 @@ class MainActivity : FlutterActivity() {
                         val apiToken = call.argument<String>("apiToken") ?: ""
                         val enabled = call.argument<Boolean>("enabled") ?: false
 
-                        val prefs = getSharedPreferences(
-                            MonitoringForegroundService.PREFS_NAME,
-                            Context.MODE_PRIVATE
+                        MonitoringForegroundService.saveServiceConfig(
+                            context = this,
+                            baseUrl = baseUrl,
+                            apiToken = apiToken,
+                            enabled = enabled
                         )
-                        prefs.edit()
-                            .putString(MonitoringForegroundService.KEY_BASE_URL, baseUrl)
-                            .putString(MonitoringForegroundService.KEY_API_TOKEN, apiToken)
-                            .putBoolean(MonitoringForegroundService.KEY_ENABLED, enabled)
-                            .apply()
 
                         val serviceIntent = Intent(this, MonitoringForegroundService::class.java)
                         try {
@@ -71,13 +68,7 @@ class MainActivity : FlutterActivity() {
                     }
 
                     "stopService" -> {
-                        val prefs = getSharedPreferences(
-                            MonitoringForegroundService.PREFS_NAME,
-                            Context.MODE_PRIVATE
-                        )
-                        prefs.edit()
-                            .putBoolean(MonitoringForegroundService.KEY_ENABLED, false)
-                            .apply()
+                        MonitoringForegroundService.clearServiceConfig(this)
                         try {
                             stopService(Intent(this, MonitoringForegroundService::class.java))
                         } catch (_: Exception) {

@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -17,68 +16,80 @@ import 'views/login_view.dart';
 import 'views/splash_view.dart';
 import 'views/main_shell_view.dart';
 
-class MyHttpOverrides extends HttpOverrides {
-  @override
-  HttpClient createHttpClient(SecurityContext? context) {
-    return super.createHttpClient(context)
-      ..badCertificateCallback =
-          (X509Certificate cert, String host, int port) => true;
-  }
-}
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  HttpOverrides.global = MyHttpOverrides();
   await NotificationService().initialize();
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final storageService = StorageService();
-    final apiService = ProxViewApiService(storageService);
-    final notificationService = NotificationService();
+  State<MyApp> createState() => _MyAppState();
+}
 
+class _MyAppState extends State<MyApp> {
+  late final StorageService _storageService;
+  late final ProxViewApiService _apiService;
+  late final NotificationService _notificationService;
+
+  @override
+  void initState() {
+    super.initState();
+    _storageService = StorageService();
+    _apiService = ProxViewApiService(_storageService);
+    _notificationService = NotificationService();
+  }
+
+  @override
+  void dispose() {
+    _apiService.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        Provider<StorageService>.value(value: storageService),
-        Provider<ProxViewApiService>.value(value: apiService),
+        Provider<StorageService>.value(value: _storageService),
+        Provider<ProxViewApiService>.value(value: _apiService),
         ChangeNotifierProvider<ThemeViewModel>(
-          create: (_) => ThemeViewModel(storageService)..loadTheme(),
+          create: (_) => ThemeViewModel(_storageService)..loadTheme(),
         ),
         ChangeNotifierProvider<AuthViewModel>(
-          create: (_) => AuthViewModel(apiService, storageService)..initializeSession(),
+          create: (_) =>
+              AuthViewModel(_apiService, _storageService)..initializeSession(),
         ),
         ChangeNotifierProvider<DashboardViewModel>(
-          create: (_) => DashboardViewModel(apiService),
+          create: (_) => DashboardViewModel(_apiService),
         ),
         ChangeNotifierProvider<AlertIncidentViewModel>(
-          create: (_) => AlertIncidentViewModel(apiService, notificationService),
+          create: (_) =>
+              AlertIncidentViewModel(_apiService, _notificationService),
         ),
         ChangeNotifierProvider<AnalyticsViewModel>(
-          create: (_) => AnalyticsViewModel(apiService),
+          create: (_) => AnalyticsViewModel(_apiService),
         ),
         ChangeNotifierProvider<NetworkViewModel>(
-          create: (_) => NetworkViewModel(apiService),
+          create: (_) => NetworkViewModel(_apiService),
         ),
         ChangeNotifierProvider<ProxmoxViewModel>(
-          create: (_) => ProxmoxViewModel(apiService),
+          create: (_) => ProxmoxViewModel(_apiService),
         ),
         ChangeNotifierProvider<LogViewModel>(
-          create: (_) => LogViewModel(apiService),
+          create: (_) => LogViewModel(_apiService),
         ),
       ],
-      child: Consumer<ThemeViewModel>(
-        builder: (context, themeVm, _) {
+      child: Selector<ThemeViewModel, ThemeMode>(
+        selector: (_, themeVm) => themeVm.themeMode,
+        builder: (context, themeMode, _) {
           return MaterialApp(
             title: 'ProxView',
             debugShowCheckedModeBanner: false,
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
-            themeMode: themeVm.themeMode,
+            themeMode: themeMode,
             home: const _AuthGate(),
           );
         },
