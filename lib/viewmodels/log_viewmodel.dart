@@ -3,7 +3,7 @@ import '../models/log_model.dart';
 import '../services/api_service.dart';
 
 class LogViewModel extends ChangeNotifier {
-  final ViewMoxApiService _apiService;
+  final ProxViewApiService _apiService;
 
   List<ProxmoxTaskLogModel> _taskLogs = [];
   List<ProxmoxClusterLogModel> _clusterLogs = [];

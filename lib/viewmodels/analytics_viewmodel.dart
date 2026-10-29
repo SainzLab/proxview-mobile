@@ -3,7 +3,7 @@ import '../models/analytics_model.dart';
 import '../services/api_service.dart';
 
 class AnalyticsViewModel extends ChangeNotifier {
-  final ViewMoxApiService _apiService;
+  final ProxViewApiService _apiService;
 
   SlaAnalyticsResponseModel? _analytics;
   String _selectedPeriod = '24h'; // '24h', '7d', '30d'

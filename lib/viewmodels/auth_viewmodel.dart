@@ -6,7 +6,7 @@ import '../services/storage_service.dart';
 enum AuthStatus { checking, authenticated, unauthenticated }
 
 class AuthViewModel extends ChangeNotifier {
-  final ViewMoxApiService _apiService;
+  final ProxViewApiService _apiService;
   final StorageService _storageService;
 
   AuthStatus _status = AuthStatus.checking;

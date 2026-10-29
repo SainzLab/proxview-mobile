@@ -39,13 +39,13 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final storageService = StorageService();
-    final apiService = ViewMoxApiService(storageService);
+    final apiService = ProxViewApiService(storageService);
     final notificationService = NotificationService();
 
     return MultiProvider(
       providers: [
         Provider<StorageService>.value(value: storageService),
-        Provider<ViewMoxApiService>.value(value: apiService),
+        Provider<ProxViewApiService>.value(value: apiService),
         ChangeNotifierProvider<ThemeViewModel>(
           create: (_) => ThemeViewModel(storageService)..loadTheme(),
         ),

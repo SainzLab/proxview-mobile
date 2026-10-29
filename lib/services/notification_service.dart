@@ -35,9 +35,9 @@ class NotificationService {
     try {
       final isCall = alert.isEmergencyCall;
       final androidDetails = AndroidNotificationDetails(
-        isCall ? 'mymomox_emergency_call' : 'mymomox_alerts',
+        isCall ? 'proxview_emergency_call' : 'proxview_alerts',
         isCall ? 'Emergency Call Alerts' : 'Monitoring Alerts',
-        channelDescription: 'Notifikasi insiden & gangguan sistem ViewMox',
+        channelDescription: 'Notifikasi insiden & gangguan sistem ProxView',
         importance: Importance.max,
         priority: Priority.high,
         fullScreenIntent: isCall,

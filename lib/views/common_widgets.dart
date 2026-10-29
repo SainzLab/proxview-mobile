@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/theme/app_theme.dart';
 
-/// Painter logo gelombang pulsa ProxView / mymomox agar konsisten di seluruh halaman
+/// Painter logo gelombang pulsa ProxView agar konsisten di seluruh halaman
 class PulseLogoPainter extends CustomPainter {
   final Color color;
   final double strokeWidth;

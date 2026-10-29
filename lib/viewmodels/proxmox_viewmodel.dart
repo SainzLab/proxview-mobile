@@ -3,7 +3,7 @@ import '../models/proxmox_model.dart';
 import '../services/api_service.dart';
 
 class ProxmoxViewModel extends ChangeNotifier {
-  final ViewMoxApiService _apiService;
+  final ProxViewApiService _apiService;
 
   List<ProxmoxServerModel> _servers = [];
   ProxmoxServerModel? _selectedServer;

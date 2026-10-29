@@ -21,12 +21,12 @@ class ApiException implements Exception {
   String toString() => message;
 }
 
-class ViewMoxApiService {
+class ProxViewApiService {
   final StorageService _storageService;
   late final Dio _dio;
   void Function(int statusCode, String message)? onUnauthorizedOrForbidden;
 
-  ViewMoxApiService(this._storageService) {
+  ProxViewApiService(this._storageService) {
     _dio = Dio(
       BaseOptions(
         baseUrl: StorageService.defaultBaseUrl,
@@ -132,13 +132,13 @@ class ViewMoxApiService {
       case 404:
         return 'Endpoint atau data tidak ditemukan (404 Not Found).';
       case 500:
-        return 'Terjadi kesalahan pada server ViewMox (500 Internal Error).';
+        return 'Terjadi kesalahan pada server ProxView (500 Internal Error).';
     }
     if (e.type == DioExceptionType.connectionTimeout ||
         e.type == DioExceptionType.receiveTimeout ||
         e.type == DioExceptionType.connectionError) {
       final detail = e.error?.toString() ?? e.message ?? '';
-      return 'Gagal terhubung ke server ViewMox (${e.requestOptions.baseUrl}). ${detail.isNotEmpty ? "\nDetail: $detail" : "Periksa jaringan atau URL server."}';
+      return 'Gagal terhubung ke server ProxView (${e.requestOptions.baseUrl}). ${detail.isNotEmpty ? "\nDetail: $detail" : "Periksa jaringan atau URL server."}';
     }
     return e.message ?? 'Terjadi kesalahan jaringan.';
   }

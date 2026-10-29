@@ -3,7 +3,7 @@ import '../models/network_target_model.dart';
 import '../services/api_service.dart';
 
 class NetworkViewModel extends ChangeNotifier {
-  final ViewMoxApiService _apiService;
+  final ProxViewApiService _apiService;
 
   List<NetworkTargetModel> _targets = [];
   String _protocolFilter = 'ALL'; // 'ALL', 'ICMP PING', 'TCP SOCKET'

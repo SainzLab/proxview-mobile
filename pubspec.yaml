@@ -1,5 +1,5 @@
-name: mymomox
-description: "A new Flutter project."
+name: proxview
+description: "ProxView — Aplikasi Mobile Monitoring Proxmox VE, Jaringan (ICMP/TCP), Analitik SLA & Incident Response."
 publish_to: 'none'
 version: 1.0.0+1
 

@@ -1,11 +1,11 @@
 {
-    "name": "mymomox",
-    "short_name": "mymomox",
+    "name": "ProxView",
+    "short_name": "ProxView",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "ProxView — Aplikasi Monitoring Proxmox VE & Jaringan.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

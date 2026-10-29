@@ -1,4 +1,4 @@
-# Analisis & Peta Dokumentasi API Mobile (Flutter) — ProxView / ViewMox untuk Mymomox mobile
+# Analisis & Peta Dokumentasi API Mobile (Flutter) — ProxView Mobile
 
 Dokumen ini berisi hasil analisis kesiapan backend untuk aplikasi mobile serta **Peta API Lengkap (API Blueprint)** sebagai panduan utama pengembangan aplikasi menggunakan **Flutter**.
 
@@ -6,17 +6,17 @@ Dokumen ini berisi hasil analisis kesiapan backend untuk aplikasi mobile serta *
 
 ## 1. Hasil Analisis Kelengkapan API Mobile
 
-Berdasarkan audit kode pada [`server.js`](file:///F:/helper-api-viewmox/src/backend/server.js), [`authMiddleware.js`](file:///F:/helper-api-viewmox/src/backend/middlewares/authMiddleware.js), dan seluruh controller di `src/backend/controllers/`, **API untuk kebutuhan aplikasi Mobile sudah SANGAT PAS, LENGKAP, dan SIAP DIGUNAKAN (Production-Ready)**.
+Berdasarkan audit kode pada [`server.js`](file:///F:/helper-api-proxview/src/backend/server.js), [`authMiddleware.js`](file:///F:/helper-api-proxview/src/backend/middlewares/authMiddleware.js), dan seluruh controller di `src/backend/controllers/`, **API untuk kebutuhan aplikasi Mobile sudah SANGAT PAS, LENGKAP, dan SIAP DIGUNAKAN (Production-Ready)**.
 
 ### Mengapa Sudah Pas & Lengkap?
 1. **Namespace Khusus & Terisolasi (`/api/mobile/v1/*`)**:
-   Semua endpoint mobile sudah dikelompokkan rapi di bawah prefix `/api/mobile/v1/` dan dilindungi oleh middleware [`verifyApiToken`](file:///F:/helper-api-viewmox/src/backend/middlewares/authMiddleware.js#L4-L62).
+   Semua endpoint mobile sudah dikelompokkan rapi di bawah prefix `/api/mobile/v1/` dan dilindungi oleh middleware [`verifyApiToken`](file:///F:/helper-api-proxview/src/backend/middlewares/authMiddleware.js#L4-L62).
 2. **Keamanan Otentikasi 3-Faktor & Validasi Sesi Otomatis**:
-   - Endpoint [`POST /api/mobile/v1/auth/login`](file:///F:/helper-api-viewmox/src/backend/controllers/authController.js#L124-L208) memvalidasi 3 faktor sekaligus: `username`, `password` (bcrypt), dan `token` (API Token dari Web Admin).
+   - Endpoint [`POST /api/mobile/v1/auth/login`](file:///F:/helper-api-proxview/src/backend/controllers/authController.js#L124-L208) memvalidasi 3 faktor sekaligus: `username`, `password` (bcrypt), dan `token` (API Token dari Web Admin).
    - Mendukung pengecekan status aktif akun (`is_active`) dan masa kedaluwarsa token (`token_expires_at` hingga akhir hari 23:59:59 WIB).
-   - Tersedia endpoint [`GET /api/mobile/v1/auth/me`](file:///F:/helper-api-viewmox/src/backend/server.js#L131-L133) untuk **Auto-Login / Cek Sesi pada Splash Screen Flutter**.
+   - Tersedia endpoint [`GET /api/mobile/v1/auth/me`](file:///F:/helper-api-proxview/src/backend/server.js#L131-L133) untuk **Auto-Login / Cek Sesi pada Splash Screen Flutter**.
 3. **Pemisahan Hak Akses (Role-Based Architecture)**:
-   - Di [`userController.js`](file:///F:/helper-api-viewmox/src/backend/controllers/userController.js#L45-L48), `api_token` secara spesifik di-generate untuk role **`Teknisi`** dan **`Kepala Bidang`** (sedangkan `Admin` menggunakan Web Dashboard).
+   - Di [`userController.js`](file:///F:/helper-api-proxview/src/backend/controllers/userController.js#L45-L48), `api_token` secara spesifik di-generate untuk role **`Teknisi`** dan **`Kepala Bidang`** (sedangkan `Admin` menggunakan Web Dashboard).
    - Seluruh operasi konfigurasi sensitif (CRUD user, tambah/hapus target, ubah threshold) dibatasi untuk Web Admin, sedangkan API Mobile difokuskan pada **Monitoring Real-time, Analitik SLA (ITIL), serta Aksi Penanganan Insiden (Join & Resolve)**.
 4. **Dukungan Penuh Siklus Hidup Insiden (Alert & Ticketing State Machine)**:
    - Notifikasi aktif menyediakan field `action_type` (`"Pesan"` atau `"Call"`), sehingga Flutter dapat membedakan kapan harus menampilkan **Push Notification biasa** vs **Full-Screen Incoming Call Alarm** (dering telepon darurat).
@@ -129,7 +129,7 @@ Berikut adalah ringkasan seluruh **20 endpoint** yang tersedia untuk aplikasi Fl
 #### 1. Login Mobile (3-Faktor)
 - **Endpoint**: `POST /api/mobile/v1/auth/login`
 - **Auth**: Tidak perlu Bearer Token
-- **Controller**: [`mobileLogin`](file:///F:/helper-api-viewmox/src/backend/controllers/authController.js#L124-L208)
+- **Controller**: [`mobileLogin`](file:///F:/helper-api-proxview/src/backend/controllers/authController.js#L124-L208)
 - **Request Body**:
 ```json
 {
@@ -177,7 +177,7 @@ Berikut adalah ringkasan seluruh **20 endpoint** yang tersedia untuk aplikasi Fl
 
 #### 3. Status Konektivitas Global
 - **Endpoint**: `GET /api/mobile/v1/system/status`
-- **Controller**: [`getSystemStatus`](file:///F:/helper-api-viewmox/src/backend/controllers/targetController.js#L163-L189)
+- **Controller**: [`getSystemStatus`](file:///F:/helper-api-proxview/src/backend/controllers/targetController.js#L163-L189)
 - **Response (`200 OK`)**:
 ```json
 {
@@ -193,7 +193,7 @@ Berikut adalah ringkasan seluruh **20 endpoint** yang tersedia untuk aplikasi Fl
 #### 4. Ringkasan Dashboard Utama
 - **Endpoint**: `GET /api/mobile/v1/dashboard?timeframe=1h`
 - **Query Params**: `timeframe` (opsional: `1h` [default], `24h`, `7d`)
-- **Controller**: [`getDashboardSummary`](file:///F:/helper-api-viewmox/src/backend/controllers/dashboardController.js#L213-L333)
+- **Controller**: [`getDashboardSummary`](file:///F:/helper-api-proxview/src/backend/controllers/dashboardController.js#L213-L333)
 - **Response (`200 OK`)**:
 ```json
 {
@@ -275,7 +275,7 @@ Berikut adalah ringkasan seluruh **20 endpoint** yang tersedia untuk aplikasi Fl
 
 #### 5. Tarik Alert Aktif
 - **Endpoint**: `GET /api/mobile/v1/alerts/active`
-- **Controller**: [`getActiveAlerts`](file:///F:/helper-api-viewmox/src/backend/controllers/mobileAlertController.js#L4-L29)
+- **Controller**: [`getActiveAlerts`](file:///F:/helper-api-proxview/src/backend/controllers/mobileAlertController.js#L4-L29)
 - **Response (`200 OK`)**:
 ```json
 {
@@ -305,12 +305,12 @@ Berikut adalah ringkasan seluruh **20 endpoint** yang tersedia untuk aplikasi Fl
 #### 6. Tarik Riwayat Alert Selesai
 - **Endpoint**: `GET /api/mobile/v1/alerts/history?limit=100`
 - **Query Params**: `limit` (opsional, default `100`, maks `500`)
-- **Controller**: [`getAlertHistory`](file:///F:/helper-api-viewmox/src/backend/controllers/mobileAlertController.js#L33-L59)
+- **Controller**: [`getAlertHistory`](file:///F:/helper-api-proxview/src/backend/controllers/mobileAlertController.js#L33-L59)
 - **Response (`200 OK`)**: Struktur sama dengan `/alerts/active` namun berisi tiket dengan `is_resolved: 1` dan `total`.
 
 #### 7. Teknisi Join / Konfirmasi Penanganan Tiket
 - **Endpoint**: `POST /api/mobile/v1/alerts/join` (atau `POST /api/mobile/v1/incidents/join`)
-- **Controller**: [`joinIncident`](file:///F:/helper-api-viewmox/src/backend/controllers/incidentController.js#L81-L115)
+- **Controller**: [`joinIncident`](file:///F:/helper-api-proxview/src/backend/controllers/incidentController.js#L81-L115)
 - **Request Body** *(Catatan: `user_id` dan `user_name` otomatis diambil dari Bearer Token jika tidak dikirim)*:
 ```json
 {
@@ -327,7 +327,7 @@ Berikut adalah ringkasan seluruh **20 endpoint** yang tersedia untuk aplikasi Fl
 
 #### 8. Teknisi Menutup Tiket (Resolve)
 - **Endpoint**: `POST /api/mobile/v1/alerts/resolve` (atau `POST /api/mobile/v1/incidents/resolve`)
-- **Controller**: [`resolveIncident`](file:///F:/helper-api-viewmox/src/backend/controllers/incidentController.js#L120-L155)
+- **Controller**: [`resolveIncident`](file:///F:/helper-api-proxview/src/backend/controllers/incidentController.js#L120-L155)
 - **Syarat Backend**: Hanya berhasil jika `severity` pada alert tersebut sudah bernilai `'RECOVERED'`. Jika target masih bermasalah, backend mengembalikan `400 Bad Request`.
 - **Request Body**:
 ```json
@@ -352,7 +352,7 @@ Berikut adalah ringkasan seluruh **20 endpoint** yang tersedia untuk aplikasi Fl
 
 #### 9. Daftar Rekap Seluruh Tiket Insiden
 - **Endpoint**: `GET /api/mobile/v1/incidents`
-- **Controller**: [`getIncidents`](file:///F:/helper-api-viewmox/src/backend/controllers/incidentController.js#L28-L76)
+- **Controller**: [`getIncidents`](file:///F:/helper-api-proxview/src/backend/controllers/incidentController.js#L28-L76)
 - **Response (`200 OK`)**:
 ```json
 {
@@ -387,7 +387,7 @@ Berikut adalah ringkasan seluruh **20 endpoint** yang tersedia untuk aplikasi Fl
 - **Query Params**:
   - `period`: `24h` (default, per jam), `7d` (per hari), `30d` (per hari)
   - `severity`: `ALL` (default), `DOWN`, `CRITICAL`, `WARNING`
-- **Controller**: [`getAnalytics`](file:///F:/helper-api-viewmox/src/backend/controllers/incidentController.js#L202-L273)
+- **Controller**: [`getAnalytics`](file:///F:/helper-api-proxview/src/backend/controllers/incidentController.js#L202-L273)
 - **Response (`200 OK`)**:
 ```json
 {
@@ -422,7 +422,7 @@ Berikut adalah ringkasan seluruh **20 endpoint** yang tersedia untuk aplikasi Fl
 
 #### 11. Daftar Target Network
 - **Endpoint**: `GET /api/mobile/v1/targets`
-- **Controller**: [`getTargets`](file:///F:/helper-api-viewmox/src/backend/controllers/targetController.js#L18-L26)
+- **Controller**: [`getTargets`](file:///F:/helper-api-proxview/src/backend/controllers/targetController.js#L18-L26)
 - **Response (`200 OK`)**:
 ```json
 {
@@ -451,7 +451,7 @@ Berikut adalah ringkasan seluruh **20 endpoint** yang tersedia untuk aplikasi Fl
 
 #### 12. Grafik Riwayat Latency Target (20 Titik Terakhir)
 - **Endpoint**: `GET /api/mobile/v1/targets/:id/history`
-- **Controller**: [`getTargetHistory`](file:///F:/helper-api-viewmox/src/backend/controllers/targetController.js#L138-L158)
+- **Controller**: [`getTargetHistory`](file:///F:/helper-api-proxview/src/backend/controllers/targetController.js#L138-L158)
 - **Response (`200 OK`)**:
 ```json
 {
@@ -477,7 +477,7 @@ Berikut adalah ringkasan seluruh **20 endpoint** yang tersedia untuk aplikasi Fl
 
 #### 13. Daftar Server/Cluster Proxmox Terdaftar
 - **Endpoint**: `GET /api/mobile/v1/proxmox`
-- **Controller**: [`getProxmoxNodes`](file:///F:/helper-api-viewmox/src/backend/controllers/proxmoxController.js#L49-L56)
+- **Controller**: [`getProxmoxNodes`](file:///F:/helper-api-proxview/src/backend/controllers/proxmoxController.js#L49-L56)
 - **Response (`200 OK`)**:
 ```json
 {
@@ -499,7 +499,7 @@ Berikut adalah ringkasan seluruh **20 endpoint** yang tersedia untuk aplikasi Fl
 
 #### 14. Status Mendalam Node Fisik Proxmox
 - **Endpoint**: `GET /api/mobile/v1/proxmox/:id/status`
-- **Controller**: [`getProxmoxNodeStatus`](file:///F:/helper-api-viewmox/src/backend/controllers/proxmoxController.js#L214-L317)
+- **Controller**: [`getProxmoxNodeStatus`](file:///F:/helper-api-proxview/src/backend/controllers/proxmoxController.js#L214-L317)
 - **Response (`200 OK`)**:
 ```json
 {
@@ -528,7 +528,7 @@ Berikut adalah ringkasan seluruh **20 endpoint** yang tersedia untuk aplikasi Fl
 
 #### 15. Daftar Resources Proxmox (VM, LXC, & Storage)
 - **Endpoint**: `GET /api/mobile/v1/proxmox/:id/resources`
-- **Controller**: [`getProxmoxResources`](file:///F:/helper-api-viewmox/src/backend/controllers/proxmoxController.js#L148-L209)
+- **Controller**: [`getProxmoxResources`](file:///F:/helper-api-proxview/src/backend/controllers/proxmoxController.js#L148-L209)
 - **Response (`200 OK`)**:
 ```json
 {
@@ -587,7 +587,7 @@ Berikut adalah ringkasan seluruh **20 endpoint** yang tersedia untuk aplikasi Fl
 - **`GET /api/mobile/v1/proxmox/logs/tasks`**: Mengembalikan daftar task cluster dari Proxmox (`upid`, `node`, `type`, `user`, `status`, `starttime`, `endtime`).
 - **`GET /api/mobile/v1/proxmox/logs/cluster`**: Mengembalikan 500 baris log cluster Proxmox (`time`, `node`, `pri`, `tag`, `msg`).
 - **`GET /api/mobile/v1/proxmox/logs/task-detail?node=<nama_node>&upid=<upid_task>`**: Mengembalikan array baris terminal `[{ "n": 1, "t": "TASK OK" }]`.
-- **`GET /api/mobile/v1/logs/system?limit=200`**: Mengembalikan log audit internal ViewMox:
+- **`GET /api/mobile/v1/logs/system?limit=200`**: Mengembalikan log audit internal ProxView:
 ```json
 {
   "success": true,
@@ -614,8 +614,8 @@ Berikut adalah contoh implementasi `ApiClient` (menggunakan package `dio` dan `f
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-class ViewMoxApiService {
-  // Ganti dengan IP/Domain server ViewMox Anda
+class ProxViewApiService {
+  // Ganti dengan IP/Domain server ProxView Anda
   // (Gunakan 10.0.2.2:3000 jika menggunakan Android Emulator lokal)
   static const String baseUrl = 'http://192.168.1.100:3000/api/mobile/v1';
 
@@ -628,7 +628,7 @@ class ViewMoxApiService {
 
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
-  ViewMoxApiService() {
+  ProxViewApiService() {
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
         // Otomatis sisipkan Bearer Token di setiap request (kecuali login)

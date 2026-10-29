@@ -3,7 +3,7 @@ import '../models/dashboard_model.dart';
 import '../services/api_service.dart';
 
 class DashboardViewModel extends ChangeNotifier {
-  final ViewMoxApiService _apiService;
+  final ProxViewApiService _apiService;
 
   SystemStatusModel? _systemStatus;
   DashboardSummaryModel? _summary;

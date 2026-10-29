@@ -4,7 +4,7 @@ import '../services/api_service.dart';
 import '../services/notification_service.dart';
 
 class AlertIncidentViewModel extends ChangeNotifier {
-  final ViewMoxApiService _apiService;
+  final ProxViewApiService _apiService;
   final NotificationService _notificationService;
 
   List<AlertModel> _activeAlerts = [];

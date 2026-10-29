@@ -1,4 +1,4 @@
-package com.example.mymomox
+package com.example.proxview
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -1,6 +1,6 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mymomox/main.dart';
+import 'package:proxview/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
