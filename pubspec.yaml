@@ -31,6 +31,8 @@ flutter:
   uses-material-design: true
   assets:
     - assets/logo.jpg
+    - assets/logo.png
+    - assets/diskominfosubang.png
 
 # Konfigurasi ikon diletakkan di luar (akar), tidak masuk ke blok manapun
 flutter_launcher_icons:

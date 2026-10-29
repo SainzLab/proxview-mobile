@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui'; // Tambahkan ini untuk ImageFilter
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -11,7 +12,6 @@ import '../viewmodels/log_viewmodel.dart';
 import '../viewmodels/network_viewmodel.dart';
 import '../viewmodels/proxmox_viewmodel.dart';
 import 'alerts_incidents_view.dart';
-import 'common_widgets.dart';
 import 'emergency_call_view.dart';
 import 'resource_view.dart';
 import 'sla_analytics_view.dart';
@@ -352,32 +352,36 @@ class _MainShellViewState extends State<MainShellView> with SingleTickerProvider
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.center,
+                    // Trik UI: Drop Shadow Logo agar teks putih terbaca di light mode
+                    Stack(
+                      alignment: Alignment.centerLeft,
                       children: [
-                        const CustomPaint(
-                          size: Size(36, 24),
-                          painter: PulseLogoPainter(
-                            color: AppTheme.statusTeal,
-                            strokeWidth: 3.2,
+                        // Layer 1: Shadow (Glow Gelap)
+                        Transform.translate(
+                          offset: const Offset(0, 1.5),
+                          child: ImageFiltered(
+                            imageFilter: ImageFilter.blur(sigmaX: 2.5, sigmaY: 2.5),
+                            child: Image.asset(
+                              'assets/diskominfosubang.png',
+                              height: 56,
+                              fit: BoxFit.contain,
+                              alignment: Alignment.centerLeft,
+                              color: Colors.black.withValues(alpha: 0.55),
+                            ),
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Text(
-                          'ProxView',
-                          style: TextStyle(
-                            color: _textMain,
-                            fontSize: 24,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.5,
-                          ),
+                        // Layer 2: Original Logo
+                        Image.asset(
+                          'assets/diskominfosubang.png',
+                          height: 56,
+                          fit: BoxFit.contain,
+                          alignment: Alignment.centerLeft,
                         ),
                       ],
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 12),
                     Text(
-                      'MONITORING PROXMOX',
+                      'ProxView Monitoring Server Proxmox',
                       style: TextStyle(
                         color: _textMuted,
                         fontSize: 10,

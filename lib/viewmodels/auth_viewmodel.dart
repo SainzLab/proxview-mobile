@@ -50,7 +50,7 @@ class AuthViewModel extends ChangeNotifier {
       if (!user.isActive) {
         await _storageService.clearSession();
         _status = AuthStatus.unauthenticated;
-        _errorMessage = 'Akun Anda sedang dinonaktifkan oleh Administrator.';
+        _errorMessage = '[ERR-403] Akun Anda sedang dinonaktifkan oleh Administrator.';
       } else {
         _currentUser = user;
         _status = AuthStatus.authenticated;
@@ -107,6 +107,13 @@ class AuthViewModel extends ChangeNotifier {
       _currentUser = await _apiService.getMe();
       notifyListeners();
     } catch (_) {}
+  }
+
+  void clearError() {
+    if (_errorMessage != null) {
+      _errorMessage = null;
+      notifyListeners();
+    }
   }
 
   Future<void> logout({String? reason}) async {

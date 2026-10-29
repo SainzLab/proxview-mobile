@@ -13,12 +13,56 @@ import 'storage_service.dart';
 
 class ApiException implements Exception {
   final String message;
+  final String code;
   final int? statusCode;
 
-  const ApiException(this.message, {this.statusCode});
+  const ApiException(
+    this.message, {
+    this.code = 'ERR-SYSTEM',
+    this.statusCode,
+  });
 
   @override
-  String toString() => message;
+  String toString() => '[$code] $message';
+
+  /// Memisahkan kode error, judul ramah pengguna, dan pesan bersih dari string error
+  static ({String? code, String title, String message}) parse(String raw) {
+    final trimmed = raw.trim();
+    final match = RegExp(r'^\[([A-Z0-9_-]+)\]\s*(.+)$', dotAll: true).firstMatch(trimmed);
+    final code = match?.group(1);
+    final cleanMsg = (match?.group(2) ?? trimmed).trim();
+
+    String title = 'Pemberitahuan Sistem';
+    if (code != null) {
+      if (code.contains('TIMEOUT')) {
+        title = 'Waktu Koneksi Habis';
+      } else if (code == 'ERR-CONN-REFUSED') {
+        title = 'Koneksi Ditolak Server';
+      } else if (code == 'ERR-DNS') {
+        title = 'Alamat Server Tidak Ditemukan';
+      } else if (code == 'ERR-UNREACHABLE' ||
+          code == 'ERR-NET' ||
+          code == 'ERR-CONN-LOST') {
+        title = 'Gagal Terhubung ke Server';
+      } else if (code == 'ERR-SSL') {
+        title = 'Kendala Sertifikat Keamanan';
+      } else if (code == 'ERR-400' || code == 'ERR-422') {
+        title = 'Permintaan Tidak Valid';
+      } else if (code == 'ERR-401' || code == 'ERR-AUTH') {
+        title = 'Otentikasi Gagal';
+      } else if (code == 'ERR-403') {
+        title = 'Akses Dibatasi';
+      } else if (code == 'ERR-404') {
+        title = 'Layanan Tidak Ditemukan';
+      } else if (code == 'ERR-429') {
+        title = 'Terlalu Banyak Permintaan';
+      } else if (code.startsWith('ERR-5')) {
+        title = 'Gangguan Server ProxView';
+      }
+    }
+
+    return (code: code, title: title, message: cleanMsg);
+  }
 }
 
 class ProxViewApiService {
@@ -106,9 +150,12 @@ class ProxViewApiService {
           final status = e.response?.statusCode;
           if ((status == 401 || status == 403) &&
               !e.requestOptions.path.contains('/auth/login')) {
-            final msg = _extractErrorMessage(e);
+            final extracted = _extractErrorInfo(e);
             await _storageService.clearSession();
-            onUnauthorizedOrForbidden?.call(status!, msg);
+            onUnauthorizedOrForbidden?.call(
+              status!,
+              '[${extracted.code}] ${extracted.message}',
+            );
           }
           return handler.next(e);
         },
@@ -116,39 +163,177 @@ class ProxViewApiService {
     );
   }
 
-  String _extractErrorMessage(DioException e) {
+  ({String code, String message}) _extractErrorInfo(DioException e) {
     final data = e.response?.data;
+    String? serverMsg;
     if (data is Map<String, dynamic>) {
-      if (data['message'] != null) return data['message'].toString();
-      if (data['error'] != null) return data['error'].toString();
+      final rawMsg = data['message'] ?? data['error'];
+      if (rawMsg != null && rawMsg.toString().trim().isNotEmpty) {
+        serverMsg = rawMsg.toString().trim();
+      }
     }
-    switch (e.response?.statusCode) {
-      case 400:
-        return 'Permintaan tidak valid (400 Bad Request).';
-      case 401:
-        return 'Sesi berakhir atau Token tidak valid (401 Unauthorized).';
-      case 403:
-        return 'Akun dinonaktifkan atau akses ditolak (403 Forbidden).';
-      case 404:
-        return 'Endpoint atau data tidak ditemukan (404 Not Found).';
-      case 500:
-        return 'Terjadi kesalahan pada server ProxView (500 Internal Error).';
+
+    final statusCode = e.response?.statusCode;
+    if (statusCode != null) {
+      switch (statusCode) {
+        case 400:
+          return (
+            code: 'ERR-400',
+            message: serverMsg ??
+                'Permintaan tidak dapat diproses. Periksa kembali data yang Anda masukkan.',
+          );
+        case 401:
+          return (
+            code: 'ERR-401',
+            message: serverMsg ??
+                'Sesi telah berakhir atau kredensial/token tidak valid. Silakan login kembali.',
+          );
+        case 403:
+          return (
+            code: 'ERR-403',
+            message: serverMsg ??
+                'Akses ditolak atau akun Anda sedang dinonaktifkan oleh Administrator.',
+          );
+        case 404:
+          return (
+            code: 'ERR-404',
+            message: serverMsg ??
+                'Endpoint layanan tidak ditemukan. Pastikan alamat URL server sudah benar.',
+          );
+        case 408:
+          return (
+            code: 'ERR-408',
+            message: serverMsg ??
+                'Waktu permintaan ke server habis. Silakan coba beberapa saat lagi.',
+          );
+        case 422:
+          return (
+            code: 'ERR-422',
+            message: serverMsg ??
+                'Format data yang dikirimkan tidak sesuai ketentuan.',
+          );
+        case 429:
+          return (
+            code: 'ERR-429',
+            message: serverMsg ??
+                'Terlalu banyak permintaan ke server. Silakan tunggu beberapa saat.',
+          );
+        case 500:
+          return (
+            code: 'ERR-500',
+            message: serverMsg ??
+                'Terjadi gangguan internal pada server ProxView. Silakan coba lagi nanti.',
+          );
+        case 502:
+        case 503:
+        case 504:
+          return (
+            code: 'ERR-$statusCode',
+            message: serverMsg ??
+                'Server ProxView sedang sibuk atau dalam pemeliharaan sementara.',
+          );
+        default:
+          return (
+            code: 'ERR-$statusCode',
+            message: serverMsg ??
+                'Terjadi kendala saat memproses permintaan ke server (Kode $statusCode).',
+          );
+      }
     }
+
     if (e.type == DioExceptionType.connectionTimeout ||
-        e.type == DioExceptionType.receiveTimeout ||
-        e.type == DioExceptionType.connectionError) {
-      final detail = e.error?.toString() ?? e.message ?? '';
-      return 'Gagal terhubung ke server ProxView (${e.requestOptions.baseUrl}). ${detail.isNotEmpty ? "\nDetail: $detail" : "Periksa jaringan atau URL server."}';
+        e.type == DioExceptionType.sendTimeout) {
+      return (
+        code: 'ERR-TIMEOUT',
+        message:
+            'Server tidak merespons dalam batas waktu yang ditentukan. Pastikan server ProxView aktif dan alamat server sudah benar.',
+      );
     }
-    return e.message ?? 'Terjadi kesalahan jaringan.';
+
+    if (e.type == DioExceptionType.receiveTimeout) {
+      return (
+        code: 'ERR-RESP-TIMEOUT',
+        message:
+            'Server terlalu lama mengirimkan data. Periksa kestabilan koneksi jaringan Anda lalu coba lagi.',
+      );
+    }
+
+    if (e.type == DioExceptionType.badCertificate) {
+      return (
+        code: 'ERR-SSL',
+        message:
+            'Sertifikat keamanan (SSL/TLS) server tidak dapat diverifikasi.',
+      );
+    }
+
+    if (e.type == DioExceptionType.cancel) {
+      return (
+        code: 'ERR-CANCEL',
+        message: 'Permintaan ke server telah dibatalkan.',
+      );
+    }
+
+    final rawDetail = (e.error?.toString() ?? e.message ?? '').toLowerCase();
+    if (rawDetail.contains('connection refused')) {
+      return (
+        code: 'ERR-CONN-REFUSED',
+        message:
+            'Koneksi ditolak oleh server. Pastikan layanan server ProxView sedang aktif dan port sudah sesuai.',
+      );
+    }
+    if (rawDetail.contains('failed host lookup') ||
+        rawDetail.contains('no address associated')) {
+      return (
+        code: 'ERR-DNS',
+        message:
+            'Alamat domain atau IP server tidak ditemukan. Periksa kembali URL server atau koneksi internet Anda.',
+      );
+    }
+    if (rawDetail.contains('network is unreachable') ||
+        rawDetail.contains('no route to host')) {
+      return (
+        code: 'ERR-UNREACHABLE',
+        message:
+            'Jaringan tidak dapat menjangkau server. Pastikan perangkat terhubung ke jaringan atau VPN yang sama dengan server.',
+      );
+    }
+    if (rawDetail.contains('connection reset') ||
+        rawDetail.contains('software caused connection abort') ||
+        rawDetail.contains('broken pipe')) {
+      return (
+        code: 'ERR-CONN-LOST',
+        message:
+            'Koneksi ke server terputus. Periksa kembali sinyal atau koneksi jaringan Anda.',
+      );
+    }
+    if (rawDetail.contains('timed out') ||
+        rawDetail.contains('timeout') ||
+        rawDetail.contains('took longer than')) {
+      return (
+        code: 'ERR-TIMEOUT',
+        message:
+            'Server tidak merespons dalam batas waktu yang ditentukan. Pastikan server ProxView aktif dan dapat dijangkau.',
+      );
+    }
+
+    return (
+      code: 'ERR-NET',
+      message:
+          'Tidak dapat terhubung ke server ProxView. Periksa koneksi jaringan atau konfigurasi alamat server Anda.',
+    );
   }
 
   Never _throwHandled(Object e) {
     if (e is DioException) {
-      throw ApiException(_extractErrorMessage(e), statusCode: e.response?.statusCode);
+      final info = _extractErrorInfo(e);
+      throw ApiException(
+        info.message,
+        code: info.code,
+        statusCode: e.response?.statusCode,
+      );
     }
     if (e is ApiException) throw e;
-    throw ApiException(e.toString());
+    throw ApiException(e.toString(), code: 'ERR-SYSTEM');
   }
 
   // ===========================================================================
@@ -172,7 +357,10 @@ class ProxViewApiService {
       );
       final body = res.data as Map<String, dynamic>;
       if (body['success'] != true) {
-        throw ApiException(body['message']?.toString() ?? 'Login gagal.');
+        throw ApiException(
+          body['message']?.toString() ?? 'Otentikasi gagal. Periksa kembali akun Anda.',
+          code: 'ERR-AUTH',
+        );
       }
       final user = UserModel.fromJson(body['data'] as Map<String, dynamic>);
       final savedToken = (user.apiToken != null && user.apiToken!.isNotEmpty)

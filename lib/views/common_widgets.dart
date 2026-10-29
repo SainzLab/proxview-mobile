@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/theme/app_theme.dart';
+import '../services/api_service.dart';
 
 /// Painter logo gelombang pulsa ProxView agar konsisten di seluruh halaman
 class PulseLogoPainter extends CustomPainter {
@@ -62,6 +63,8 @@ class AppFeedback {
     final messenger = ScaffoldMessenger.of(context);
     messenger.hideCurrentSnackBar();
 
+    final parsed = ApiException.parse(message);
+
     messenger.showSnackBar(
       SnackBar(
         backgroundColor: Colors.transparent,
@@ -69,7 +72,7 @@ class AppFeedback {
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         padding: EdgeInsets.zero,
-        duration: const Duration(seconds: 3),
+        duration: const Duration(seconds: 4),
         content: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
@@ -85,6 +88,9 @@ class AppFeedback {
             ],
           ),
           child: Row(
+            crossAxisAlignment: parsed.code != null
+                ? CrossAxisAlignment.start
+                : CrossAxisAlignment.center,
             children: [
               Container(
                 padding: const EdgeInsets.all(6),
@@ -96,15 +102,69 @@ class AppFeedback {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  message,
-                  style: TextStyle(
-                    color: AppTheme.textMain,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    height: 1.35,
-                  ),
-                ),
+                child: parsed.code != null
+                    ? Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  parsed.title,
+                                  style: TextStyle(
+                                    color: AppTheme.textMain,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: accentColor.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: accentColor.withValues(alpha: 0.35),
+                                  ),
+                                ),
+                                child: Text(
+                                  parsed.code!,
+                                  style: TextStyle(
+                                    color: accentColor,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                    fontFamily: 'monospace',
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            parsed.message,
+                            style: TextStyle(
+                              color: AppTheme.textSecondary,
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w500,
+                              height: 1.35,
+                            ),
+                          ),
+                        ],
+                      )
+                    : Text(
+                        parsed.message,
+                        style: TextStyle(
+                          color: AppTheme.textMain,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          height: 1.35,
+                        ),
+                      ),
               ),
             ],
           ),
@@ -490,6 +550,7 @@ class ErrorStateBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Theme.of(context);
+    final parsed = ApiException.parse(message);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -524,16 +585,40 @@ class ErrorStateBox extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'Gagal Memuat Data',
+                parsed.code != null ? parsed.title : 'Gagal Memuat Data',
                 style: TextStyle(
                   color: AppTheme.textMain,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
+                textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 8),
+              if (parsed.code != null) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppTheme.statusDown.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: AppTheme.statusDown.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Text(
+                    'KODE: ${parsed.code}',
+                    style: const TextStyle(
+                      color: AppTheme.statusDown,
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w800,
+                      fontFamily: 'monospace',
+                      letterSpacing: 0.6,
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 10),
               Text(
-                message,
+                parsed.message,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: AppTheme.textSecondary,
