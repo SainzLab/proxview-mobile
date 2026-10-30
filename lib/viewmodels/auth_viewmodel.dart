@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../models/user_model.dart';
 import '../services/api_service.dart';
 import '../services/notification_service.dart';
+import '../services/push_notification_service.dart';
 import '../services/storage_service.dart';
 
 enum AuthStatus { checking, authenticated, unauthenticated }
@@ -23,6 +24,8 @@ class AuthViewModel extends ChangeNotifier {
       _status = AuthStatus.unauthenticated;
       _errorMessage = message;
       NotificationService().stopBackgroundService();
+      // Sesi dicabut server: hentikan juga push FCM/CallKit ke perangkat ini
+      unawaited(PushNotificationService().revokeToken());
       notifyListeners();
     };
   }
@@ -72,13 +75,14 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  // --- [UPDATE: Tambahkan parameter fcmToken opsional] ---
+  /// [fcmToken] opsional; bila tidak diberikan, token diambil otomatis dari
+  /// [PushNotificationService] (dengan timeout, gagal tidak menghalangi login).
   Future<bool> login({
     required String serverUrl,
     required String username,
     required String password,
     required String token,
-    String? fcmToken, 
+    String? fcmToken,
   }) async {
     _isLoading = true;
     _errorMessage = null;
@@ -90,12 +94,14 @@ class AuthViewModel extends ChangeNotifier {
         _baseUrl = await _storageService.getBaseUrl();
       }
 
-      // --- [UPDATE: Teruskan fcmToken ke ApiService] ---
+      final resolvedFcmToken =
+          fcmToken ?? await PushNotificationService().fetchToken();
+
       final user = await _apiService.login(
         username: username,
         password: password,
         token: token,
-        fcmToken: fcmToken, 
+        fcmToken: resolvedFcmToken,
       );
 
       _currentUser = user;
@@ -157,6 +163,8 @@ class AuthViewModel extends ChangeNotifier {
   Future<void> logout({String? reason}) async {
     await _storageService.clearSession();
     await NotificationService().stopBackgroundService();
+    // Cabut FCM token agar perangkat tidak lagi menerima panggilan darurat setelah logout
+    await PushNotificationService().revokeToken();
 
     _currentUser = null;
     _status = AuthStatus.unauthenticated;

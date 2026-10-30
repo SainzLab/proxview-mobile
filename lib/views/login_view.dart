@@ -6,7 +6,6 @@ import '../services/api_service.dart';
 import '../services/storage_service.dart';
 import '../viewmodels/auth_viewmodel.dart';
 import 'common_widgets.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -98,26 +97,14 @@ class _LoginViewState extends State<LoginView> {
       return;
     }
 
-    // --- [MULAI BLOK TAMBAHAN FCM] ---
-    String? fcmToken;
-    try {
-      fcmToken = await FirebaseMessaging.instance.getToken();
-      debugPrint("Berhasil mendapatkan FCM Token: $fcmToken");
-    } catch (e) {
-      // Gagal ambil FCM (misal di emulator tanpa Google Play), tetap biarkan login jalan
-      debugPrint("Gagal mengambil FCM Token: $e");
-    }
-    // --- [SELESAI BLOK TAMBAHAN FCM] ---
-
     final authVm = context.read<AuthViewModel>();
-    
-    // Pastikan fungsi login di AuthViewModel sudah menerima parameter fcmToken
+
+    // FCM token kini diambil oleh AuthViewModel (dengan timeout) agar View bebas dari SDK pihak ketiga
     final ok = await authVm.login(
       serverUrl: serverUrl,
       username: username,
       password: password,
       token: token,
-      fcmToken: fcmToken, // <-- Sisipkan fcmToken ke ViewModel
     );
 
     if (!ok && mounted && authVm.errorMessage != null) {

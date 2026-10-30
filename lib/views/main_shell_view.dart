@@ -7,6 +7,7 @@ import '../core/theme/app_theme.dart';
 import '../models/alert_incident_model.dart';
 import '../models/user_model.dart';
 import '../services/notification_service.dart';
+import '../services/push_notification_service.dart';
 import '../viewmodels/alert_incident_viewmodel.dart';
 import '../viewmodels/analytics_viewmodel.dart';
 import '../viewmodels/auth_viewmodel.dart';
@@ -85,9 +86,29 @@ class _MainShellViewState extends State<MainShellView>
       _selectPage(1);
     };
 
+    // FCM alert nyata saat aplikasi terbuka: sinkronkan segera tanpa menunggu siklus polling 12 detik
+    final push = PushNotificationService();
+    push.onForegroundAlert = (_) {
+      if (!mounted) return;
+      final isKabid = context.read<AuthViewModel>().isKepalaBidang;
+      context.read<AlertIncidentViewModel>().pollActiveAlerts(
+            triggerNotifications: !isKabid,
+          );
+    };
+    push.onEmergencyCallDeclined = (alertId) {
+      if (!mounted) return;
+      context.read<AlertIncidentViewModel>().dismissEmergencyCallById(alertId);
+    };
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadInitialData();
       _startBackgroundPolling();
+
+      // Panggilan CallKit yang diterima sebelum shell siap (cold start dari layar kunci)
+      final acceptedId = push.consumePendingAcceptedAlertId();
+      if (acceptedId != null) {
+        NotificationService().onEmergencyAlertOpened?.call(acceptedId);
+      }
     });
   }
 
@@ -246,6 +267,8 @@ class _MainShellViewState extends State<MainShellView>
   void dispose() {
     NotificationService().onEmergencyAlertOpened = null;
     NotificationService().onOpenAlertsTab = null;
+    PushNotificationService().onForegroundAlert = null;
+    PushNotificationService().onEmergencyCallDeclined = null;
     WidgetsBinding.instance.removeObserver(this);
     _pollingTimer?.cancel();
     _syncController.dispose();

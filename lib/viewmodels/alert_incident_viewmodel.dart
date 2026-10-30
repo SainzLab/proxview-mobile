@@ -198,6 +198,22 @@ class AlertIncidentViewModel extends ChangeNotifier {
     }
   }
 
+  /// Menandai panggilan darurat sebagai ditolak berdasarkan ID (mis. dari tombol "Tolak" CallKit),
+  /// agar EmergencyCallView tidak muncul ulang untuk alert yang sama.
+  void dismissEmergencyCallById(int alertId) {
+    final added = _dismissedCallAlertIds.add(alertId);
+    final wasPending = _pendingEmergencyCall?.id == alertId;
+    if (wasPending) _pendingEmergencyCall = null;
+    if (!added && !wasPending) return;
+    _notificationService.stopEmergencyCall(alertId);
+    _notificationService.syncAlertState(
+      knownSeverities: _knownAlertSeverities,
+      dismissedCallIds: _dismissedCallAlertIds,
+      overwriteKnown: false,
+    );
+    notifyListeners();
+  }
+
   Future<void> _syncNotificationsAndEmergencyState(
     List<AlertModel> latest, {
     required bool triggerNotifications,

@@ -2,7 +2,6 @@ import 'dart:convert' show jsonDecode;
 import 'dart:io' show HttpClient, Platform, X509Certificate;
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../models/alert_incident_model.dart';
 import '../models/analytics_model.dart';

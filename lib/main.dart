@@ -1,14 +1,12 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_callkit_incoming/entities/call_kit_params.dart';
-import 'package:flutter_callkit_incoming/entities/notification_params.dart';
-import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 import 'package:provider/provider.dart';
 
 import 'core/theme/app_theme.dart';
 import 'services/api_service.dart';
 import 'services/notification_service.dart';
+import 'services/push_notification_service.dart';
 import 'services/storage_service.dart';
 import 'viewmodels/alert_incident_viewmodel.dart';
 import 'viewmodels/analytics_viewmodel.dart';
@@ -21,54 +19,12 @@ import 'views/login_view.dart';
 import 'views/splash_view.dart';
 import 'views/main_shell_view.dart';
 
-@pragma('vm:entry-point')
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
-  final data = message.data;
-  if (data['action_type'] == 'Call') {
-    final alertId = data['alert_id']?.toString() ?? '';
-    final targetName = data['target_name']?.toString() ?? 'Monitoring Alert';
-    final severity = data['severity']?.toString() ?? '';
-    final alertMessage = data['message']?.toString() ?? '';
-
-    final params = CallKitParams(
-      id: alertId.isNotEmpty
-          ? alertId
-          : DateTime.now().millisecondsSinceEpoch.toString(),
-      nameCaller: targetName,
-      appName: 'ProxView',
-      handle: alertMessage.isNotEmpty
-          ? (severity.isNotEmpty ? '[$severity] $alertMessage' : alertMessage)
-          : (severity.isNotEmpty ? 'Severity: $severity' : 'Incoming Call'),
-      type: 0,
-      duration: 30000,
-      extra: <String, dynamic>{
-        'alert_id': alertId,
-        'target_name': targetName,
-        'severity': severity,
-        'message': alertMessage,
-      },
-      missedCallNotification: const NotificationParams(
-        showNotification: true,
-        isShowCallback: false,
-        subtitle: 'Missed Call',
-      ),
-      callingNotification: const NotificationParams(
-        showNotification: true,
-        isShowCallback: false,
-        subtitle: 'Incoming Call',
-      ),
-    );
-
-    await FlutterCallkitIncoming.showCallkitIncoming(params);
-  }
-}
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   await NotificationService().initialize();
+  await PushNotificationService().startListening();
   runApp(const MyApp());
 }
 

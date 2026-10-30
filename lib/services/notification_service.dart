@@ -272,6 +272,45 @@ class NotificationService {
     }
   }
 
+  /// Menampilkan notifikasi heads-up dari payload FCM data-only (`action_type: Pesan`).
+  /// Aman dipanggil dari background isolate FCM.
+  Future<void> showDataNotification({
+    required int id,
+    required String title,
+    required String body,
+  }) async {
+    if (!_initialized) await initialize();
+    try {
+      const androidDetails = AndroidNotificationDetails(
+        'proxview_alerts_v4',
+        'Notifikasi Gangguan & Insiden',
+        channelDescription:
+            'Notifikasi insiden & panggilan darurat sistem ProxView',
+        importance: Importance.max,
+        priority: Priority.max,
+        category: AndroidNotificationCategory.alarm,
+        playSound: true,
+        enableVibration: true,
+        visibility: NotificationVisibility.public,
+      );
+      const darwinDetails = DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      );
+      await _plugin.show(
+        id,
+        title,
+        body,
+        const NotificationDetails(
+          android: androidDetails,
+          iOS: darwinDetails,
+          macOS: darwinDetails,
+        ),
+      );
+    } catch (_) {}
+  }
+
   Future<void> _showPluginNotification(
     AlertModel alert, {
     required bool isCall,
