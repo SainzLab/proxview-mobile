@@ -17,6 +17,9 @@ class LogViewModel extends ChangeNotifier {
   int _systemLogLimit = 200;
   bool _hasMoreSystemLogs = true;
   String? _errorMessage;
+  String? _taskErrorMessage;
+  String? _clusterErrorMessage;
+  String? _systemErrorMessage;
 
   CancelToken? _fetchCancelToken;
   CancelToken? _detailCancelToken;
@@ -33,6 +36,9 @@ class LogViewModel extends ChangeNotifier {
   bool get hasMoreClusterLogs => false;
   bool get hasMoreSystemLogs => _hasMoreSystemLogs && _systemLogLimit < 500;
   String? get errorMessage => _errorMessage;
+  String? get taskErrorMessage => _taskErrorMessage;
+  String? get clusterErrorMessage => _clusterErrorMessage;
+  String? get systemErrorMessage => _systemErrorMessage;
 
   Future<void> fetchLogs({bool showLoading = true}) async {
     if (!showLoading && _isFetching) return;
@@ -43,6 +49,9 @@ class LogViewModel extends ChangeNotifier {
       _hasMoreSystemLogs = true;
       _isLoading = true;
       _errorMessage = null;
+      _taskErrorMessage = null;
+      _clusterErrorMessage = null;
+      _systemErrorMessage = null;
       notifyListeners();
     }
 
@@ -51,14 +60,55 @@ class LogViewModel extends ChangeNotifier {
     _fetchCancelToken = token;
 
     try {
-      final results = await Future.wait([
-        _apiService.getProxmoxTaskLogs(cancelToken: token),
-        _apiService.getProxmoxClusterLogs(cancelToken: token),
-        _apiService.getSystemAuditLogs(
-          limit: _systemLogLimit,
-          cancelToken: token,
-        ),
-      ]);
+      final taskFuture = _apiService
+          .getProxmoxTaskLogs(cancelToken: token)
+          .then<List<ProxmoxTaskLogModel>>(
+        (res) {
+          _taskErrorMessage = null;
+          return res;
+        },
+        onError: (err) {
+          if (err is! DioException || err.type != DioExceptionType.cancel) {
+            _taskErrorMessage = err.toString();
+          }
+          return <ProxmoxTaskLogModel>[];
+        },
+      );
+
+      final clusterFuture = _apiService
+          .getProxmoxClusterLogs(cancelToken: token)
+          .then<List<ProxmoxClusterLogModel>>(
+        (res) {
+          _clusterErrorMessage = null;
+          return res;
+        },
+        onError: (err) {
+          if (err is! DioException || err.type != DioExceptionType.cancel) {
+            _clusterErrorMessage = err.toString();
+          }
+          return <ProxmoxClusterLogModel>[];
+        },
+      );
+
+      final systemFuture = _apiService
+          .getSystemAuditLogs(
+        limit: _systemLogLimit,
+        cancelToken: token,
+      )
+          .then<List<SystemAuditLogModel>>(
+        (res) {
+          _systemErrorMessage = null;
+          return res;
+        },
+        onError: (err) {
+          if (err is! DioException || err.type != DioExceptionType.cancel) {
+            _systemErrorMessage = err.toString();
+          }
+          return <SystemAuditLogModel>[];
+        },
+      );
+
+      final results = await Future.wait([taskFuture, clusterFuture, systemFuture]);
       if (token.isCancelled) return;
 
       _taskLogs = results[0] as List<ProxmoxTaskLogModel>;
@@ -66,12 +116,19 @@ class LogViewModel extends ChangeNotifier {
       _systemLogs = results[2] as List<SystemAuditLogModel>;
       _hasMoreSystemLogs =
           _systemLogs.length >= _systemLogLimit && _systemLogLimit < 500;
-      _errorMessage = null;
-    } on ApiException catch (e) {
-      if (e.isCancelled) return;
-      if (showLoading ||
-          (_taskLogs.isEmpty && _clusterLogs.isEmpty && _systemLogs.isEmpty)) {
-        _errorMessage = e.toString();
+
+      // Hanya jadikan error global jika KETIGA modul log sama-sama gagal
+      if (_taskLogs.isEmpty &&
+          _clusterLogs.isEmpty &&
+          _systemLogs.isEmpty &&
+          (_taskErrorMessage != null ||
+              _clusterErrorMessage != null ||
+              _systemErrorMessage != null)) {
+        _errorMessage = _systemErrorMessage ??
+            _taskErrorMessage ??
+            _clusterErrorMessage;
+      } else {
+        _errorMessage = null;
       }
     } catch (e) {
       if (showLoading ||

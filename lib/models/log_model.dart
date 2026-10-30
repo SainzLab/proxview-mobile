@@ -26,8 +26,8 @@ class ProxmoxTaskLogModel {
       type: json['type']?.toString() ?? 'task',
       user: json['user']?.toString() ?? '-',
       status: json['status']?.toString() ?? 'UNKNOWN',
-      startTime: json['starttime'],
-      endTime: json['endtime'],
+      startTime: json['starttime'] ?? json['start_time'] ?? json['startTime'],
+      endTime: json['endtime'] ?? json['end_time'] ?? json['endTime'],
     );
   }
 }
@@ -56,11 +56,11 @@ class ProxmoxClusterLogModel {
 
   factory ProxmoxClusterLogModel.fromJson(Map<String, dynamic> json) {
     return ProxmoxClusterLogModel(
-      time: json['time'],
+      time: json['time'] ?? json['timestamp'],
       node: json['node']?.toString() ?? '-',
       pri: json['pri'],
       tag: json['tag']?.toString() ?? 'system',
-      msg: json['msg']?.toString() ?? '',
+      msg: json['msg']?.toString() ?? json['message']?.toString() ?? '',
       user: json['user']?.toString() ?? '-',
     );
   }
@@ -83,11 +83,13 @@ class SystemAuditLogModel {
 
   factory SystemAuditLogModel.fromJson(Map<String, dynamic> json) {
     return SystemAuditLogModel(
-      id: (json['id'] as num?)?.toInt() ?? 0,
+      id: (json['id'] is num)
+          ? (json['id'] as num).toInt()
+          : int.tryParse(json['id']?.toString() ?? '0') ?? 0,
       level: json['level']?.toString() ?? 'INFO',
       source: json['source']?.toString() ?? 'SYSTEM',
       message: json['message']?.toString() ?? '',
-      timestamp: json['timestamp']?.toString() ?? '',
+      timestamp: json['timestamp']?.toString() ?? json['created_at']?.toString() ?? '',
     );
   }
 }

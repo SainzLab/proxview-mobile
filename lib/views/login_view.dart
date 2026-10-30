@@ -6,6 +6,7 @@ import '../services/api_service.dart';
 import '../services/storage_service.dart';
 import '../viewmodels/auth_viewmodel.dart';
 import 'common_widgets.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -91,19 +92,32 @@ class _LoginViewState extends State<LoginView> {
       setState(() => _showServerConfig = true);
       AppFeedback.showSnackBar(
         context,
-        message:
-            'Format Base URL Server tidak valid. Contoh: https://domain-anda.com atau http://192.168.1.10:7060',
+        message: 'Format Base URL Server tidak valid. Contoh: https://domain-anda.com atau http://192.168.1.10:7060',
         isWarning: true,
       );
       return;
     }
 
+    // --- [MULAI BLOK TAMBAHAN FCM] ---
+    String? fcmToken;
+    try {
+      fcmToken = await FirebaseMessaging.instance.getToken();
+      debugPrint("Berhasil mendapatkan FCM Token: $fcmToken");
+    } catch (e) {
+      // Gagal ambil FCM (misal di emulator tanpa Google Play), tetap biarkan login jalan
+      debugPrint("Gagal mengambil FCM Token: $e");
+    }
+    // --- [SELESAI BLOK TAMBAHAN FCM] ---
+
     final authVm = context.read<AuthViewModel>();
+    
+    // Pastikan fungsi login di AuthViewModel sudah menerima parameter fcmToken
     final ok = await authVm.login(
       serverUrl: serverUrl,
       username: username,
       password: password,
       token: token,
+      fcmToken: fcmToken, // <-- Sisipkan fcmToken ke ViewModel
     );
 
     if (!ok && mounted && authVm.errorMessage != null) {

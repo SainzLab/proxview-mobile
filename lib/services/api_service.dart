@@ -2,6 +2,7 @@ import 'dart:convert' show jsonDecode;
 import 'dart:io' show HttpClient, Platform, X509Certificate;
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../models/alert_incident_model.dart';
 import '../models/analytics_model.dart';
@@ -409,6 +410,7 @@ class ProxViewApiService {
     required String username,
     required String password,
     required String token,
+    String? fcmToken, // Menerima fcmToken dari AuthViewModel
   }) async {
     try {
       final res = await _dio.post(
@@ -417,8 +419,10 @@ class ProxViewApiService {
           'username': username.trim(),
           'password': password,
           'token': token.trim(),
+          'fcm_token': fcmToken, // Langsung kirim ke payload
         },
       );
+      
       final body = _ensureMap(res.data);
       if (body['success'] != true) {
         throw ApiException(
@@ -426,10 +430,12 @@ class ProxViewApiService {
           code: 'ERR-AUTH',
         );
       }
+      
       final user = UserModel.fromJson(body['data'] as Map<String, dynamic>);
       final savedToken = (user.apiToken != null && user.apiToken!.isNotEmpty)
           ? user.apiToken!
           : token.trim();
+          
       await _storageService.saveApiToken(savedToken);
       await _storageService.saveCachedUser(user);
       return user;
@@ -722,7 +728,8 @@ class ProxViewApiService {
       final body = _ensureMap(res.data);
       final list = (body['data'] as List?) ?? const [];
       return list
-          .map((e) => ProxmoxTaskLogModel.fromJson(e as Map<String, dynamic>))
+          .whereType<Map>()
+          .map((e) => ProxmoxTaskLogModel.fromJson(Map<String, dynamic>.from(e)))
           .toList();
     } catch (e) {
       _throwHandled(e);
@@ -741,7 +748,8 @@ class ProxViewApiService {
       final body = _ensureMap(res.data);
       final list = (body['data'] as List?) ?? const [];
       return list
-          .map((e) => ProxmoxClusterLogModel.fromJson(e as Map<String, dynamic>))
+          .whereType<Map>()
+          .map((e) => ProxmoxClusterLogModel.fromJson(Map<String, dynamic>.from(e)))
           .toList();
     } catch (e) {
       _throwHandled(e);
@@ -763,7 +771,7 @@ class ProxViewApiService {
       final body = _ensureMap(res.data);
       final list = (body['data'] as List?) ?? const [];
       return list.map((e) {
-        if (e is Map<String, dynamic>) {
+        if (e is Map) {
           return e['t']?.toString() ?? '';
         }
         return e.toString();
@@ -787,7 +795,8 @@ class ProxViewApiService {
       final body = _ensureMap(res.data);
       final list = (body['data'] as List?) ?? const [];
       return list
-          .map((e) => SystemAuditLogModel.fromJson(e as Map<String, dynamic>))
+          .whereType<Map>()
+          .map((e) => SystemAuditLogModel.fromJson(Map<String, dynamic>.from(e)))
           .toList();
     } catch (e) {
       _throwHandled(e);

@@ -72,11 +72,13 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  // --- [UPDATE: Tambahkan parameter fcmToken opsional] ---
   Future<bool> login({
     required String serverUrl,
     required String username,
     required String password,
     required String token,
+    String? fcmToken, 
   }) async {
     _isLoading = true;
     _errorMessage = null;
@@ -87,16 +89,22 @@ class AuthViewModel extends ChangeNotifier {
         await _storageService.setBaseUrl(serverUrl);
         _baseUrl = await _storageService.getBaseUrl();
       }
+
+      // --- [UPDATE: Teruskan fcmToken ke ApiService] ---
       final user = await _apiService.login(
         username: username,
         password: password,
         token: token,
+        fcmToken: fcmToken, 
       );
+
       _currentUser = user;
       _status = AuthStatus.authenticated;
       _isLoading = false;
+
       final savedToken = await _storageService.getApiToken() ?? token;
       await _syncBackgroundService(savedToken);
+
       notifyListeners();
       return true;
     } catch (e) {
@@ -110,6 +118,7 @@ class AuthViewModel extends ChangeNotifier {
   Future<void> updateBaseUrl(String newUrl) async {
     await _storageService.setBaseUrl(newUrl);
     _baseUrl = await _storageService.getBaseUrl();
+
     final token = await _storageService.getApiToken();
     if (token != null && token.isNotEmpty) {
       await _syncBackgroundService(token);
@@ -118,13 +127,14 @@ class AuthViewModel extends ChangeNotifier {
   }
 
   Future<void> _syncBackgroundService(String token) async {
-    final enableForTeknisi =
-        _status == AuthStatus.authenticated && !isKepalaBidang;
+    final enableForTeknisi = _status == AuthStatus.authenticated && !isKepalaBidang;
+
     await NotificationService().configureBackgroundService(
       baseUrl: _baseUrl,
       apiToken: token,
       enabled: enableForTeknisi,
     );
+
     if (enableForTeknisi) {
       unawaited(NotificationService().requestRuntimeAndBackgroundPermissions());
     }
@@ -147,6 +157,7 @@ class AuthViewModel extends ChangeNotifier {
   Future<void> logout({String? reason}) async {
     await _storageService.clearSession();
     await NotificationService().stopBackgroundService();
+
     _currentUser = null;
     _status = AuthStatus.unauthenticated;
     _errorMessage = reason;

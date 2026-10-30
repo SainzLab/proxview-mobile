@@ -366,25 +366,20 @@ class _SettingsViewState extends State<SettingsView> {
 
         if (!authVm.isKepalaBidang) ...[
           const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const SectionTitle(
-                title: 'PEMATAUAN LATAR BELAKANG & KEANDALAN',
-                icon: Icons.notifications_active_outlined,
-              ),
-              IconButton(
-                onPressed: _isLoadingDiagnostics ? null : _fetchDiagnostics,
-                tooltip: 'Segarkan Status Latar Belakang',
-                icon: _isLoadingDiagnostics
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Icon(Icons.refresh_rounded, size: 20, color: _textSecondary),
-              ),
-            ],
+          SectionTitle(
+            title: 'PEMATAUAN LATAR BELAKANG & KEANDALAN',
+            icon: Icons.notifications_active_outlined,
+            trailing: IconButton(
+              onPressed: _isLoadingDiagnostics ? null : _fetchDiagnostics,
+              tooltip: 'Segarkan Status Latar Belakang',
+              icon: _isLoadingDiagnostics
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Icon(Icons.refresh_rounded, size: 20, color: _textSecondary),
+            ),
           ),
           const SizedBox(height: 12),
           Container(

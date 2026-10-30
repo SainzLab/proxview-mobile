@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../core/theme/app_theme.dart';
 import '../core/utils/formatters.dart';
 import '../models/log_model.dart';
+import '../services/api_service.dart';
 import '../viewmodels/log_viewmodel.dart';
 import 'common_widgets.dart';
 
@@ -193,7 +194,14 @@ class _LogsViewState extends State<LogsView> {
       backgroundColor: _bgCard,
       onRefresh: () => vm.fetchLogs(showLoading: false),
       child: vm.taskLogs.isEmpty
-          ? _buildEmptyState('Tidak ada riwayat task Proxmox.', Icons.task_alt_rounded)
+          ? _buildEmptyState(
+              vm.taskErrorMessage != null
+                  ? 'Gagal memuat task Proxmox:\n${ApiException.parse(vm.taskErrorMessage!).message}'
+                  : 'Tidak ada riwayat task Proxmox.',
+              vm.taskErrorMessage != null
+                  ? Icons.cloud_off_rounded
+                  : Icons.task_alt_rounded,
+            )
           : tasks.isEmpty
               ? _buildEmptyState(
                   'Tidak ada task yang cocok dengan "$_searchQuery".',
@@ -494,7 +502,14 @@ class _LogsViewState extends State<LogsView> {
       backgroundColor: _bgCard,
       onRefresh: () => vm.fetchLogs(showLoading: false),
       child: vm.clusterLogs.isEmpty
-          ? _buildEmptyState('Tidak ada log cluster Proxmox.', Icons.dns_outlined)
+          ? _buildEmptyState(
+              vm.clusterErrorMessage != null
+                  ? 'Gagal memuat cluster log Proxmox:\n${ApiException.parse(vm.clusterErrorMessage!).message}'
+                  : 'Tidak ada log cluster Proxmox.',
+              vm.clusterErrorMessage != null
+                  ? Icons.cloud_off_rounded
+                  : Icons.dns_outlined,
+            )
           : logs.isEmpty
               ? _buildEmptyState(
                   'Tidak ada log cluster yang cocok dengan "$_searchQuery".',
@@ -618,7 +633,14 @@ class _LogsViewState extends State<LogsView> {
           return false;
         },
         child: vm.systemLogs.isEmpty
-            ? _buildEmptyState('Tidak ada log audit sistem.', Icons.admin_panel_settings_outlined)
+            ? _buildEmptyState(
+                vm.systemErrorMessage != null
+                    ? 'Gagal memuat log audit sistem:\n${ApiException.parse(vm.systemErrorMessage!).message}'
+                    : 'Tidak ada log audit sistem.',
+                vm.systemErrorMessage != null
+                    ? Icons.cloud_off_rounded
+                    : Icons.admin_panel_settings_outlined,
+              )
             : logs.isEmpty
                 ? _buildEmptyState(
                     'Tidak ada log audit yang cocok dengan "$_searchQuery".',
