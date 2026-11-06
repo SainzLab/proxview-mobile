@@ -367,7 +367,7 @@ class _SettingsViewState extends State<SettingsView> {
         if (!authVm.isKepalaBidang) ...[
           const SizedBox(height: 24),
           SectionTitle(
-            title: 'PEMATAUAN LATAR BELAKANG & KEANDALAN',
+            title: 'LATAR BELAKANG',
             icon: Icons.notifications_active_outlined,
             trailing: IconButton(
               onPressed: _isLoadingDiagnostics ? null : _fetchDiagnostics,

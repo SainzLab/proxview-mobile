@@ -1,5 +1,6 @@
-import 'dart:convert' show jsonDecode;
+import 'dart:convert' show jsonDecode, utf8;
 import 'dart:io' show HttpClient, Platform, X509Certificate;
+import 'dart:typed_data' show Uint8List;
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -8,6 +9,7 @@ import '../models/analytics_model.dart';
 import '../models/dashboard_model.dart';
 import '../models/log_model.dart';
 import '../models/network_target_model.dart';
+import '../models/network_tool_model.dart';
 import '../models/proxmox_model.dart';
 import '../models/user_model.dart';
 import 'storage_service.dart';
@@ -194,8 +196,31 @@ class ProxViewApiService {
   ({String code, String message}) _extractErrorInfo(DioException e) {
     final data = e.response?.data;
     String? serverMsg;
+    Map<String, dynamic>? mapData;
     if (data is Map<String, dynamic>) {
-      final rawMsg = data['message'] ?? data['error'];
+      mapData = data;
+    } else if (data is Map) {
+      mapData = Map<String, dynamic>.from(data);
+    } else if (data is List<int> && data.isNotEmpty) {
+      try {
+        final decodedText = utf8.decode(data, allowMalformed: true).trim();
+        if (decodedText.startsWith('{') && decodedText.endsWith('}')) {
+          final parsed = jsonDecode(decodedText);
+          if (parsed is Map) mapData = Map<String, dynamic>.from(parsed);
+        }
+      } catch (_) {}
+    } else if (data is String) {
+      final trimmed = data.trim();
+      if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+        try {
+          final parsed = jsonDecode(trimmed);
+          if (parsed is Map) mapData = Map<String, dynamic>.from(parsed);
+        } catch (_) {}
+      }
+    }
+
+    if (mapData != null) {
+      final rawMsg = mapData['message'] ?? mapData['error'];
       if (rawMsg != null && rawMsg.toString().trim().isNotEmpty) {
         serverMsg = rawMsg.toString().trim();
       }
@@ -256,7 +281,7 @@ class ProxViewApiService {
           return (
             code: 'ERR-500',
             message: serverMsg ??
-                'Terjadi gangguan internal pada server ProxView. Silakan coba lagi nanti.',
+                'Server sedang mengalami kendala, silakan coba beberapa saat lagi.',
           );
         case 502:
         case 503:
@@ -589,13 +614,15 @@ class ProxViewApiService {
   }
 
   // ===========================================================================
-  // D. MODUL ANALITIK SLA (ITIL)
+  // D. MODUL ANALITIK SLA & MTBF (ITIL)
   // ===========================================================================
 
   /// 10. GET /api/mobile/v1/analytics?period=24h&severity=ALL
   Future<SlaAnalyticsResponseModel> getAnalytics({
     String period = '24h',
     String severity = 'ALL',
+    int? targetId,
+    String? targetType,
     CancelToken? cancelToken,
   }) async {
     try {
@@ -604,11 +631,44 @@ class ProxViewApiService {
         queryParameters: {
           'period': period,
           'severity': severity,
+          if (targetId != null) 'target_id': targetId,
+          if (targetType != null && targetType.trim().isNotEmpty)
+            'target_type': targetType.trim(),
         },
         cancelToken: cancelToken,
       );
       final body = _ensureMap(res.data);
       return SlaAnalyticsResponseModel.fromJson(body);
+    } catch (e) {
+      _throwHandled(e);
+    }
+  }
+
+  /// 10b. GET /api/mobile/v1/analytics/mtbf (alias: /analytics/summary)
+  Future<SlaSummaryModel> getSlaMtbfSummary({
+    String period = '24h',
+    String severity = 'ALL',
+    int? targetId,
+    String? targetType,
+    CancelToken? cancelToken,
+  }) async {
+    try {
+      final res = await _dio.get(
+        '/analytics/mtbf',
+        queryParameters: {
+          'period': period,
+          'severity': severity,
+          if (targetId != null) 'target_id': targetId,
+          if (targetType != null && targetType.trim().isNotEmpty)
+            'target_type': targetType.trim(),
+        },
+        cancelToken: cancelToken,
+      );
+      final body = _ensureMap(res.data);
+      final summaryMap = (body['data'] as Map<String, dynamic>?) ??
+          (body['summary'] as Map<String, dynamic>?) ??
+          const {};
+      return SlaSummaryModel.fromJson(summaryMap);
     } catch (e) {
       _throwHandled(e);
     }
@@ -800,5 +860,269 @@ class ProxViewApiService {
     } catch (e) {
       _throwHandled(e);
     }
+  }
+
+  // ===========================================================================
+  // H. MODUL NETWORK TOOLS (PING, TRACEROUTE, IP SCAN)
+  // ===========================================================================
+
+  /// 20. POST /api/mobile/v1/tools/ping
+  Future<NetworkToolResponse> runPing(
+    String target, {
+    CancelToken? cancelToken,
+  }) {
+    return _executeNetworkTool(
+      NetworkToolType.ping,
+      target,
+      cancelToken: cancelToken,
+    );
+  }
+
+  /// 21. POST /api/mobile/v1/tools/traceroute
+  Future<NetworkToolResponse> runTraceroute(
+    String target, {
+    CancelToken? cancelToken,
+  }) {
+    return _executeNetworkTool(
+      NetworkToolType.traceroute,
+      target,
+      cancelToken: cancelToken,
+    );
+  }
+
+  /// 22. POST /api/mobile/v1/tools/ipscan
+  Future<NetworkToolResponse> runIpScan(
+    String target, {
+    CancelToken? cancelToken,
+  }) {
+    return _executeNetworkTool(
+      NetworkToolType.ipScan,
+      target,
+      cancelToken: cancelToken,
+    );
+  }
+
+  Future<NetworkToolResponse> _executeNetworkTool(
+    NetworkToolType tool,
+    String target, {
+    CancelToken? cancelToken,
+  }) async {
+    final cleanedTarget = target.trim();
+    try {
+      final res = await _dio.post(
+        tool.endpointPath,
+        data: {'target': cleanedTarget},
+        cancelToken: cancelToken,
+        options: Options(
+          sendTimeout: const Duration(seconds: 15),
+          // IP Scan dan Traceroute dapat memerlukan waktu hingga beberapa menit
+          receiveTimeout: const Duration(minutes: 5),
+        ),
+      );
+      final body = _ensureMap(res.data);
+      return NetworkToolResponse.fromJson(
+        body,
+        statusCode: res.statusCode,
+        toolType: tool,
+        target: cleanedTarget,
+      );
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.cancel) {
+        _throwHandled(e);
+      }
+      final status = e.response?.statusCode;
+      if (status == 400 && e.response?.data != null) {
+        try {
+          final body = _ensureMap(e.response!.data);
+          return NetworkToolResponse.fromJson(
+            body,
+            statusCode: 400,
+            isValidationError: true,
+            toolType: tool,
+            target: cleanedTarget,
+          );
+        } catch (_) {}
+      }
+      _throwHandled(e);
+    } catch (e) {
+      _throwHandled(e);
+    }
+  }
+
+  // ===========================================================================
+  // I. MODUL UNDUH LAPORAN PDF (REKAP GANGGUAN & RINGKASAN DASHBOARD)
+  // ===========================================================================
+
+  /// 23. GET /api/mobile/v1/export/pdf/incidents
+  Future<({Uint8List bytes, String fileName})> downloadIncidentsPdfBytes({
+    String period = '24h',
+    String severity = 'ALL',
+    ProgressCallback? onReceiveProgress,
+    CancelToken? cancelToken,
+  }) {
+    final dateStr = _currentDateIso();
+    return _fetchPdfBytes(
+      endpoint: '/export/pdf/incidents',
+      queryParams: {
+        'period': period,
+        'severity': severity,
+      },
+      defaultFileName: 'Laporan_Rekap_Gangguan_${period}_${severity}_$dateStr.pdf',
+      onReceiveProgress: onReceiveProgress,
+      cancelToken: cancelToken,
+    );
+  }
+
+  /// 24. GET /api/mobile/v1/export/pdf/dashboard
+  Future<({Uint8List bytes, String fileName})> downloadDashboardPdfBytes({
+    String timeframe = '1h',
+    String period = '24h',
+    String severity = 'ALL',
+    ProgressCallback? onReceiveProgress,
+    CancelToken? cancelToken,
+  }) {
+    final dateStr = _currentDateIso();
+    return _fetchPdfBytes(
+      endpoint: '/export/pdf/dashboard',
+      queryParams: {
+        'timeframe': timeframe,
+        'period': period,
+        'severity': severity,
+      },
+      defaultFileName: 'Ringkasan_Infrastruktur_Proxview_$dateStr.pdf',
+      onReceiveProgress: onReceiveProgress,
+      cancelToken: cancelToken,
+    );
+  }
+
+  /// 25. GET /api/mobile/v1/export/pdf (Router Serbaguna Satu Pintu)
+  Future<({Uint8List bytes, String fileName})> downloadPdfRouterBytes({
+    String type = 'incidents',
+    String timeframe = '1h',
+    String period = '24h',
+    String severity = 'ALL',
+    ProgressCallback? onReceiveProgress,
+    CancelToken? cancelToken,
+  }) {
+    final dateStr = _currentDateIso();
+    final isDashboard = type.toLowerCase() == 'dashboard';
+    return _fetchPdfBytes(
+      endpoint: '/export/pdf',
+      queryParams: {
+        'type': isDashboard ? 'dashboard' : 'incidents',
+        if (isDashboard) 'timeframe': timeframe,
+        'period': period,
+        'severity': severity,
+      },
+      defaultFileName: isDashboard
+          ? 'Ringkasan_Infrastruktur_Proxview_$dateStr.pdf'
+          : 'Laporan_Rekap_Gangguan_${period}_${severity}_$dateStr.pdf',
+      onReceiveProgress: onReceiveProgress,
+      cancelToken: cancelToken,
+    );
+  }
+
+  Future<({Uint8List bytes, String fileName})> _fetchPdfBytes({
+    required String endpoint,
+    required Map<String, dynamic> queryParams,
+    required String defaultFileName,
+    ProgressCallback? onReceiveProgress,
+    CancelToken? cancelToken,
+  }) async {
+    try {
+      final res = await _dio.get<List<int>>(
+        endpoint,
+        queryParameters: queryParams,
+        onReceiveProgress: onReceiveProgress,
+        cancelToken: cancelToken,
+        options: Options(
+          responseType: ResponseType.bytes,
+          receiveTimeout: const Duration(minutes: 2),
+          headers: {
+            'Accept': 'application/pdf, application/json',
+          },
+        ),
+      );
+
+      final rawBytes = res.data;
+      if (rawBytes == null || rawBytes.isEmpty) {
+        throw const ApiException(
+          'Dokumen PDF yang diterima dari server kosong.',
+          code: 'ERR-RESP-FORMAT',
+        );
+      }
+
+      // Validasi header magic bytes %PDF- (0x25, 0x50, 0x44, 0x46)
+      final isPdfSignature = rawBytes.length >= 4 &&
+          rawBytes[0] == 0x25 &&
+          rawBytes[1] == 0x50 &&
+          rawBytes[2] == 0x44 &&
+          rawBytes[3] == 0x46;
+
+      if (!isPdfSignature) {
+        final preview = utf8
+            .decode(rawBytes.take(512).toList(), allowMalformed: true)
+            .trim();
+        if (preview.startsWith('{')) {
+          final parsed = jsonDecode(preview);
+          if (parsed is Map && parsed['message'] != null) {
+            throw ApiException(
+              parsed['message'].toString(),
+              code: 'ERR-400',
+            );
+          }
+        }
+        throw const ApiException(
+          'Respons server bukan dokumen PDF yang valid. Periksa kembali konfigurasi URL server.',
+          code: 'ERR-RESP-FORMAT',
+        );
+      }
+
+      final disposition = res.headers.value('content-disposition') ?? '';
+      final parsedName = _extractFilenameFromDisposition(disposition);
+      final safeName = (parsedName != null && parsedName.isNotEmpty)
+          ? parsedName
+          : defaultFileName;
+
+      return (bytes: Uint8List.fromList(rawBytes), fileName: safeName);
+    } catch (e) {
+      _throwHandled(e);
+    }
+  }
+
+  String? _extractFilenameFromDisposition(String disposition) {
+    if (disposition.isEmpty) return null;
+    final utf8Match =
+        RegExp(r"filename\*=UTF-8''([^;\r\n]+)", caseSensitive: false)
+            .firstMatch(disposition);
+    if (utf8Match != null) {
+      final raw = Uri.decodeFull(utf8Match.group(1)!.trim());
+      final cleaned = _sanitizeFileName(raw);
+      if (cleaned.isNotEmpty) return cleaned;
+    }
+    final stdMatch =
+        RegExp(r'filename="?([^";\r\n]+)"?', caseSensitive: false)
+            .firstMatch(disposition);
+    if (stdMatch != null) {
+      final cleaned = _sanitizeFileName(stdMatch.group(1)!.trim());
+      if (cleaned.isNotEmpty) return cleaned;
+    }
+    return null;
+  }
+
+  String _sanitizeFileName(String raw) {
+    final sanitized = raw.replaceAll(RegExp(r'[<>:"/\\|?*\x00-\x1F]'), '_').trim();
+    if (sanitized.isEmpty) return '';
+    return sanitized.toLowerCase().endsWith('.pdf')
+        ? sanitized
+        : '$sanitized.pdf';
+  }
+
+  String _currentDateIso() {
+    final now = DateTime.now();
+    final y = now.year.toString().padLeft(4, '0');
+    final m = now.month.toString().padLeft(2, '0');
+    final d = now.day.toString().padLeft(2, '0');
+    return '$y-$m-$d';
   }
 }

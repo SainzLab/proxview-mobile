@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../core/theme/app_theme.dart';
 import '../core/utils/formatters.dart';
 import '../models/alert_incident_model.dart';
+import '../models/analytics_model.dart';
 import '../models/dashboard_model.dart';
 import '../viewmodels/alert_incident_viewmodel.dart';
 import '../viewmodels/analytics_viewmodel.dart';
@@ -60,11 +61,13 @@ class DashboardView extends StatelessWidget {
       return _buildKepalaBidangDashboard(context, vm, summary);
     }
 
+    final analyticsVm = context.watch<AnalyticsViewModel>();
+    final slaSummary = analyticsVm.summary;
+
     return RefreshIndicator(
       color: AppTheme.statusTeal,
       backgroundColor: _bgCard,
       onRefresh: () async {
-        final analyticsVm = context.read<AnalyticsViewModel>();
         await Future.wait([
           vm.fetchDashboard(showLoading: false),
           analyticsVm.fetchAnalytics(showLoading: false),
@@ -75,7 +78,7 @@ class DashboardView extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         children: [
           const SectionTitle(
-            title: 'KESEHATAN CLUSTER PROXMOX',
+            title: 'CLUSTER PROXMOX',
             icon: Icons.dns_rounded,
           ),
           const SizedBox(height: 12),
@@ -105,6 +108,18 @@ class DashboardView extends StatelessWidget {
               ),
             ],
           ),
+          if (slaSummary != null) ...[
+            const SizedBox(height: 24),
+            SectionTitle(
+              title: 'RINGKASAN ANALITIK',
+              icon: Icons.shield_outlined,
+              trailing: onOpenAnalyticsTab != null
+                  ? _buildSectionAction('DETAIL', onOpenAnalyticsTab!)
+                  : null,
+            ),
+            const SizedBox(height: 12),
+            _buildTechnicianSlaCard(slaSummary),
+          ],
           const SizedBox(height: 28),
           SectionTitle(
             title: 'INSIDEN TERBARU',
@@ -124,6 +139,29 @@ class DashboardView extends StatelessWidget {
     );
   }
 
+  Widget _buildTechnicianSlaCard(SlaSummaryModel sla) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: _bgCard,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _borderSubtle),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: _buildSlaSummaryContent(
+        availability: sla.availability,
+        mtbfDuration: sla.mtbfDuration,
+        mttrDuration: sla.mttrDuration,
+      ),
+    );
+  }
+
   Widget _buildKepalaBidangDashboard(
     BuildContext context,
     DashboardViewModel vm,
@@ -132,7 +170,7 @@ class DashboardView extends StatelessWidget {
     final alertVm = context.watch<AlertIncidentViewModel>();
     final analyticsVm = context.watch<AnalyticsViewModel>();
     final stats = alertVm.incidentStats;
-    final slaSummary = analyticsVm.analytics?.summary;
+    final slaSummary = analyticsVm.summary;
     final unhandledCount = alertVm.activeAlerts.where((a) => !a.isBeingHandled).length;
 
     return RefreshIndicator(
@@ -163,8 +201,7 @@ class DashboardView extends StatelessWidget {
             systemStatus: vm.systemStatus,
             summary: summary,
             stats: stats,
-            availability: slaSummary?.availability,
-            mttrSec: slaSummary?.mttrSec,
+            slaSummary: slaSummary,
           ),
           const SizedBox(height: 24),
           SectionTitle(
@@ -281,8 +318,7 @@ class DashboardView extends StatelessWidget {
     required SystemStatusModel? systemStatus,
     required DashboardSummaryModel summary,
     required IncidentStatsModel stats,
-    required double? availability,
-    required int? mttrSec,
+    required SlaSummaryModel? slaSummary,
   }) {
     final bool hasActiveAlert = stats.totalActive > 0;
     final bool hasCriticalOrDown = hasActiveAlert && (stats.down > 0 || stats.critical > 0);
@@ -294,10 +330,7 @@ class DashboardView extends StatelessWidget {
         ? 'PERHATIAN: ${stats.down + stats.critical} GANGGUAN KRITIS/DOWN'
         : (hasActiveAlert ? 'TERDAPAT ${stats.totalActive} PERINGATAN AKTIF' : 'SELURUH LAYANAN BEROPERASI NORMAL');
 
-    final double availVal = availability ?? 100.0;
-    final Color availColor = availVal >= 99.0
-        ? AppTheme.statusTeal
-        : (availVal >= 95.0 ? AppTheme.statusWarning : AppTheme.statusDown);
+    final double availVal = slaSummary?.availability ?? 100.0;
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -381,28 +414,12 @@ class DashboardView extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 16),
             child: Divider(color: _borderSubtle, height: 1),
           ),
-          Row(
-            children: [
-              Expanded(
-                child: _buildExecutiveKpiTile(
-                  label: 'KETERSEDIAAN',
-                  value: '${availVal.toStringAsFixed(2)}%',
-                  subtitle: availVal >= 99.0 ? 'Target ≥99% Tercapai' : 'Di Bawah Target SLA',
-                  color: availColor,
-                  icon: Icons.verified_user_outlined,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _buildExecutiveKpiTile(
-                  label: 'RATA-RATA MTTR',
-                  value: Formatters.formatDurationSeconds(mttrSec ?? 0),
-                  subtitle: 'Kecepatan pemulihan',
-                  color: AppTheme.statusRecovered,
-                  icon: Icons.restore_rounded,
-                ),
-              ),
-            ],
+          _buildSlaSummaryContent(
+            availability: availVal,
+            mtbfDuration: slaSummary?.mtbfDuration ??
+                Formatters.formatDurationSeconds(86400),
+            mttrDuration: slaSummary?.mttrDuration ??
+                Formatters.formatDurationSeconds(0),
           ),
         ],
       ),
@@ -446,7 +463,107 @@ class DashboardView extends StatelessWidget {
     );
   }
 
-  Widget _buildExecutiveKpiTile({
+  Widget _buildSlaSummaryContent({
+    required double availability,
+    required String mtbfDuration,
+    required String mttrDuration,
+  }) {
+    final Color availColor = availability >= 99.0
+        ? AppTheme.statusTeal
+        : (availability >= 95.0 ? AppTheme.statusWarning : AppTheme.statusDown);
+    const Color mtbfColor = Color(0xFF6366F1);
+    final double clampedProgress = (availability / 100.0).clamp(0.0, 1.0);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(
+              Icons.verified_user_outlined,
+              size: 15,
+              color: availColor,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              'AVAILABILITY',
+              style: TextStyle(
+                color: availColor,
+                fontSize: 10.5,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.8,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        RichText(
+          text: TextSpan(
+            children: [
+              TextSpan(
+                text: availability.toStringAsFixed(2),
+                style: TextStyle(
+                  color: availColor,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                  fontFamily: 'monospace',
+                  letterSpacing: -0.5,
+                ),
+              ),
+              TextSpan(
+                text: '%',
+                style: TextStyle(
+                  color: availColor.withValues(alpha: 0.75),
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'monospace',
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: LinearProgressIndicator(
+            value: clampedProgress,
+            minHeight: 6,
+            backgroundColor: _bgSurface,
+            valueColor: AlwaysStoppedAnimation<Color>(availColor),
+          ),
+        ),
+        const SizedBox(height: 16),
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: _buildSlaMetricSubTile(
+                  label: 'MTBF',
+                  value: mtbfDuration,
+                  subtitle: 'Antar kegagalan',
+                  color: mtbfColor,
+                  icon: Icons.shield_outlined,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildSlaMetricSubTile(
+                  label: 'MTTR',
+                  value: mttrDuration,
+                  subtitle: 'Waktu pemulihan',
+                  color: AppTheme.statusRecovered,
+                  icon: Icons.restore_rounded,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSlaMetricSubTile({
     required String label,
     required String value,
     required String subtitle,
@@ -454,51 +571,62 @@ class DashboardView extends StatelessWidget {
     required IconData icon,
   }) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: _bgSurface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _borderSubtle),
+        border: Border.all(color: color.withValues(alpha: 0.22)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, size: 14, color: color),
-              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.all(5),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(7),
+                ),
+                child: Icon(icon, size: 14, color: color),
+              ),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   label,
                   style: TextStyle(
                     color: color,
-                    fontSize: 9.5,
+                    fontSize: 10.5,
                     fontWeight: FontWeight.w800,
-                    letterSpacing: 0.5,
+                    letterSpacing: 0.7,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              value,
-              style: TextStyle(
-                color: _textMain,
-                fontSize: 19,
-                fontWeight: FontWeight.w900,
-                fontFamily: 'monospace',
-              ),
+          const SizedBox(height: 10),
+          Text(
+            value,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: _textMain,
+              fontSize: 17,
+              fontWeight: FontWeight.w900,
+              fontFamily: 'monospace',
+              letterSpacing: -0.4,
+              height: 1.25,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
             subtitle,
-            style: TextStyle(color: _textMuted, fontSize: 10),
+            style: TextStyle(
+              color: _textMuted,
+              fontSize: 10.5,
+              height: 1.3,
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),

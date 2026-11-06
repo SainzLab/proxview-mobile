@@ -8,7 +8,9 @@ import 'network_targets_view.dart';
 import 'proxmox_view.dart';
 
 class ResourceView extends StatefulWidget {
-  const ResourceView({super.key});
+  final VoidCallback? onOpenNetworkToolsTab;
+
+  const ResourceView({super.key, this.onOpenNetworkToolsTab});
 
   @override
   State<ResourceView> createState() => _ResourceViewState();
@@ -113,9 +115,11 @@ class _ResourceViewState extends State<ResourceView> {
             color: _bgMain,
             child: IndexedStack(
               index: _selectedCategory,
-              children: const [
-                ProxmoxView(summaryOnly: true),
-                NetworkTargetsView(),
+              children: [
+                const ProxmoxView(summaryOnly: true),
+                NetworkTargetsView(
+                  onOpenNetworkToolsTab: widget.onOpenNetworkToolsTab,
+                ),
               ],
             ),
           ),

@@ -6,8 +6,10 @@ import 'package:provider/provider.dart';
 import '../core/theme/app_theme.dart';
 import '../core/utils/formatters.dart';
 import '../models/analytics_model.dart';
+import '../services/pdf_export_service.dart';
 import '../viewmodels/analytics_viewmodel.dart';
 import 'common_widgets.dart';
+import 'pdf_export_sheet.dart';
 
 // Adaptive Theme Colors
 Color get _bgCard => AppTheme.bgCard;
@@ -17,6 +19,7 @@ Color get _textMain => AppTheme.textMain;
 Color get _textSecondary => AppTheme.textSecondary;
 Color get _textMuted => AppTheme.textMuted;
 Color get _textHint => AppTheme.textHint;
+const Color _mtbfAccent = Color(0xFF6366F1); // Indigo accent for MTBF
 
 class SlaAnalyticsView extends StatelessWidget {
   const SlaAnalyticsView({super.key});
@@ -28,7 +31,10 @@ class SlaAnalyticsView extends StatelessWidget {
 
     if (vm.isLoading && vm.analytics == null) {
       return const Center(
-        child: CircularProgressIndicator(color: AppTheme.statusTeal, strokeWidth: 2.5),
+        child: CircularProgressIndicator(
+          color: AppTheme.statusTeal,
+          strokeWidth: 2.5,
+        ),
       );
     }
 
@@ -44,7 +50,9 @@ class SlaAnalyticsView extends StatelessWidget {
       backgroundColor: _bgCard,
       onRefresh: () => vm.fetchAnalytics(showLoading: false),
       child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         children: const [
           SlaMetricsSection(),
@@ -55,7 +63,7 @@ class SlaAnalyticsView extends StatelessWidget {
   }
 }
 
-/// Widget reusable untuk Analitik Kinerja SLA (Uptime, Downtime, MTTR & Availability)
+/// Widget reusable untuk Analitik Kinerja SLA (Uptime, Downtime, MTTR, MTBF & Availability)
 class SlaMetricsSection extends StatelessWidget {
   const SlaMetricsSection({super.key});
 
@@ -79,7 +87,7 @@ class SlaMetricsSection extends StatelessWidget {
       case 'WARNING':
         return 'Level Warning';
       default:
-        return 'Semua Level (Warning, Critical, Down)';
+        return 'Semua Level';
     }
   }
 
@@ -92,9 +100,16 @@ class SlaMetricsSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionTitle(
+        SectionTitle(
           title: 'FILTER & PARAMETER',
           icon: Icons.tune_rounded,
+          trailing: PdfExportButton(
+            initialType: PdfReportType.incidents,
+            initialPeriod: vm.selectedPeriod,
+            initialSeverity: vm.selectedSeverity,
+            label: 'Unduh PDF',
+            compact: true,
+          ),
         ),
         const SizedBox(height: 12),
         Container(
@@ -108,7 +123,7 @@ class SlaMetricsSection extends StatelessWidget {
                 color: Colors.black.withValues(alpha: 0.03),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
-              )
+              ),
             ],
           ),
           child: Column(
@@ -122,7 +137,9 @@ class SlaMetricsSection extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: AppTheme.statusTeal.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.statusTeal.withValues(alpha: 0.2)),
+                      border: Border.all(
+                        color: AppTheme.statusTeal.withValues(alpha: 0.2),
+                      ),
                     ),
                     child: const Icon(
                       Icons.insert_chart_outlined_rounded,
@@ -163,28 +180,46 @@ class SlaMetricsSection extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 24),
-
         if (vm.isLoading && data == null)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 40),
             child: Center(
-              child: CircularProgressIndicator(color: AppTheme.statusTeal, strokeWidth: 2),
+              child: CircularProgressIndicator(
+                color: AppTheme.statusTeal,
+                strokeWidth: 2,
+              ),
             ),
           )
         else if (data != null) ...[
-          const SectionTitle(
+          SectionTitle(
             title: 'RINGKASAN METRIK',
             icon: Icons.speed_rounded,
+            trailing: vm.isLoading
+                ? const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppTheme.statusTeal,
+                    ),
+                  )
+                : null,
           ),
           const SizedBox(height: 12),
-          _buildFourMetricCards(data.summary),
+          _buildFiveMetricCards(data.summary, vm.selectedSeverity),
           const SizedBox(height: 24),
           const SectionTitle(
-            title: 'GRAFIK DISTRIBUSI & TREN',
+            title: 'GRAFIK DISTRIBUSI',
             icon: Icons.stacked_bar_chart_rounded,
           ),
           const SizedBox(height: 12),
-          _buildUptimeDowntimeCard(data.chartData, vm.selectedPeriod),
+          _buildUptimeDowntimeCard(
+            data.chartData,
+            vm.selectedPeriod,
+            vm.selectedSeverity,
+          ),
+          const SizedBox(height: 16),
+          _buildMtbfChartCard(data.chartData, vm.selectedPeriod),
           const SizedBox(height: 16),
           _buildMttrChartCard(data.chartData, vm.selectedPeriod),
           const SizedBox(height: 16),
@@ -248,7 +283,10 @@ class SlaMetricsSection extends StatelessWidget {
               borderRadius: BorderRadius.circular(10),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: isSelected
                       ? AppTheme.statusTeal.withValues(alpha: 0.1)
@@ -277,7 +315,38 @@ class SlaMetricsSection extends StatelessWidget {
     );
   }
 
-  Widget _buildFourMetricCards(SlaSummaryModel s) {
+  Widget _buildFiveMetricCards(SlaSummaryModel s, String selectedSeverity) {
+    final sev = selectedSeverity.toUpperCase();
+    final isCritical = sev == 'CRITICAL';
+    final isWarning = sev == 'WARNING';
+    final isGangguan = isCritical || isWarning;
+
+    final IconData issueIcon = isCritical
+        ? Icons.report_problem_rounded
+        : (isWarning
+            ? Icons.warning_amber_rounded
+            : Icons.error_outline_rounded);
+
+    final Color issueColor = isCritical
+        ? AppTheme.statusCritical
+        : (isWarning ? AppTheme.statusWarning : AppTheme.statusDown);
+
+    final String issueLabel = isGangguan ? 'TOTAL GANGGUAN' : 'TOTAL DOWNTIME';
+
+    final String issueValue = isWarning
+        ? (s.totalDegradationSec > 0 ? s.degradationDuration : s.downtimeDuration)
+        : (isCritical && s.totalDowntimeSec == 0 && s.totalDegradationSec > 0
+            ? s.degradationDuration
+            : s.downtimeDuration);
+
+    final String issueSubtitle = isCritical
+        ? 'Akumulasi waktu gangguan kritis'
+        : (isWarning
+            ? 'Akumulasi waktu peringatan performa'
+            : (sev == 'DOWN'
+                ? 'Akumulasi waktu layanan terputus'
+                : 'Akumulasi waktu downtime & gangguan'));
+
     return Column(
       children: [
         IntrinsicHeight(
@@ -289,18 +358,18 @@ class SlaMetricsSection extends StatelessWidget {
                   icon: Icons.check_circle_outline_rounded,
                   iconColor: AppTheme.statusTeal,
                   label: 'TOTAL UPTIME',
-                  value: Formatters.formatDurationSeconds(s.totalUptimeSec),
-                  subtitle: 'Durasi operasional normal',
+                  value: s.uptimeDuration,
+                  subtitle: 'Waktu sistem beroperasi normal',
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: _buildSlaStatCard(
-                  icon: Icons.error_outline_rounded,
-                  iconColor: AppTheme.statusDown,
-                  label: 'TOTAL DOWNTIME',
-                  value: Formatters.formatDurationSeconds(s.totalDowntimeSec),
-                  subtitle: 'Gangguan (${s.incidentCount} insiden)',
+                  icon: issueIcon,
+                  iconColor: issueColor,
+                  label: issueLabel,
+                  value: issueValue,
+                  subtitle: issueSubtitle,
                 ),
               ),
             ],
@@ -316,17 +385,25 @@ class SlaMetricsSection extends StatelessWidget {
                   icon: Icons.restore_rounded,
                   iconColor: AppTheme.statusRecovered,
                   label: 'MTTR',
-                  value: Formatters.formatDurationSeconds(s.mttrSec),
-                  subtitle: 'Rata-rata waktu pemulihan',
+                  value: s.mttrDuration,
+                  subtitle: 'Rata-rata waktu pemulihan per insiden',
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _buildAvailabilityStatCard(s),
+                child: _buildSlaStatCard(
+                  icon: Icons.shield_outlined,
+                  iconColor: _mtbfAccent,
+                  label: 'MTBF',
+                  value: s.mtbfDuration,
+                  subtitle: 'Rata-rata waktu beroperasi antar kegagalan',
+                ),
               ),
             ],
           ),
         ),
+        const SizedBox(height: 12),
+        _buildAvailabilityStatCard(s),
       ],
     );
   }
@@ -349,7 +426,7 @@ class SlaMetricsSection extends StatelessWidget {
             color: iconColor.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 4),
-          )
+          ),
         ],
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -381,22 +458,21 @@ class SlaMetricsSection extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              value,
-              style: TextStyle(
-                color: _textMain,
-                fontSize: 22,
-                fontWeight: FontWeight.w900,
-                fontFamily: 'monospace',
-                letterSpacing: -0.5,
-              ),
+          const SizedBox(height: 10),
+          Text(
+            value,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: _textMain,
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              fontFamily: 'monospace',
+              letterSpacing: -0.5,
+              height: 1.25,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(
             subtitle,
             style: TextStyle(color: _textMuted, fontSize: 10, height: 1.3),
@@ -411,27 +487,31 @@ class SlaMetricsSection extends StatelessWidget {
   Widget _buildAvailabilityStatCard(SlaSummaryModel s) {
     final availColor = s.availability >= 99.0
         ? AppTheme.statusTeal
-        : (s.availability >= 95.0 ? AppTheme.statusWarning : AppTheme.statusDown);
+        : (s.availability >= 95.0
+            ? AppTheme.statusWarning
+            : AppTheme.statusDown);
+
     final clamped = (s.availability / 100.0).clamp(0.0, 1.0);
 
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: _bgCard,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: availColor.withValues(alpha: 0.25)),
+        border: Border.all(color: availColor.withValues(alpha: 0.28)),
         boxShadow: [
           BoxShadow(
             color: availColor.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 4),
-          )
+          ),
         ],
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            availColor.withValues(alpha: 0.05),
+            availColor.withValues(alpha: 0.06),
             Colors.transparent,
           ],
         ),
@@ -440,89 +520,143 @@ class SlaMetricsSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Icon(Icons.verified_user_outlined, size: 16, color: availColor),
-              const SizedBox(width: 6),
               Expanded(
-                child: Text(
-                  'AVAILABILITY',
-                  style: TextStyle(
-                    color: availColor,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.8,
-                  ),
-                  overflow: TextOverflow.ellipsis,
+                // PERBAIKAN: Dibungkus dengan Expanded
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.verified_user_outlined,
+                      size: 16,
+                      color: availColor,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      // PERBAIKAN: Dibungkus dengan Expanded
+                      child: Text(
+                        'AVAILABILITY',
+                        style: TextStyle(
+                          color: availColor,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.8,
+                        ),
+                        overflow: TextOverflow
+                            .ellipsis, // PERBAIKAN: Tambahkan ellipsis
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: RichText(
-              text: TextSpan(
-                children: [
-                  TextSpan(
-                    text: s.availability.toStringAsFixed(2),
-                    style: TextStyle(
-                      color: availColor,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                      fontFamily: 'monospace',
-                      letterSpacing: -0.5,
-                    ),
+          RichText(
+            text: TextSpan(
+              children: [
+                TextSpan(
+                  text: s.availability.toStringAsFixed(2),
+                  style: TextStyle(
+                    color: availColor,
+                    fontSize: 26,
+                    fontWeight: FontWeight.w900,
+                    fontFamily: 'monospace',
+                    letterSpacing: -0.5,
                   ),
-                  TextSpan(
-                    text: '%',
-                    style: TextStyle(
-                      color: availColor.withValues(alpha: 0.75),
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'monospace',
-                    ),
+                ),
+                TextSpan(
+                  text: '%',
+                  style: TextStyle(
+                    color: availColor.withValues(alpha: 0.75),
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'monospace',
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           ClipRRect(
             borderRadius: BorderRadius.circular(6),
             child: LinearProgressIndicator(
               value: clamped,
-              minHeight: 4,
+              minHeight: 6,
               backgroundColor: _bgSurface,
               valueColor: AlwaysStoppedAnimation<Color>(availColor),
             ),
           ),
           const SizedBox(height: 6),
           Text(
-            s.availability >= 99.0 ? 'Ketersediaan (target ≥99%)' : 'Di bawah target SLA',
-            style: TextStyle(color: _textMuted, fontSize: 10, height: 1.3),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
+            s.availability >= 99.0
+                ? 'Ketersediaan memenuhi target (≥99.00%)'
+                : 'Ketersediaan dibawah target (≥99.00%)',
+            style: TextStyle(color: _textMuted, fontSize: 10.5, height: 1.3),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildUptimeDowntimeCard(List<SlaChartPointModel> points, String period) {
+  Widget _buildUptimeDowntimeCard(
+    List<SlaChartPointModel> points,
+    String period,
+    String selectedSeverity,
+  ) {
     final isHourly = period == '24h';
-    final unitBadge = isHourly ? 'Satuan: Menit' : 'Satuan: Jam';
 
-    int totalUpSec = 0;
-    int totalDownSec = 0;
-    for (final p in points) {
-      totalUpSec += p.totalUptimeSec;
-      totalDownSec += p.totalDowntimeSec;
+    final sev = selectedSeverity.toUpperCase();
+    final isCritical = sev == 'CRITICAL';
+    final isWarning = sev == 'WARNING';
+    final isGangguan = isCritical || isWarning;
+
+    final String issueLabel = isGangguan ? 'Gangguan' : 'Downtime';
+    final Color issueColor = isCritical
+        ? AppTheme.statusCritical
+        : (isWarning ? AppTheme.statusWarning : AppTheme.statusDown);
+
+    final String subtitle = isHourly
+        ? 'Durasi uptime dan ${issueLabel.toLowerCase()} per jam'
+        : 'Durasi uptime dan ${issueLabel.toLowerCase()} per hari';
+
+    int resolveIssueSec(SlaChartPointModel p) {
+      if (isWarning) {
+        return p.totalDegradationSec > 0
+            ? p.totalDegradationSec
+            : p.totalDowntimeSec;
+      }
+      if (isCritical && p.totalDowntimeSec == 0 && p.totalDegradationSec > 0) {
+        return p.totalDegradationSec;
+      }
+      return p.totalDowntimeSec;
     }
 
-    final int avgUpSec = points.isNotEmpty ? (totalUpSec / points.length).round() : 0;
+    String resolveIssueDuration(SlaChartPointModel p) {
+      if (isWarning) {
+        return p.totalDegradationSec > 0
+            ? p.degradationDuration
+            : p.downtimeDuration;
+      }
+      if (isCritical && p.totalDowntimeSec == 0 && p.totalDegradationSec > 0) {
+        return p.degradationDuration;
+      }
+      return p.downtimeDuration;
+    }
+
+    int totalUpSec = 0;
+    int totalIssueSec = 0;
+
+    for (final p in points) {
+      totalUpSec += p.totalUptimeSec;
+      totalIssueSec += resolveIssueSec(p);
+    }
+
+    final int avgUpSec =
+        points.isNotEmpty ? (totalUpSec / points.length).round() : 0;
     final String avgUpStr = Formatters.formatDurationSeconds(avgUpSec);
-    final String totalDownStr = Formatters.formatDurationSeconds(totalDownSec);
+    final String totalIssueStr =
+        Formatters.formatDurationSeconds(totalIssueSec);
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -534,44 +668,29 @@ class SlaMetricsSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  'Uptime & Downtime',
-                  style: TextStyle(
-                    color: _textMain,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.4,
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: _bgSurface,
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: _borderSubtle),
-                ),
-                child: Text(
-                  unitBadge,
-                  style: TextStyle(
-                    color: _textSecondary,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
+          Text(
+            'Uptime & $issueLabel',
+            style: TextStyle(
+              color: _textMain,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.4,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: TextStyle(
+              color: _textSecondary,
+              fontSize: 11,
+            ),
           ),
           const SizedBox(height: 14),
-          const Row(
+          Row(
             children: [
-              ChartLegendItem(color: AppTheme.statusTeal, label: 'Uptime'),
-              SizedBox(width: 16),
-              ChartLegendItem(color: AppTheme.statusDown, label: 'Downtime'),
+              const ChartLegendItem(color: AppTheme.statusTeal, label: 'Uptime'),
+              const SizedBox(width: 16),
+              ChartLegendItem(color: issueColor, label: issueLabel),
             ],
           ),
           const SizedBox(height: 22),
@@ -580,11 +699,18 @@ class SlaMetricsSection extends StatelessWidget {
             child: points.isEmpty
                 ? Center(
                     child: Text(
-                      'Tidak ada data grafik Uptime & Downtime.',
+                      'Tidak ada data grafik Uptime & $issueLabel.',
                       style: TextStyle(color: _textHint, fontSize: 12),
                     ),
                   )
-                : _buildUptimeBarChart(points, isHourly: isHourly),
+                : _buildUptimeBarChart(
+                    points,
+                    isHourly: isHourly,
+                    issueLabel: issueLabel,
+                    issueColor: issueColor,
+                    getIssueSec: resolveIssueSec,
+                    getIssueDuration: resolveIssueDuration,
+                  ),
           ),
           if (points.isNotEmpty) ...[
             const SizedBox(height: 18),
@@ -600,9 +726,9 @@ class SlaMetricsSection extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: _buildMetricStatBox(
-                    label: 'Total Downtime',
-                    value: totalDownStr,
-                    color: AppTheme.statusDown,
+                    label: 'Total $issueLabel',
+                    value: totalIssueStr,
+                    color: issueColor,
                   ),
                 ),
               ],
@@ -613,7 +739,14 @@ class SlaMetricsSection extends StatelessWidget {
     );
   }
 
-  Widget _buildUptimeBarChart(List<SlaChartPointModel> points, {required bool isHourly}) {
+  Widget _buildUptimeBarChart(
+    List<SlaChartPointModel> points, {
+    required bool isHourly,
+    required String issueLabel,
+    required Color issueColor,
+    required int Function(SlaChartPointModel p) getIssueSec,
+    required String Function(SlaChartPointModel p) getIssueDuration,
+  }) {
     final double divisor = isHourly ? 60.0 : 3600.0;
     final double maxY = isHourly ? 60.0 : 24.0;
     final double interval = isHourly ? 15.0 : 6.0;
@@ -624,21 +757,25 @@ class SlaMetricsSection extends StatelessWidget {
           touchTooltipData: BarTouchTooltipData(
             getTooltipColor: (_) => _bgCard,
             tooltipBorder: BorderSide(color: _borderSubtle, width: 1),
-            tooltipPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            tooltipPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 8,
+            ),
             tooltipRoundedRadius: 10,
             getTooltipItem: (group, groupIndex, rod, rodIndex) {
               if (groupIndex < 0 || groupIndex >= points.length) return null;
               final p = points[groupIndex];
               final isUp = rod.color == AppTheme.statusTeal;
-              final name = isUp ? 'Uptime' : 'Downtime';
-              final sec = isUp ? p.totalUptimeSec : p.totalDowntimeSec;
-              final formattedDuration = Formatters.formatDurationSeconds(sec);
+              final name = isUp ? 'Uptime' : issueLabel;
+              final formattedDuration =
+                  isUp ? p.uptimeDuration : getIssueDuration(p);
+
               return BarTooltipItem(
                 rodIndex == 0 && p.label.isNotEmpty
                     ? '${p.label}\n$name: $formattedDuration'
                     : '$name: $formattedDuration',
                 TextStyle(
-                  color: isUp ? AppTheme.statusTeal : AppTheme.statusDown,
+                  color: isUp ? AppTheme.statusTeal : issueColor,
                   fontWeight: FontWeight.bold,
                   fontSize: 11,
                   fontFamily: 'monospace',
@@ -663,7 +800,9 @@ class SlaMetricsSection extends StatelessWidget {
         borderData: FlBorderData(show: false),
         titlesData: FlTitlesData(
           topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
           leftTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
@@ -688,7 +827,10 @@ class SlaMetricsSection extends StatelessWidget {
                     text,
                     textAlign: TextAlign.right,
                     style: TextStyle(
-                        color: _textHint, fontSize: 10, fontWeight: FontWeight.w500),
+                      color: _textHint,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 );
               },
@@ -700,16 +842,22 @@ class SlaMetricsSection extends StatelessWidget {
               reservedSize: 28,
               getTitlesWidget: (val, _) {
                 final idx = val.toInt();
-                if (idx < 0 || idx >= points.length) return const SizedBox.shrink();
+                if (idx < 0 || idx >= points.length) {
+                  return const SizedBox.shrink();
+                }
                 final step = (points.length / 5).ceil().clamp(1, 10);
-                if (idx % step != 0 && idx != points.length - 1) return const SizedBox.shrink();
-
+                if (idx % step != 0 && idx != points.length - 1) {
+                  return const SizedBox.shrink();
+                }
                 return Padding(
                   padding: const EdgeInsets.only(top: 8),
                   child: Text(
                     points[idx].label,
                     style: TextStyle(
-                        color: _textHint, fontSize: 9, fontWeight: FontWeight.w500),
+                      color: _textHint,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 );
               },
@@ -719,7 +867,7 @@ class SlaMetricsSection extends StatelessWidget {
         barGroups: List.generate(points.length, (i) {
           final p = points[i];
           final upVal = (p.totalUptimeSec / divisor).clamp(0.0, maxY);
-          final downVal = (p.totalDowntimeSec / divisor).clamp(0.0, maxY);
+          final issueVal = (getIssueSec(p) / divisor).clamp(0.0, maxY);
           final rodWidth = points.length > 20 ? 5.0 : 8.0;
           final radius = BorderRadius.circular(4);
 
@@ -728,10 +876,18 @@ class SlaMetricsSection extends StatelessWidget {
             barsSpace: 2,
             barRods: [
               BarChartRodData(
-                  toY: upVal, color: AppTheme.statusTeal, width: rodWidth, borderRadius: radius),
-              if (downVal > 0)
+                toY: upVal,
+                color: AppTheme.statusTeal,
+                width: rodWidth,
+                borderRadius: radius,
+              ),
+              if (issueVal > 0)
                 BarChartRodData(
-                    toY: downVal, color: AppTheme.statusDown, width: rodWidth, borderRadius: radius),
+                  toY: issueVal,
+                  color: issueColor,
+                  width: rodWidth,
+                  borderRadius: radius,
+                ),
             ],
           );
         }),
@@ -739,10 +895,166 @@ class SlaMetricsSection extends StatelessWidget {
     );
   }
 
+  Widget _buildMtbfChartCard(List<SlaChartPointModel> points, String period) {
+    final isHourly = period == '24h';
+    final subtitle = isHourly
+        ? 'Rata-rata waktu beroperasi antar kegagalan per jam'
+        : 'Rata-rata waktu beroperasi antar kegagalan per hari';
+
+    final validPoints = points.where((p) => p.mtbfSec > 0).toList();
+    SlaChartPointModel? bestPoint;
+    SlaChartPointModel? lowestPoint;
+    int totalMtbf = 0;
+
+    if (validPoints.isNotEmpty) {
+      bestPoint = validPoints
+          .reduce((curr, next) => curr.mtbfSec >= next.mtbfSec ? curr : next);
+      lowestPoint = validPoints
+          .reduce((curr, next) => curr.mtbfSec <= next.mtbfSec ? curr : next);
+
+      for (final p in validPoints) {
+        totalMtbf += p.mtbfSec;
+      }
+    }
+
+    final String bestLabel =
+        bestPoint != null ? 'Tertinggi (${bestPoint.label})' : 'Tertinggi';
+    final String bestVal = bestPoint?.mtbfDuration ?? '0d';
+    final String lowestLabel =
+        lowestPoint != null ? 'Terendah (${lowestPoint.label})' : 'Terendah';
+    final String lowestVal = lowestPoint?.mtbfDuration ?? '0d';
+
+    final int avgSec =
+        validPoints.isNotEmpty ? (totalMtbf / validPoints.length).round() : 0;
+    final String avgVal = validPoints.isNotEmpty
+        ? Formatters.formatDurationSeconds(avgSec)
+        : '0d';
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: _bgCard,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _borderSubtle),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'MTBF (Mean Time Between Failures)',
+            style: TextStyle(
+              color: _textMain,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.4,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: TextStyle(
+              color: _textSecondary,
+              fontSize: 11,
+            ),
+          ),
+          const SizedBox(height: 14),
+          const Row(
+            children: [
+              ChartLegendItem(color: _mtbfAccent, label: 'Durasi MTBF'),
+            ],
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            height: 180,
+            child: points.isEmpty
+                ? Center(
+                    child: Text(
+                      'Tidak ada data grafik MTBF.',
+                      style: TextStyle(color: _textHint, fontSize: 12),
+                    ),
+                  )
+                : _buildDurationBarChart(
+                    points: points,
+                    getSec: (p) => p.mtbfSec,
+                    getDurationStr: (p) => p.mtbfDuration,
+                    metricName: 'MTBF',
+                    barColor: _mtbfAccent,
+                  ),
+          ),
+          const SizedBox(height: 18),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth > 420) {
+                return Row(
+                  children: [
+                    Expanded(
+                      child: _buildMetricStatBox(
+                        label: bestLabel,
+                        value: bestVal,
+                        color: AppTheme.statusTeal,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildMetricStatBox(
+                        label: lowestLabel,
+                        value: lowestVal,
+                        color: AppTheme.statusWarning,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildMetricStatBox(
+                        label: 'Rata-rata MTBF',
+                        value: avgVal,
+                        color: _mtbfAccent,
+                      ),
+                    ),
+                  ],
+                );
+              }
+              return Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildMetricStatBox(
+                          label: bestLabel,
+                          value: bestVal,
+                          color: AppTheme.statusTeal,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _buildMetricStatBox(
+                          label: lowestLabel,
+                          value: lowestVal,
+                          color: AppTheme.statusWarning,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  _buildMetricStatBox(
+                    label: 'Rata-rata MTBF',
+                    value: avgVal,
+                    color: _mtbfAccent,
+                    isFullWidth: true,
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildMttrChartCard(List<SlaChartPointModel> points, String period) {
     final isHourly = period == '24h';
-    final subtitle =
-        isHourly ? 'Rata-rata durasi pemulihan per jam' : 'Rata-rata durasi pemulihan per hari';
+    final subtitle = isHourly
+        ? 'Rata-rata durasi pemulihan per jam'
+        : 'Rata-rata durasi pemulihan per hari';
 
     final activePoints = points.where((p) => p.mttrSec > 0).toList();
     SlaChartPointModel? longestPoint;
@@ -750,8 +1062,11 @@ class SlaMetricsSection extends StatelessWidget {
     int totalMttr = 0;
 
     if (activePoints.isNotEmpty) {
-      longestPoint = activePoints.reduce((curr, next) => curr.mttrSec >= next.mttrSec ? curr : next);
-      shortestPoint = activePoints.reduce((curr, next) => curr.mttrSec <= next.mttrSec ? curr : next);
+      longestPoint = activePoints
+          .reduce((curr, next) => curr.mttrSec >= next.mttrSec ? curr : next);
+      shortestPoint = activePoints
+          .reduce((curr, next) => curr.mttrSec <= next.mttrSec ? curr : next);
+
       for (final p in activePoints) {
         totalMttr += p.mttrSec;
       }
@@ -759,17 +1074,19 @@ class SlaMetricsSection extends StatelessWidget {
 
     final String longestLabel =
         longestPoint != null ? 'Terlama (${longestPoint.label})' : 'Terlama';
-    final String longestVal =
-        longestPoint != null ? Formatters.formatDurationSeconds(longestPoint.mttrSec) : '0d';
+    final String longestVal = longestPoint?.mttrDuration ?? '0d';
+    final String shortestLabel = shortestPoint != null
+        ? 'Tercepat (${shortestPoint.label})'
+        : 'Tercepat';
+    final String shortestVal = shortestPoint?.mttrDuration ?? '0d';
 
-    final String shortestLabel =
-        shortestPoint != null ? 'Tercepat (${shortestPoint.label})' : 'Tercepat';
-    final String shortestVal =
-        shortestPoint != null ? Formatters.formatDurationSeconds(shortestPoint.mttrSec) : '0d';
-
-    final int avgSec = activePoints.isNotEmpty ? (totalMttr / activePoints.length).round() : 0;
-    final String avgLabel = 'Rata-rata (${activePoints.length} periode)';
-    final String avgVal = activePoints.isNotEmpty ? Formatters.formatDurationSeconds(avgSec) : '0d';
+    final int avgSec = activePoints.isNotEmpty
+        ? (totalMttr / activePoints.length).round()
+        : 0;
+    const String avgLabel = 'Rata-rata MTTR';
+    final String avgVal = activePoints.isNotEmpty
+        ? Formatters.formatDurationSeconds(avgSec)
+        : '0d';
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -813,7 +1130,10 @@ class SlaMetricsSection extends StatelessWidget {
           const SizedBox(height: 14),
           const Row(
             children: [
-              ChartLegendItem(color: AppTheme.statusRecovered, label: 'Durasi MTTR'),
+              ChartLegendItem(
+                color: AppTheme.statusRecovered,
+                label: 'Durasi MTTR',
+              ),
             ],
           ),
           const SizedBox(height: 20),
@@ -826,7 +1146,13 @@ class SlaMetricsSection extends StatelessWidget {
                       style: TextStyle(color: _textHint, fontSize: 12),
                     ),
                   )
-                : _buildMttrBarChart(points),
+                : _buildDurationBarChart(
+                    points: points,
+                    getSec: (p) => p.mttrSec,
+                    getDurationStr: (p) => p.mttrDuration,
+                    metricName: 'MTTR',
+                    barColor: AppTheme.statusRecovered,
+                  ),
           ),
           const SizedBox(height: 18),
           LayoutBuilder(
@@ -835,16 +1161,28 @@ class SlaMetricsSection extends StatelessWidget {
                 return Row(
                   children: [
                     Expanded(
-                        child: _buildMttrStatBox(
-                            label: longestLabel, value: longestVal, color: AppTheme.statusDown)),
+                      child: _buildMetricStatBox(
+                        label: longestLabel,
+                        value: longestVal,
+                        color: AppTheme.statusDown,
+                      ),
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
-                        child: _buildMttrStatBox(
-                            label: shortestLabel, value: shortestVal, color: AppTheme.statusTeal)),
+                      child: _buildMetricStatBox(
+                        label: shortestLabel,
+                        value: shortestVal,
+                        color: AppTheme.statusTeal,
+                      ),
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
-                        child: _buildMttrStatBox(
-                            label: avgLabel, value: avgVal, color: AppTheme.statusRecovered)),
+                      child: _buildMetricStatBox(
+                        label: avgLabel,
+                        value: avgVal,
+                        color: AppTheme.statusRecovered,
+                      ),
+                    ),
                   ],
                 );
               } else {
@@ -853,17 +1191,29 @@ class SlaMetricsSection extends StatelessWidget {
                     Row(
                       children: [
                         Expanded(
-                            child: _buildMttrStatBox(
-                                label: longestLabel, value: longestVal, color: AppTheme.statusDown)),
+                          child: _buildMetricStatBox(
+                            label: longestLabel,
+                            value: longestVal,
+                            color: AppTheme.statusDown,
+                          ),
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
-                            child: _buildMttrStatBox(
-                                label: shortestLabel, value: shortestVal, color: AppTheme.statusTeal)),
+                          child: _buildMetricStatBox(
+                            label: shortestLabel,
+                            value: shortestVal,
+                            color: AppTheme.statusTeal,
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 8),
-                    _buildMttrStatBox(
-                        label: avgLabel, value: avgVal, color: AppTheme.statusRecovered, isFullWidth: true),
+                    _buildMetricStatBox(
+                      label: avgLabel,
+                      value: avgVal,
+                      color: AppTheme.statusRecovered,
+                      isFullWidth: true,
+                    ),
                   ],
                 );
               }
@@ -874,7 +1224,7 @@ class SlaMetricsSection extends StatelessWidget {
     );
   }
 
-  double _calculateMttrInterval(int maxSec) {
+  double _calculateDurationInterval(int maxSec) {
     if (maxSec <= 10) return 2.0;
     if (maxSec <= 30) return 5.0;
     if (maxSec <= 60) return 10.0;
@@ -882,22 +1232,30 @@ class SlaMetricsSection extends StatelessWidget {
     if (maxSec <= 300) return 60.0;
     if (maxSec <= 600) return 120.0;
     if (maxSec <= 1800) return 300.0;
-    if (maxSec <= 3600) return 600.0;
-    if (maxSec <= 7200) return 1200.0;
+    if (maxSec <= 3600) return 900.0;
+    if (maxSec <= 7200) return 1800.0;
     if (maxSec <= 21600) return 3600.0;
-    if (maxSec <= 86400) return 7200.0;
-    return (maxSec / 5).ceilToDouble();
+    if (maxSec <= 86400) return 21600.0;
+    return (maxSec / 4).ceilToDouble();
   }
 
-  Widget _buildMttrBarChart(List<SlaChartPointModel> points) {
-    int maxMttr = 0;
+  Widget _buildDurationBarChart({
+    required List<SlaChartPointModel> points,
+    required int Function(SlaChartPointModel p) getSec,
+    required String Function(SlaChartPointModel p) getDurationStr,
+    required String metricName,
+    required Color barColor,
+  }) {
+    int maxSec = 0;
     for (final p in points) {
-      if (p.mttrSec > maxMttr) maxMttr = p.mttrSec;
+      final sec = getSec(p);
+      if (sec > maxSec) maxSec = sec;
     }
-    final double interval = _calculateMttrInterval(maxMttr);
-    final double maxY = maxMttr == 0
+
+    final double interval = _calculateDurationInterval(maxSec);
+    final double maxY = maxSec == 0
         ? (interval * 4)
-        : math.max((maxMttr / interval).ceil() * interval, interval * 3);
+        : math.max((maxSec / interval).ceil() * interval, interval * 3);
 
     return BarChart(
       BarChartData(
@@ -905,17 +1263,23 @@ class SlaMetricsSection extends StatelessWidget {
           touchTooltipData: BarTouchTooltipData(
             getTooltipColor: (_) => _bgCard,
             tooltipBorder: BorderSide(color: _borderSubtle, width: 1),
-            tooltipPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            tooltipPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 8,
+            ),
             tooltipRoundedRadius: 10,
             getTooltipItem: (group, groupIndex, rod, rodIndex) {
-              final sec = rod.toY.toInt();
-              final formatted = Formatters.formatDurationSeconds(sec);
-              final dateLabel = groupIndex >= 0 && groupIndex < points.length ? points[groupIndex].label : '';
+              if (groupIndex < 0 || groupIndex >= points.length) return null;
+              final p = points[groupIndex];
+              final formatted = getDurationStr(p);
+              final dateLabel = p.label;
 
               return BarTooltipItem(
-                dateLabel.isNotEmpty ? '$dateLabel\nMTTR: $formatted' : 'MTTR: $formatted',
-                const TextStyle(
-                  color: AppTheme.statusRecovered,
+                dateLabel.isNotEmpty
+                    ? '$dateLabel\n$metricName: $formatted'
+                    : '$metricName: $formatted',
+                TextStyle(
+                  color: barColor,
                   fontWeight: FontWeight.bold,
                   fontSize: 11,
                   fontFamily: 'monospace',
@@ -940,11 +1304,13 @@ class SlaMetricsSection extends StatelessWidget {
         borderData: FlBorderData(show: false),
         titlesData: FlTitlesData(
           topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
           leftTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
-              reservedSize: 52,
+              reservedSize: 54,
               interval: interval,
               getTitlesWidget: (val, _) {
                 if (val < 0 || val > maxY + 0.1) return const SizedBox.shrink();
@@ -969,16 +1335,22 @@ class SlaMetricsSection extends StatelessWidget {
               reservedSize: 28,
               getTitlesWidget: (val, _) {
                 final idx = val.toInt();
-                if (idx < 0 || idx >= points.length) return const SizedBox.shrink();
+                if (idx < 0 || idx >= points.length) {
+                  return const SizedBox.shrink();
+                }
                 final step = (points.length / 6).ceil().clamp(1, 10);
-                if (idx % step != 0 && idx != points.length - 1) return const SizedBox.shrink();
-
+                if (idx % step != 0 && idx != points.length - 1) {
+                  return const SizedBox.shrink();
+                }
                 return Padding(
                   padding: const EdgeInsets.only(top: 8),
                   child: Text(
                     points[idx].label,
                     style: TextStyle(
-                        color: _textHint, fontSize: 9, fontWeight: FontWeight.w500),
+                      color: _textHint,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 );
               },
@@ -987,16 +1359,17 @@ class SlaMetricsSection extends StatelessWidget {
         ),
         barGroups: List.generate(points.length, (i) {
           final p = points[i];
-          final mttrVal = p.mttrSec.toDouble().clamp(0.0, maxY);
-          final rodWidth = points.length > 20 ? 6.0 : (points.length > 10 ? 10.0 : 16.0);
+          final val = getSec(p).toDouble().clamp(0.0, maxY);
+          final rodWidth =
+              points.length > 20 ? 6.0 : (points.length > 10 ? 10.0 : 16.0);
           const radius = BorderRadius.vertical(top: Radius.circular(5));
 
           return BarChartGroupData(
             x: i,
             barRods: [
               BarChartRodData(
-                toY: mttrVal,
-                color: AppTheme.statusRecovered,
+                toY: val,
+                color: barColor,
                 width: rodWidth,
                 borderRadius: radius,
               ),
@@ -1049,21 +1422,10 @@ class SlaMetricsSection extends StatelessWidget {
     );
   }
 
-  Widget _buildMttrStatBox({
-    required String label,
-    required String value,
-    required Color color,
-    bool isFullWidth = false,
-  }) {
-    return _buildMetricStatBox(
-      label: label,
-      value: value,
-      color: color,
-      isFullWidth: isFullWidth,
-    );
-  }
-
-  Widget _buildAvailabilityChartCard(List<SlaChartPointModel> points, String period) {
+  Widget _buildAvailabilityChartCard(
+    List<SlaChartPointModel> points,
+    String period,
+  ) {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -1093,7 +1455,10 @@ class SlaMetricsSection extends StatelessWidget {
           const SizedBox(height: 14),
           const Row(
             children: [
-              ChartLegendItem(color: AppTheme.statusTeal, label: 'Availability %'),
+              ChartLegendItem(
+                color: AppTheme.statusTeal,
+                label: 'Availability %',
+              ),
             ],
           ),
           const SizedBox(height: 20),
@@ -1118,9 +1483,14 @@ class SlaMetricsSection extends StatelessWidget {
     for (final p in points) {
       minAvail = math.min(minAvail, p.availability);
     }
-    final double minY = minAvail >= 99.0 ? 95.0 : (minAvail - 1.5).floorToDouble().clamp(0.0, 95.0);
+
+    final double minY = minAvail >= 99.0
+        ? 95.0
+        : (minAvail - 1.5).floorToDouble().clamp(0.0, 95.0);
+
     final double range = 100.0 - minY;
-    final double interval = range <= 10.0 ? 2.0 : (range / 4.0).ceilToDouble();
+    final double interval =
+        range <= 10.0 ? 2.0 : (range / 4.0).ceilToDouble();
 
     final spots = List.generate(
       points.length,
@@ -1133,12 +1503,16 @@ class SlaMetricsSection extends StatelessWidget {
           touchTooltipData: LineTouchTooltipData(
             getTooltipColor: (_) => _bgCard,
             tooltipBorder: BorderSide(color: _borderSubtle, width: 1),
-            tooltipPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            tooltipPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 8,
+            ),
             tooltipRoundedRadius: 10,
             getTooltipItems: (touchedSpots) {
               return touchedSpots.map((spot) {
                 final idx = spot.x.toInt();
-                final dateLabel = (idx >= 0 && idx < points.length) ? points[idx].label : '';
+                final dateLabel =
+                    (idx >= 0 && idx < points.length) ? points[idx].label : '';
                 final val = spot.y.toStringAsFixed(2);
 
                 return LineTooltipItem(
@@ -1170,7 +1544,9 @@ class SlaMetricsSection extends StatelessWidget {
         borderData: FlBorderData(show: false),
         titlesData: FlTitlesData(
           topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
           leftTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
@@ -1182,7 +1558,10 @@ class SlaMetricsSection extends StatelessWidget {
                   '${val.toStringAsFixed(0)}%',
                   textAlign: TextAlign.right,
                   style: TextStyle(
-                      color: _textHint, fontSize: 10, fontWeight: FontWeight.w500),
+                    color: _textHint,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
             ),
@@ -1194,16 +1573,22 @@ class SlaMetricsSection extends StatelessWidget {
               interval: 1,
               getTitlesWidget: (val, _) {
                 final idx = val.toInt();
-                if (idx < 0 || idx >= points.length) return const SizedBox.shrink();
+                if (idx < 0 || idx >= points.length) {
+                  return const SizedBox.shrink();
+                }
                 final step = (points.length / 5).ceil().clamp(1, 10);
-                if (idx % step != 0 && idx != points.length - 1) return const SizedBox.shrink();
-
+                if (idx % step != 0 && idx != points.length - 1) {
+                  return const SizedBox.shrink();
+                }
                 return Padding(
                   padding: const EdgeInsets.only(top: 8),
                   child: Text(
                     points[idx].label,
                     style: TextStyle(
-                        color: _textHint, fontSize: 9, fontWeight: FontWeight.w500),
+                      color: _textHint,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 );
               },

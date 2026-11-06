@@ -379,10 +379,6 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
     final displayWarning = stats.totalWarning;
     final int severityTotal = displayDown + displayCritical + displayWarning;
 
-    final double resolutionRate = stats.totalTickets > 0
-        ? (stats.resolved / stats.totalTickets * 100.0)
-        : 100.0;
-
     final items = [
       (
         label: 'DOWN',
@@ -581,26 +577,6 @@ class _AlertsIncidentsViewState extends State<AlertsIncidentsView> {
                 );
               }),
             ),
-            if (isKepalaBidang) ...[
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Divider(color: _borderSubtle, height: 1),
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Rasio Selesai: ${resolutionRate.toStringAsFixed(0)}%',
-                    style: const TextStyle(
-                      color: AppTheme.statusTeal,
-                      fontSize: 11,
-                      fontFamily: 'monospace',
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ],
           ],
         ),
       ),

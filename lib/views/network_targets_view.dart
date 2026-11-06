@@ -6,11 +6,15 @@ import 'package:provider/provider.dart';
 import '../core/theme/app_theme.dart';
 import '../core/utils/formatters.dart';
 import '../models/network_target_model.dart';
+import '../models/network_tool_model.dart';
+import '../viewmodels/network_tools_viewmodel.dart';
 import '../viewmodels/network_viewmodel.dart';
 import 'common_widgets.dart';
 
 class NetworkTargetsView extends StatefulWidget {
-  const NetworkTargetsView({super.key});
+  final VoidCallback? onOpenNetworkToolsTab;
+
+  const NetworkTargetsView({super.key, this.onOpenNetworkToolsTab});
 
   @override
   State<NetworkTargetsView> createState() => _NetworkTargetsViewState();
@@ -304,15 +308,22 @@ class _NetworkTargetsViewState extends State<NetworkTargetsView>
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => _TargetHistoryBottomSheet(target: target),
+      builder: (_) => _TargetHistoryBottomSheet(
+        target: target,
+        onOpenNetworkToolsTab: widget.onOpenNetworkToolsTab,
+      ),
     );
   }
 }
 
 class _TargetHistoryBottomSheet extends StatefulWidget {
   final NetworkTargetModel target;
+  final VoidCallback? onOpenNetworkToolsTab;
 
-  const _TargetHistoryBottomSheet({required this.target});
+  const _TargetHistoryBottomSheet({
+    required this.target,
+    this.onOpenNetworkToolsTab,
+  });
 
   @override
   State<_TargetHistoryBottomSheet> createState() => _TargetHistoryBottomSheetState();
@@ -482,6 +493,78 @@ class _TargetHistoryBottomSheetState extends State<_TargetHistoryBottomSheet> {
                     style: TextStyle(color: _textMuted, fontSize: 11),
                   ),
                 ),
+              if (widget.onOpenNetworkToolsTab != null) ...[
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          context
+                              .read<NetworkToolsViewModel>()
+                              .prepareExternalTarget(
+                                target.ipAddress,
+                                tool: NetworkToolType.ping,
+                              );
+                          Navigator.of(context).pop();
+                          widget.onOpenNetworkToolsTab?.call();
+                        },
+                        icon: const Icon(Icons.network_ping_rounded, size: 16),
+                        label: const Text(
+                          'UJI PING',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.4,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppTheme.statusTeal,
+                          side: BorderSide(
+                            color: AppTheme.statusTeal.withValues(alpha: 0.45),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          context
+                              .read<NetworkToolsViewModel>()
+                              .prepareExternalTarget(
+                                target.ipAddress,
+                                tool: NetworkToolType.traceroute,
+                              );
+                          Navigator.of(context).pop();
+                          widget.onOpenNetworkToolsTab?.call();
+                        },
+                        icon: const Icon(Icons.alt_route_rounded, size: 16),
+                        label: const Text(
+                          'TRACEROUTE',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.4,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: _textSecondary,
+                          side: BorderSide(color: _borderSubtle),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         );

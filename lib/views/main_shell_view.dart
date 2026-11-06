@@ -22,6 +22,7 @@ import 'sla_analytics_view.dart';
 import 'dashboard_view.dart';
 import 'logs_view.dart';
 import 'network_targets_view.dart';
+import 'network_tools_view.dart';
 import 'proxmox_view.dart';
 import 'settings_view.dart';
 
@@ -47,8 +48,9 @@ class _MainShellViewState extends State<MainShellView>
     'Alert & Tiket Insiden',
     'Cluster Proxmox',
     'Target ICMP & TCP',
+    'Network Tools',
     'Analitik',
-    'Log & Audit Sistem',
+    'Log Sistem',
     'Pengaturan',
   ];
 
@@ -57,6 +59,7 @@ class _MainShellViewState extends State<MainShellView>
     'Rekap Gangguan',
     'Resource',
     'Analitik',
+    'Network Tools',
     'Pengaturan',
   ];
 
@@ -192,10 +195,10 @@ class _MainShellViewState extends State<MainShellView>
           case 3:
             context.read<NetworkViewModel>().fetchTargets(showLoading: false);
             break;
-          case 4:
+          case 5:
             context.read<AnalyticsViewModel>().fetchAnalytics(showLoading: false);
             break;
-          case 5:
+          case 6:
             context.read<LogViewModel>().fetchLogs(showLoading: false);
             break;
         }
@@ -226,6 +229,12 @@ class _MainShellViewState extends State<MainShellView>
         case 3:
           context.read<AnalyticsViewModel>().fetchAnalytics(showLoading: false);
           break;
+        case 4:
+          final netVm = context.read<NetworkViewModel>();
+          if (netVm.allTargets.isEmpty) {
+            netVm.fetchTargets(showLoading: false);
+          }
+          break;
       }
       return;
     }
@@ -245,9 +254,15 @@ class _MainShellViewState extends State<MainShellView>
         context.read<NetworkViewModel>().fetchTargets(showLoading: false);
         break;
       case 4:
-        context.read<AnalyticsViewModel>().fetchAnalytics(showLoading: false);
+        final netVm = context.read<NetworkViewModel>();
+        if (netVm.allTargets.isEmpty) {
+          netVm.fetchTargets(showLoading: false);
+        }
         break;
       case 5:
+        context.read<AnalyticsViewModel>().fetchAnalytics(showLoading: false);
+        break;
+      case 6:
         final logVm = context.read<LogViewModel>();
         final hasExistingLogs = logVm.taskLogs.isNotEmpty ||
             logVm.clusterLogs.isNotEmpty ||
@@ -295,7 +310,8 @@ class _MainShellViewState extends State<MainShellView>
     }
 
     final titles = isKabid ? _kabidTitles : _teknisiTitles;
-    final settingsIndex = isKabid ? 4 : 6;
+    final settingsIndex = isKabid ? 5 : 7;
+    final toolsIndex = 4;
     final safeIndex = _selectedIndex >= titles.length ? 0 : _selectedIndex;
     _visitedTabs.add(safeIndex);
 
@@ -363,7 +379,7 @@ class _MainShellViewState extends State<MainShellView>
                 ),
               ),
             ),
-          if (safeIndex != settingsIndex)
+          if (safeIndex != settingsIndex && safeIndex != toolsIndex)
             IconButton(
               onPressed: _refreshCurrentPage,
               icon: RotationTransition(
@@ -406,10 +422,14 @@ class _MainShellViewState extends State<MainShellView>
         case 1:
           return const AlertsIncidentsView();
         case 2:
-          return const ResourceView();
+          return ResourceView(
+            onOpenNetworkToolsTab: () => _selectPage(4),
+          );
         case 3:
           return const SlaAnalyticsView();
         case 4:
+          return const NetworkToolsView();
+        case 5:
           return const SettingsView();
         default:
           return const SizedBox.shrink();
@@ -418,18 +438,25 @@ class _MainShellViewState extends State<MainShellView>
 
     switch (index) {
       case 0:
-        return DashboardView(onOpenIncidentsTab: () => _selectPage(1));
+        return DashboardView(
+          onOpenIncidentsTab: () => _selectPage(1),
+          onOpenAnalyticsTab: () => _selectPage(5),
+        );
       case 1:
         return const AlertsIncidentsView();
       case 2:
         return const ProxmoxView();
       case 3:
-        return const NetworkTargetsView();
+        return NetworkTargetsView(
+          onOpenNetworkToolsTab: () => _selectPage(4),
+        );
       case 4:
-        return const SlaAnalyticsView();
+        return const NetworkToolsView();
       case 5:
-        return const LogsView();
+        return const SlaAnalyticsView();
       case 6:
+        return const LogsView();
+      case 7:
         return const SettingsView();
       default:
         return const SizedBox.shrink();
@@ -546,6 +573,12 @@ class _MainShellViewState extends State<MainShellView>
                         3,
                         colors: colors,
                       ),
+                      _buildDrawerItem(
+                        Icons.troubleshoot_rounded,
+                        _kabidTitles[4],
+                        4,
+                        colors: colors,
+                      ),
                       Padding(
                         padding: const EdgeInsets.symmetric(
                           vertical: 12,
@@ -555,8 +588,8 @@ class _MainShellViewState extends State<MainShellView>
                       ),
                       _buildDrawerItem(
                         Icons.settings_rounded,
-                        _kabidTitles[4],
-                        4,
+                        _kabidTitles[5],
+                        5,
                         colors: colors,
                       ),
                     ]
@@ -587,9 +620,15 @@ class _MainShellViewState extends State<MainShellView>
                         colors: colors,
                       ),
                       _buildDrawerItem(
-                        Icons.insert_chart_rounded,
+                        Icons.troubleshoot_rounded,
                         _teknisiTitles[4],
                         4,
+                        colors: colors,
+                      ),
+                      _buildDrawerItem(
+                        Icons.insert_chart_rounded,
+                        _teknisiTitles[5],
+                        5,
                         colors: colors,
                       ),
                       Padding(
@@ -601,14 +640,14 @@ class _MainShellViewState extends State<MainShellView>
                       ),
                       _buildDrawerItem(
                         Icons.terminal_rounded,
-                        _teknisiTitles[5],
-                        5,
+                        _teknisiTitles[6],
+                        6,
                         colors: colors,
                       ),
                       _buildDrawerItem(
                         Icons.settings_rounded,
-                        _teknisiTitles[6],
-                        6,
+                        _teknisiTitles[7],
+                        7,
                         colors: colors,
                       ),
                     ],

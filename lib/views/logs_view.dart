@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 import '../core/theme/app_theme.dart';
 import '../core/utils/formatters.dart';
 import '../models/log_model.dart';
@@ -72,7 +71,8 @@ class _LogsViewState extends State<LogsView> {
     }).toList();
   }
 
-  List<ProxmoxClusterLogModel> _filterClusterLogs(List<ProxmoxClusterLogModel> logs) {
+  List<ProxmoxClusterLogModel> _filterClusterLogs(
+      List<ProxmoxClusterLogModel> logs) {
     if (_searchQuery.trim().isEmpty) return logs;
     final q = _searchQuery.trim().toLowerCase();
     return logs.where((log) {
@@ -101,7 +101,6 @@ class _LogsViewState extends State<LogsView> {
   Widget build(BuildContext context) {
     AppTheme.of(context);
     final vm = context.watch<LogViewModel>();
-
     final filteredTasks = _filterTasks(vm.taskLogs);
     final filteredCluster = _filterClusterLogs(vm.clusterLogs);
     final filteredSystem = _filterSystemLogs(vm.systemLogs);
@@ -117,7 +116,7 @@ class _LogsViewState extends State<LogsView> {
               tabs: [
                 Tab(text: 'TASK (${filteredTasks.length})'),
                 Tab(text: 'CLUSTER (${filteredCluster.length})'),
-                Tab(text: 'AUDIT (${filteredSystem.length})'),
+                Tab(text: 'SYSTEM (${filteredSystem.length})'),
               ],
             ),
           ),
@@ -212,156 +211,200 @@ class _LogsViewState extends State<LogsView> {
                   physics: const AlwaysScrollableScrollPhysics(
                     parent: BouncingScrollPhysics(),
                   ),
-                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
                   padding: const EdgeInsets.all(16),
                   itemCount: tasks.length,
                   itemBuilder: (context, index) {
+                    final task = tasks[index];
+                    final isOk = task.isOk;
+                    final badgeLabel = isOk ? task.status : 'ERROR';
+                    final statusColor =
+                        isOk ? AppTheme.statusTeal : AppTheme.statusDown;
+                    
+                    // Menampilkan detail jika bukan sekadar string "OK" atau "ERROR" yang kosong
+                    final hasDetailText = task.status.trim().isNotEmpty &&
+                        task.status.trim().toUpperCase() != 'ERROR' &&
+                        task.status.trim().toUpperCase() != 'OK';
 
-                      final task = tasks[index];
-                      final isOk = task.isOk;
-                      final badgeLabel = isOk ? task.status : 'ERROR';
-                      final statusColor = isOk ? AppTheme.statusTeal : AppTheme.statusDown;
-
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: _bgCard,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isOk
+                              ? _borderSubtle
+                              : AppTheme.statusDown.withValues(alpha: 0.35),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: isOk
+                                ? Colors.black.withValues(alpha: 0.03)
+                                : AppTheme.statusDown.withValues(alpha: 0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
                         child: InkWell(
                           onTap: () => _showTaskTerminalSheet(context, task),
                           borderRadius: BorderRadius.circular(16),
-                          child: Container(
+                          child: Padding(
                             padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: _bgCard,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: isOk ? _borderSubtle : AppTheme.statusDown.withValues(alpha: 0.35),
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: isOk
-                                      ? Colors.black.withValues(alpha: 0.03)
-                                      : AppTheme.statusDown.withValues(alpha: 0.05),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Row(
+                            child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: statusColor.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: statusColor.withValues(alpha: 0.2),
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        color:
+                                            statusColor.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: statusColor.withValues(
+                                              alpha: 0.2),
+                                        ),
+                                      ),
+                                      child: Icon(
+                                        isOk
+                                            ? Icons.check_circle_outline_rounded
+                                            : Icons.error_outline_rounded,
+                                        color: statusColor,
+                                        size: 20,
+                                      ),
                                     ),
-                                  ),
-                                  child: Icon(
-                                    isOk
-                                        ? Icons.check_circle_outline_rounded
-                                        : Icons.error_outline_rounded,
-                                    color: statusColor,
-                                    size: 20,
-                                  ),
-                                ),
-                                const SizedBox(width: 14),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        task.type,
-                                        style: TextStyle(
-                                          color: _textMain,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 15,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 6),
-                                      RichText(
-                                        text: TextSpan(
-                                          style: TextStyle(
-                                            color: _textSecondary,
-                                            fontSize: 12,
-                                            height: 1.4,
-                                          ),
-                                          children: [
-                                            const TextSpan(text: 'Node: '),
-                                            TextSpan(
-                                              text: '${task.node}  ',
-                                              style: TextStyle(
-                                                color: _textMain,
-                                                fontWeight: FontWeight.w700,
-                                              ),
-                                            ),
-                                            const TextSpan(text: '•  User: '),
-                                            TextSpan(
-                                              text: task.user,
-                                              style: TextStyle(
-                                                color: _textMain,
-                                                fontWeight: FontWeight.w700,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Row(
+                                    const SizedBox(width: 14),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
-                                          Icon(
-                                            Icons.access_time_rounded,
-                                            size: 12,
-                                            color: _textHint,
-                                          ),
-                                          const SizedBox(width: 4),
                                           Text(
-                                            Formatters.formatDateTime(task.startTime),
+                                            task.type.isNotEmpty
+                                                ? task.type
+                                                : 'task',
                                             style: TextStyle(
-                                              color: _textMuted,
-                                              fontSize: 11,
+                                              color: _textMain,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 15,
                                             ),
+                                          ),
+                                          const SizedBox(height: 6),
+                                          RichText(
+                                            text: TextSpan(
+                                              style: TextStyle(
+                                                color: _textSecondary,
+                                                fontSize: 12,
+                                                height: 1.4,
+                                              ),
+                                              children: [
+                                                const TextSpan(text: 'Node: '),
+                                                TextSpan(
+                                                  text:
+                                                      '${task.node.isNotEmpty ? task.node : '-'}  ',
+                                                  style: TextStyle(
+                                                    color: _textMain,
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                                ),
+                                                const TextSpan(text: '•  User: '),
+                                                TextSpan(
+                                                  text: task.user.isNotEmpty
+                                                      ? task.user
+                                                      : '-',
+                                                  style: TextStyle(
+                                                    color: _textMain,
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          const SizedBox(height: 6),
+                                          Row(
+                                            children: [
+                                              Icon(
+                                                Icons.access_time_rounded,
+                                                size: 12,
+                                                color: _textHint,
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                Formatters.formatDateTime(
+                                                    task.startTime),
+                                                style: TextStyle(
+                                                  color: _textMuted,
+                                                  fontSize: 11,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ],
                                       ),
-                                      if (!isOk && task.status.toUpperCase() != 'ERROR') ...[
-                                        const SizedBox(height: 10),
-                                        Container(
-                                          width: double.infinity,
-                                          padding: const EdgeInsets.all(10),
-                                          decoration: BoxDecoration(
-                                            color: AppTheme.statusDown.withValues(alpha: 0.08),
-                                            borderRadius: BorderRadius.circular(8),
-                                            border: Border.all(
-                                              color: AppTheme.statusDown.withValues(alpha: 0.25),
-                                            ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    StatusBadge(
+                                      label: badgeLabel,
+                                      color: statusColor,
+                                      showDot: false,
+                                    ),
+                                  ],
+                                ),
+                                if (hasDetailText) ...[
+                                  const SizedBox(height: 12),
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: statusColor.withValues(alpha: 0.08),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                        color: statusColor.withValues(alpha: 0.25),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Padding(
+                                          padding: const EdgeInsets.only(top: 2),
+                                          child: Icon(
+                                            Icons.terminal_rounded,
+                                            size: 14,
+                                            color: statusColor,
                                           ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
                                           child: Text(
                                             task.status,
-                                            style: const TextStyle(
-                                              color: AppTheme.statusDown,
-                                              fontSize: 11,
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              color: statusColor,
+                                              fontSize: 11.5,
                                               fontFamily: 'monospace',
+                                              height: 1.45,
                                             ),
                                           ),
                                         ),
                                       ],
-                                    ],
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(width: 8),
-                                StatusBadge(
-                                  label: badgeLabel,
-                                  color: statusColor,
-                                  showDot: false,
-                                ),
+                                ],
                               ],
                             ),
                           ),
                         ),
-                      );
-                    },
-                  ),
+                      ),
+                    );
+                  },
+                ),
     );
   }
 
@@ -428,7 +471,9 @@ class _LogsViewState extends State<LogsView> {
                       const SizedBox(width: 12),
                       StatusBadge(
                         label: badgeLabel,
-                        color: task.isOk ? AppTheme.statusTeal : AppTheme.statusDown,
+                        color: task.isOk
+                            ? AppTheme.statusTeal
+                            : AppTheme.statusDown,
                         showDot: false,
                       ),
                     ],
@@ -446,7 +491,7 @@ class _LogsViewState extends State<LogsView> {
                             width: double.infinity,
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF0F172A), // Keep terminal dark for authenticity
+                              color: const Color(0xFF0F172A),
                               borderRadius: BorderRadius.circular(14),
                               border: Border.all(color: _borderSubtle),
                               boxShadow: [
@@ -454,7 +499,6 @@ class _LogsViewState extends State<LogsView> {
                                   color: Colors.black.withValues(alpha: 0.1),
                                   blurRadius: 10,
                                   offset: const Offset(0, 4),
-                                  // Hapus baris inset: true, di sini
                                 ),
                               ],
                             ),
@@ -462,7 +506,8 @@ class _LogsViewState extends State<LogsView> {
                                 ? const Center(
                                     child: Text(
                                       'Tidak ada output log untuk task ini.',
-                                      style: TextStyle(color: Colors.white38, fontSize: 12),
+                                      style: TextStyle(
+                                          color: Colors.white38, fontSize: 12),
                                     ),
                                   )
                                 : ListView.builder(
@@ -520,96 +565,110 @@ class _LogsViewState extends State<LogsView> {
                   physics: const AlwaysScrollableScrollPhysics(
                     parent: BouncingScrollPhysics(),
                   ),
-                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
                   padding: const EdgeInsets.all(16),
                   itemCount: logs.length,
                   itemBuilder: (context, index) {
+                    final log = logs[index];
+                    final isErr = log.isError;
+                    final statusColor =
+                        isErr ? AppTheme.statusDown : AppTheme.statusRecovered;
 
-                      final log = logs[index];
-                      final isErr = log.isError;
-                      final statusColor = isErr ? AppTheme.statusDown : AppTheme.statusRecovered;
-
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: _bgCard,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: isErr ? AppTheme.statusDown.withValues(alpha: 0.35) : _borderSubtle,
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: _bgCard,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isErr
+                              ? AppTheme.statusDown.withValues(alpha: 0.35)
+                              : _borderSubtle,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: isErr
+                                ? AppTheme.statusDown.withValues(alpha: 0.05)
+                                : Colors.black.withValues(alpha: 0.03),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
                           ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: isErr
-                                  ? AppTheme.statusDown.withValues(alpha: 0.05)
-                                  : Colors.black.withValues(alpha: 0.03),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
+                        ],
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: statusColor.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                  color: statusColor.withValues(alpha: 0.2)),
                             ),
-                          ],
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(9),
-                              decoration: BoxDecoration(
-                                color: statusColor.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: statusColor.withValues(alpha: 0.2)),
-                              ),
-                              child: Icon(
-                                isErr ? Icons.warning_amber_rounded : Icons.info_outline_rounded,
-                                color: statusColor,
-                                size: 18,
-                              ),
+                            child: Icon(
+                              isErr
+                                  ? Icons.warning_amber_rounded
+                                  : Icons.info_outline_rounded,
+                              color: statusColor,
+                              size: 20,
                             ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    log.msg,
-                                    style: TextStyle(
-                                      color: isErr ? AppTheme.statusDown : _textMain,
-                                      fontSize: 13,
-                                      height: 1.4,
-                                      fontWeight: isErr ? FontWeight.w600 : FontWeight.normal,
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  log.msg,
+                                  style: TextStyle(
+                                    color: isErr
+                                        ? AppTheme.statusDown
+                                        : _textMain,
+                                    fontSize: 13,
+                                    height: 1.4,
+                                    fontWeight: isErr
+                                        ? FontWeight.w600
+                                        : FontWeight.normal,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 6,
+                                  children: [
+                                    _buildMiniChip(
+                                        Icons.computer_rounded, log.node),
+                                    _buildMiniChip(
+                                        Icons.settings_applications_rounded,
+                                        log.tag),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.access_time_rounded,
+                                      size: 12,
+                                      color: _textHint,
                                     ),
-                                  ),
-                                  const SizedBox(height: 10),
-                                  Wrap(
-                                    spacing: 8,
-                                    runSpacing: 6,
-                                    children: [
-                                      _buildMiniChip(Icons.computer_rounded, log.node),
-                                      _buildMiniChip(Icons.settings_applications_rounded, log.tag),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.access_time_rounded,
-                                        size: 12,
-                                        color: _textHint,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        Formatters.formatDateTime(log.time),
-                                        style: TextStyle(color: _textMuted, fontSize: 11),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      Formatters.formatDateTime(log.time),
+                                      style: TextStyle(
+                                          color: _textMuted, fontSize: 11),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
     );
   }
 
@@ -619,6 +678,7 @@ class _LogsViewState extends State<LogsView> {
     List<SystemAuditLogModel> logs,
   ) {
     final showBottomLoader = vm.hasMoreSystemLogs && vm.isLoadingMore;
+
     return RefreshIndicator(
       color: AppTheme.statusTeal,
       backgroundColor: _bgCard,
@@ -627,7 +687,8 @@ class _LogsViewState extends State<LogsView> {
         onNotification: (ScrollNotification scrollInfo) {
           if (vm.hasMoreSystemLogs &&
               !vm.isLoadingMore &&
-              scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 50) {
+              scrollInfo.metrics.pixels >=
+                  scrollInfo.metrics.maxScrollExtent - 50) {
             vm.loadMoreSystemLogs();
           }
           return false;
@@ -651,7 +712,8 @@ class _LogsViewState extends State<LogsView> {
                     physics: const AlwaysScrollableScrollPhysics(
                       parent: BouncingScrollPhysics(),
                     ),
-                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
                     padding: const EdgeInsets.all(16),
                     itemCount: logs.length + (showBottomLoader ? 1 : 0),
                     itemBuilder: (context, index) {
@@ -659,7 +721,8 @@ class _LogsViewState extends State<LogsView> {
                         return const Padding(
                           padding: EdgeInsets.symmetric(vertical: 20),
                           child: Center(
-                            child: CircularProgressIndicator(color: AppTheme.statusTeal),
+                            child: CircularProgressIndicator(
+                                color: AppTheme.statusTeal),
                           ),
                         );
                       }
@@ -694,11 +757,13 @@ class _LogsViewState extends State<LogsView> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     Row(
                                       children: [
-                                        Icon(Icons.shield_outlined, size: 14, color: color),
+                                        Icon(Icons.shield_outlined,
+                                            size: 14, color: color),
                                         const SizedBox(width: 6),
                                         Text(
                                           item.source.toUpperCase(),
@@ -739,7 +804,8 @@ class _LogsViewState extends State<LogsView> {
                                     const SizedBox(width: 4),
                                     Text(
                                       Formatters.formatDateTime(item.timestamp),
-                                      style: TextStyle(color: _textMuted, fontSize: 11),
+                                      style: TextStyle(
+                                          color: _textMuted, fontSize: 11),
                                     ),
                                   ],
                                 ),

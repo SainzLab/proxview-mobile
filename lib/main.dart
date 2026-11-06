@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'core/theme/app_theme.dart';
 import 'services/api_service.dart';
 import 'services/notification_service.dart';
+import 'services/pdf_export_service.dart';
 import 'services/push_notification_service.dart';
 import 'services/storage_service.dart';
 import 'viewmodels/alert_incident_viewmodel.dart';
@@ -13,6 +14,7 @@ import 'viewmodels/analytics_viewmodel.dart';
 import 'viewmodels/auth_viewmodel.dart';
 import 'viewmodels/dashboard_viewmodel.dart';
 import 'viewmodels/log_viewmodel.dart';
+import 'viewmodels/network_tools_viewmodel.dart';
 import 'viewmodels/network_viewmodel.dart';
 import 'viewmodels/proxmox_viewmodel.dart';
 import 'views/login_view.dart';
@@ -38,6 +40,7 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   late final StorageService _storageService;
   late final ProxViewApiService _apiService;
+  late final PdfExportService _pdfExportService;
   late final NotificationService _notificationService;
 
   @override
@@ -45,6 +48,7 @@ class _MyAppState extends State<MyApp> {
     super.initState();
     _storageService = StorageService();
     _apiService = ProxViewApiService(_storageService);
+    _pdfExportService = PdfExportService(_apiService);
     _notificationService = NotificationService();
   }
 
@@ -60,6 +64,7 @@ class _MyAppState extends State<MyApp> {
       providers: [
         Provider<StorageService>.value(value: _storageService),
         Provider<ProxViewApiService>.value(value: _apiService),
+        Provider<PdfExportService>.value(value: _pdfExportService),
         ChangeNotifierProvider<ThemeViewModel>(
           create: (_) => ThemeViewModel(_storageService)..loadTheme(),
         ),
@@ -79,6 +84,9 @@ class _MyAppState extends State<MyApp> {
         ),
         ChangeNotifierProvider<NetworkViewModel>(
           create: (_) => NetworkViewModel(_apiService),
+        ),
+        ChangeNotifierProvider<NetworkToolsViewModel>(
+          create: (_) => NetworkToolsViewModel(_apiService),
         ),
         ChangeNotifierProvider<ProxmoxViewModel>(
           create: (_) => ProxmoxViewModel(_apiService),
