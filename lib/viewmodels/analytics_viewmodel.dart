@@ -8,6 +8,8 @@ class AnalyticsViewModel extends ChangeNotifier {
 
   SlaAnalyticsResponseModel? _analytics;
   SlaSummaryModel? _lightweightSummary;
+  SlaSummaryModel? _sevenDaySlaSummary;
+  bool _isLoadingSevenDaySummary = false;
   String _selectedPeriod = '24h'; // '24h', '7d', '30d'
   String _selectedSeverity = 'ALL'; // 'ALL', 'DOWN', 'CRITICAL', 'WARNING'
   bool _isLoading = false;
@@ -20,6 +22,10 @@ class AnalyticsViewModel extends ChangeNotifier {
 
   SlaAnalyticsResponseModel? get analytics => _analytics;
   SlaSummaryModel? get summary => _analytics?.summary ?? _lightweightSummary;
+  SlaSummaryModel? get sevenDaySlaSummary =>
+      _sevenDaySlaSummary ??
+      (_analytics?.summary.period == '7d' ? _analytics?.summary : null);
+  bool get isLoadingSevenDaySummary => _isLoadingSevenDaySummary;
   String get selectedPeriod => _selectedPeriod;
   String get selectedSeverity => _selectedSeverity;
   bool get isLoading => _isLoading;
@@ -60,6 +66,9 @@ class AnalyticsViewModel extends ChangeNotifier {
         cancelToken: token,
       );
       _lightweightSummary = _analytics?.summary;
+      if (_selectedPeriod == '7d' && _selectedSeverity == 'ALL') {
+        _sevenDaySlaSummary = _analytics?.summary;
+      }
       _errorMessage = null;
     } on ApiException catch (e) {
       if (e.isCancelled) return;
@@ -74,6 +83,32 @@ class AnalyticsViewModel extends ChangeNotifier {
       _isFetching = false;
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  /// Mengambil ringkasan SLA 7 hari yang dikunci khusus untuk Dashboard (/api/mobile/v1/analytics/mtbf?period=7d&severity=ALL)
+  Future<void> fetchSevenDaySlaSummary({bool showLoading = false}) async {
+    if (_isLoadingSevenDaySummary) return;
+    _isLoadingSevenDaySummary = true;
+    try {
+      _sevenDaySlaSummary = await _apiService.getSlaMtbfSummary(
+        period: '7d',
+        severity: 'ALL',
+      );
+      notifyListeners();
+    } catch (_) {
+      try {
+        final res = await _apiService.getAnalytics(
+          period: '7d',
+          severity: 'ALL',
+        );
+        _sevenDaySlaSummary = res.summary;
+        notifyListeners();
+      } catch (_) {
+        // Abaikan kegagalan refresh silent
+      }
+    } finally {
+      _isLoadingSevenDaySummary = false;
     }
   }
 

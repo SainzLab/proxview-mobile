@@ -299,36 +299,7 @@ class _PdfExportSheetState extends State<PdfExportSheet> {
                 type: PdfReportType.incidents,
                 icon: Icons.assignment_late_outlined,
               ),
-              const SizedBox(height: 8),
-              _buildReportTypeTile(
-                colors: colors,
-                type: PdfReportType.dashboard,
-                icon: Icons.space_dashboard_outlined,
-              ),
               const SizedBox(height: 18),
-              if (_reportType == PdfReportType.dashboard) ...[
-                Text(
-                  'RENTANG METRIK UTILISASI NODE (TIMEFRAME)',
-                  style: TextStyle(
-                    color: colors.textMuted,
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.0,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                _buildOptionRow(
-                  colors: colors,
-                  options: const [
-                    ('1h', '1 Jam'),
-                    ('24h', '24 Jam'),
-                    ('7d', '7 Hari'),
-                  ],
-                  selected: _timeframe,
-                  onSelect: (val) => setState(() => _timeframe = val),
-                ),
-                const SizedBox(height: 16),
-              ],
               Text(
                 'RENTANG WAKTU ANALITIK SLA (PERIOD)',
                 style: TextStyle(
@@ -570,7 +541,7 @@ class _PdfExportSheetState extends State<PdfExportSheet> {
             const SizedBox(width: 8),
             Icon(
               isSelected
-                  ? Icons.radio_button_checked_rounded
+                  ? Icons.check_circle_rounded
                   : Icons.radio_button_off_rounded,
               size: 19,
               color: isSelected ? AppTheme.statusTeal : colors.textHint,

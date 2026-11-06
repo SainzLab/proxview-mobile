@@ -112,11 +112,11 @@ class _LogsViewState extends State<LogsView> {
           Container(
             color: _bgMain,
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: SegmentedTabBar(
+            child: const SegmentedTabBar(
               tabs: [
-                Tab(text: 'TASK (${filteredTasks.length})'),
-                Tab(text: 'CLUSTER (${filteredCluster.length})'),
-                Tab(text: 'SYSTEM (${filteredSystem.length})'),
+                Tab(text: 'TASK'),
+                Tab(text: 'CLUSTER'),
+                Tab(text: 'SYSTEM'),
               ],
             ),
           ),

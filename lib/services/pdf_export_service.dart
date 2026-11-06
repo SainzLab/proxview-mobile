@@ -23,9 +23,9 @@ enum PdfReportType {
   String get subtitle {
     switch (this) {
       case PdfReportType.incidents:
-        return 'Daftar insiden, durasi gangguan, MTTR, MTBF & ketersediaan SLA.';
+        return 'Daftar insiden, durasi gangguan, MTTR, MTBF & ketersediaan.';
       case PdfReportType.dashboard:
-        return 'Kesehatan cluster Proxmox, utilisasi resource, jaringan & KPI SLA.';
+        return 'Cluster Proxmox, utilisasi resource.';
     }
   }
 }

@@ -59,7 +59,6 @@ class _MainShellViewState extends State<MainShellView>
     'Rekap Gangguan',
     'Resource',
     'Analitik',
-    'Network Tools',
     'Pengaturan',
   ];
 
@@ -139,6 +138,7 @@ class _MainShellViewState extends State<MainShellView>
     context.read<ProxmoxViewModel>().fetchProxmoxData(showLoading: true);
     context.read<NetworkViewModel>().fetchTargets(showLoading: true);
     context.read<AnalyticsViewModel>().fetchAnalytics(showLoading: true);
+    context.read<AnalyticsViewModel>().fetchSevenDaySlaSummary();
   }
 
   void _startBackgroundPolling() {
@@ -170,7 +170,7 @@ class _MainShellViewState extends State<MainShellView>
           case 0:
             context.read<DashboardViewModel>().fetchDashboard(showLoading: false);
             if (_pollTick % 3 == 0) {
-              context.read<AnalyticsViewModel>().fetchAnalytics(showLoading: false);
+              context.read<AnalyticsViewModel>().fetchSevenDaySlaSummary();
             }
             break;
           case 2:
@@ -186,7 +186,7 @@ class _MainShellViewState extends State<MainShellView>
           case 0:
             context.read<DashboardViewModel>().fetchDashboard(showLoading: false);
             if (_pollTick % 3 == 0) {
-              context.read<AnalyticsViewModel>().fetchAnalytics(showLoading: false);
+              context.read<AnalyticsViewModel>().fetchSevenDaySlaSummary();
             }
             break;
           case 2:
@@ -217,7 +217,7 @@ class _MainShellViewState extends State<MainShellView>
         case 0:
           context.read<DashboardViewModel>().fetchDashboard(showLoading: false);
           context.read<AlertIncidentViewModel>().fetchAll(showLoading: false);
-          context.read<AnalyticsViewModel>().fetchAnalytics(showLoading: false);
+          context.read<AnalyticsViewModel>().fetchSevenDaySlaSummary();
           break;
         case 1:
           context.read<AlertIncidentViewModel>().fetchAll(showLoading: false);
@@ -229,12 +229,6 @@ class _MainShellViewState extends State<MainShellView>
         case 3:
           context.read<AnalyticsViewModel>().fetchAnalytics(showLoading: false);
           break;
-        case 4:
-          final netVm = context.read<NetworkViewModel>();
-          if (netVm.allTargets.isEmpty) {
-            netVm.fetchTargets(showLoading: false);
-          }
-          break;
       }
       return;
     }
@@ -242,7 +236,7 @@ class _MainShellViewState extends State<MainShellView>
     switch (index) {
       case 0:
         context.read<DashboardViewModel>().fetchDashboard(showLoading: false);
-        context.read<AnalyticsViewModel>().fetchAnalytics(showLoading: false);
+        context.read<AnalyticsViewModel>().fetchSevenDaySlaSummary();
         break;
       case 1:
         context.read<AlertIncidentViewModel>().fetchAll(showLoading: false);
@@ -310,8 +304,8 @@ class _MainShellViewState extends State<MainShellView>
     }
 
     final titles = isKabid ? _kabidTitles : _teknisiTitles;
-    final settingsIndex = isKabid ? 5 : 7;
-    final toolsIndex = 4;
+    final settingsIndex = isKabid ? 4 : 7;
+    final toolsIndex = isKabid ? -1 : 4;
     final safeIndex = _selectedIndex >= titles.length ? 0 : _selectedIndex;
     _visitedTabs.add(safeIndex);
 
@@ -422,14 +416,10 @@ class _MainShellViewState extends State<MainShellView>
         case 1:
           return const AlertsIncidentsView();
         case 2:
-          return ResourceView(
-            onOpenNetworkToolsTab: () => _selectPage(4),
-          );
+          return const ResourceView();
         case 3:
           return const SlaAnalyticsView();
         case 4:
-          return const NetworkToolsView();
-        case 5:
           return const SettingsView();
         default:
           return const SizedBox.shrink();
@@ -573,12 +563,6 @@ class _MainShellViewState extends State<MainShellView>
                         3,
                         colors: colors,
                       ),
-                      _buildDrawerItem(
-                        Icons.troubleshoot_rounded,
-                        _kabidTitles[4],
-                        4,
-                        colors: colors,
-                      ),
                       Padding(
                         padding: const EdgeInsets.symmetric(
                           vertical: 12,
@@ -588,8 +572,8 @@ class _MainShellViewState extends State<MainShellView>
                       ),
                       _buildDrawerItem(
                         Icons.settings_rounded,
-                        _kabidTitles[5],
-                        5,
+                        _kabidTitles[4],
+                        4,
                         colors: colors,
                       ),
                     ]

@@ -62,7 +62,15 @@ class DashboardView extends StatelessWidget {
     }
 
     final analyticsVm = context.watch<AnalyticsViewModel>();
-    final slaSummary = analyticsVm.summary;
+    final slaSummary = analyticsVm.sevenDaySlaSummary;
+
+    if (slaSummary == null && !analyticsVm.isLoadingSevenDaySummary) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) {
+          context.read<AnalyticsViewModel>().fetchSevenDaySlaSummary();
+        }
+      });
+    }
 
     return RefreshIndicator(
       color: AppTheme.statusTeal,
@@ -70,7 +78,7 @@ class DashboardView extends StatelessWidget {
       onRefresh: () async {
         await Future.wait([
           vm.fetchDashboard(showLoading: false),
-          analyticsVm.fetchAnalytics(showLoading: false),
+          analyticsVm.fetchSevenDaySlaSummary(),
         ]);
       },
       child: ListView(
@@ -111,7 +119,7 @@ class DashboardView extends StatelessWidget {
           if (slaSummary != null) ...[
             const SizedBox(height: 24),
             SectionTitle(
-              title: 'RINGKASAN ANALITIK',
+              title: 'RINGKASAN ANALITIK 24/7',
               icon: Icons.shield_outlined,
               trailing: onOpenAnalyticsTab != null
                   ? _buildSectionAction('DETAIL', onOpenAnalyticsTab!)
@@ -170,8 +178,16 @@ class DashboardView extends StatelessWidget {
     final alertVm = context.watch<AlertIncidentViewModel>();
     final analyticsVm = context.watch<AnalyticsViewModel>();
     final stats = alertVm.incidentStats;
-    final slaSummary = analyticsVm.summary;
+    final slaSummary = analyticsVm.sevenDaySlaSummary;
     final unhandledCount = alertVm.activeAlerts.where((a) => !a.isBeingHandled).length;
+
+    if (slaSummary == null && !analyticsVm.isLoadingSevenDaySummary) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) {
+          context.read<AnalyticsViewModel>().fetchSevenDaySlaSummary();
+        }
+      });
+    }
 
     return RefreshIndicator(
       color: AppTheme.statusTeal,
@@ -180,7 +196,7 @@ class DashboardView extends StatelessWidget {
         await Future.wait([
           vm.fetchDashboard(showLoading: false),
           alertVm.fetchAll(showLoading: false),
-          analyticsVm.fetchAnalytics(showLoading: false),
+          analyticsVm.fetchSevenDaySlaSummary(),
         ]);
       },
       child: ListView(
@@ -190,7 +206,7 @@ class DashboardView extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         children: [
           SectionTitle(
-            title: 'RINGKASAN EKSEKUTIF',
+            title: 'RINGKASAN EKSEKUTIF 24/7',
             icon: Icons.verified_user_outlined,
             trailing: onOpenAnalyticsTab != null
                 ? _buildSectionAction('DETAIL', onOpenAnalyticsTab!)
