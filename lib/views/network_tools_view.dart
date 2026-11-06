@@ -525,7 +525,7 @@ class _NetworkToolsViewState extends State<NetworkToolsView>
                     fontFamily: 'monospace',
                     fontWeight: FontWeight.w600,
                   ),
-                  cursorColor: AppTheme.statusTeal,
+                  cursorColor: colors.textSecondary,
                   decoration: InputDecoration(
                     hintText: isIpScan
                         ? 'Contoh: 192.168.1.0 atau 2001:db8::/64'
@@ -561,6 +561,10 @@ class _NetworkToolsViewState extends State<NetworkToolsView>
                       horizontal: 14,
                       vertical: 13,
                     ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: colors.borderColor),
+                    ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(color: colors.borderColor),
@@ -571,9 +575,9 @@ class _NetworkToolsViewState extends State<NetworkToolsView>
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(
-                        color: AppTheme.statusTeal,
-                        width: 1.3,
+                      borderSide: BorderSide(
+                        color: colors.inputFocusBorder,
+                        width: 1.2,
                       ),
                     ),
                   ),

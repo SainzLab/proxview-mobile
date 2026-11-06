@@ -206,7 +206,7 @@ class DashboardView extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         children: [
           SectionTitle(
-            title: 'RINGKASAN EKSEKUTIF 24/7',
+            title: 'RINGKASAN ANALITIK 24/7',
             icon: Icons.verified_user_outlined,
             trailing: onOpenAnalyticsTab != null
                 ? _buildSectionAction('DETAIL', onOpenAnalyticsTab!)

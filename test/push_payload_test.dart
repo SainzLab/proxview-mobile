@@ -1,7 +1,33 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:proxview/services/notification_service.dart';
 import 'package:proxview/services/push_notification_service.dart';
 
 void main() {
+  group('NotificationService unified formatters', () {
+    test('formats standard and emergency call titles consistently', () {
+      expect(
+        NotificationService.formatNotificationTitle(
+          severity: 'warning',
+          targetName: 'PVE-Node-01',
+          isCall: false,
+        ),
+        '[WARNING] PVE-Node-01',
+      );
+      expect(
+        NotificationService.formatNotificationTitle(
+          severity: 'down',
+          targetName: 'PVE-Node-01',
+          isCall: true,
+        ),
+        'PANGGILAN DARURAT: [DOWN] PVE-Node-01',
+      );
+      expect(
+        NotificationService.formatNotificationBody('   '),
+        NotificationService.defaultAlertMessage,
+      );
+    });
+  });
+
   group('AlertPushPayload', () {
     test('parses real alert payload from monitoringDaemon', () {
       final p = AlertPushPayload.fromData({

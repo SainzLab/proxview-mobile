@@ -22,6 +22,7 @@ class _LoginViewState extends State<LoginView> {
 
   bool _obscurePassword = true;
   bool _showServerConfig = false;
+  bool _obscureToken = true;
 
   // Adaptive Theme Colors
   static Color get _bgMain => AppTheme.bgMain;
@@ -63,7 +64,7 @@ class _LoginViewState extends State<LoginView> {
     if (username.isEmpty || password.isEmpty || token.isEmpty) {
       AppFeedback.showSnackBar(
         context,
-        message: 'Username, Password, dan API Token (64-hex) wajib diisi.',
+        message: 'Username, Password, dan Token (64-hex) wajib diisi.',
         isWarning: true,
       );
       return;
@@ -81,7 +82,7 @@ class _LoginViewState extends State<LoginView> {
     if (!_hexTokenPattern.hasMatch(token)) {
       AppFeedback.showSnackBar(
         context,
-        message: 'Format API Token tidak valid. Gunakan token heksadesimal dari Web Admin.',
+        message: 'Format Token tidak valid. Gunakan token heksadesimal dari Web Admin.',
         isWarning: true,
       );
       return;
@@ -374,8 +375,19 @@ class _LoginViewState extends State<LoginView> {
                         label: 'API Token',
                         hint: 'hex token dari Web Admin',
                         icon: Icons.vpn_key_outlined,
+                        obscureText: _obscureToken, // Tambahkan properti ini
                         maxLength: 128,
                         autocorrect: false,
+                        suffixIcon: IconButton(     // Tambahkan icon mata untuk toggle
+                          icon: Icon(
+                            _obscureToken ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                            color: _textHint,
+                            size: 20,
+                          ),
+                          onPressed: () {
+                            setState(() => _obscureToken = !_obscureToken);
+                          },
+                        ),
                       ),
                       const SizedBox(height: 18),
 

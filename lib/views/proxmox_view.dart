@@ -640,9 +640,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
                           ? AppTheme.statusTeal.withValues(alpha: 0.1)
                           : _bgSurface,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: isRunning ? AppTheme.statusTeal.withValues(alpha: 0.25) : _borderSubtle,
-                      ),
+                      border: Border.all(color: _borderSubtle),
                     ),
                     child: Icon(
                       guest.type == 'qemu' ? Icons.computer_rounded : Icons.layers_rounded,
@@ -968,11 +966,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
             decoration: BoxDecoration(
               color: _bgCard,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: stoppedGuests > 0
-                    ? AppTheme.statusDown.withValues(alpha: 0.35)
-                    : AppTheme.statusTeal.withValues(alpha: 0.35),
-              ),
+              border: Border.all(color: _borderSubtle),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.05),
@@ -1096,14 +1090,6 @@ class _ProxmoxViewState extends State<ProxmoxView> {
             typeLabel: 'LXC',
           ),
           const SizedBox(height: 20),
-
-          // 3. Info Box
-          _buildInfoNoteBox(
-            icon: Icons.analytics_outlined,
-            message:
-                'Mode ringkas menyajikan akumulasi jumlah VM dan LXC yang aktif dan non-aktif tanpa menampilkan daftar rincian teknis per instans.',
-          ),
-          const SizedBox(height: 32),
         ],
       ),
     );
@@ -1155,11 +1141,7 @@ class _ProxmoxViewState extends State<ProxmoxView> {
             decoration: BoxDecoration(
               color: _bgCard,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: inactiveStorages > 0
-                    ? AppTheme.statusDown.withValues(alpha: 0.35)
-                    : AppTheme.statusTeal.withValues(alpha: 0.35),
-              ),
+              border: Border.all(color: _borderSubtle),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.05),
@@ -1515,16 +1497,10 @@ class _ProxmoxViewState extends State<ProxmoxView> {
       decoration: BoxDecoration(
         color: _bgCard,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isAlert
-              ? AppTheme.statusDown.withValues(alpha: 0.3)
-              : _borderSubtle,
-        ),
+        border: Border.all(color: _borderSubtle),
         boxShadow: [
           BoxShadow(
-            color: isAlert
-                ? AppTheme.statusDown.withValues(alpha: 0.05)
-                : Colors.black.withValues(alpha: 0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           )
@@ -1574,37 +1550,6 @@ class _ProxmoxViewState extends State<ProxmoxView> {
             ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoNoteBox({
-    required IconData icon,
-    required String message,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: _bgSurface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _borderSubtle),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 16, color: _textHint),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              message,
-              style: TextStyle(
-                color: _textSecondary,
-                fontSize: 11,
-                height: 1.4,
-              ),
-            ),
           ),
         ],
       ),

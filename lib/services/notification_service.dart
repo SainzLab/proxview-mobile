@@ -272,28 +272,77 @@ class NotificationService {
     }
   }
 
-  /// Menampilkan notifikasi heads-up dari payload FCM data-only (`action_type: Pesan`).
-  /// Aman dipanggil dari background isolate FCM.
+  static const String callChannelId = 'proxview_emergency_call_v4';
+  static const String callChannelName = 'Panggilan Darurat Insiden';
+  static const String alertChannelId = 'proxview_alerts_v4';
+  static const String alertChannelName = 'Notifikasi Gangguan & Insiden';
+  static const String defaultAlertMessage = 'Terdeteksi gangguan pada sistem.';
+
+  /// Format judul terpadu untuk seluruh pop-up notifikasi sistem (FCM, Polling, Background)
+  static String formatNotificationTitle({
+    required String severity,
+    required String targetName,
+    required bool isCall,
+  }) {
+    final cleanSeverity = severity.trim().isEmpty
+        ? 'WARNING'
+        : severity.trim().toUpperCase();
+    final cleanTarget = targetName.trim().isEmpty
+        ? 'Monitoring Alert'
+        : targetName.trim();
+    return isCall
+        ? 'PANGGILAN DARURAT: [$cleanSeverity] $cleanTarget'
+        : '[$cleanSeverity] $cleanTarget';
+  }
+
+  /// Format isi pesan terpadu dengan fallback bersih bila pesan kosong
+  static String formatNotificationBody(String message) {
+    final clean = message.trim();
+    return clean.isEmpty ? defaultAlertMessage : clean;
+  }
+
+  /// Menampilkan notifikasi heads-up dari payload FCM data-only (`action_type: Pesan`)
+  /// maupun fallback panggilan darurat. Aman dipanggil dari background isolate FCM.
   Future<void> showDataNotification({
     required int id,
     required String title,
     required String body,
+    bool isCall = false,
   }) async {
     if (!_initialized) await initialize();
     try {
-      const androidDetails = AndroidNotificationDetails(
-        'proxview_alerts_v4',
-        'Notifikasi Gangguan & Insiden',
+      final cleanBody = formatNotificationBody(body);
+      final subText = isCall ? callChannelName : alertChannelName;
+      final vibration = isCall
+          ? Int64List.fromList(<int>[0, 1000, 500, 1000, 500, 1000])
+          : Int64List.fromList(<int>[0, 400, 200, 400]);
+
+      final androidDetails = AndroidNotificationDetails(
+        isCall ? callChannelId : alertChannelId,
+        subText,
         channelDescription:
             'Notifikasi insiden & panggilan darurat sistem ProxView',
+        subText: subText,
+        styleInformation: BigTextStyleInformation(
+          cleanBody,
+          contentTitle: title,
+          summaryText: subText,
+        ),
         importance: Importance.max,
         priority: Priority.max,
-        category: AndroidNotificationCategory.alarm,
+        category: isCall
+            ? AndroidNotificationCategory.call
+            : AndroidNotificationCategory.alarm,
         playSound: true,
         enableVibration: true,
+        vibrationPattern: vibration,
+        audioAttributesUsage: isCall
+            ? AudioAttributesUsage.notificationRingtone
+            : AudioAttributesUsage.notification,
         visibility: NotificationVisibility.public,
       );
-      const darwinDetails = DarwinNotificationDetails(
+      final darwinDetails = DarwinNotificationDetails(
+        subtitle: subText,
         presentAlert: true,
         presentBadge: true,
         presentSound: true,
@@ -301,8 +350,8 @@ class NotificationService {
       await _plugin.show(
         id,
         title,
-        body,
-        const NotificationDetails(
+        cleanBody,
+        NotificationDetails(
           android: androidDetails,
           iOS: darwinDetails,
           macOS: darwinDetails,
@@ -316,6 +365,14 @@ class NotificationService {
     required bool isCall,
   }) async {
     try {
+      final title = formatNotificationTitle(
+        severity: alert.severity,
+        targetName: alert.targetName,
+        isCall: isCall,
+      );
+      final cleanBody = formatNotificationBody(alert.message);
+      final subText = isCall ? callChannelName : alertChannelName;
+
       // Flag 4 = Notification.FLAG_INSISTENT (berdering terus-menerus sampai direspons)
       final insistentFlags = isCall ? Int32List.fromList(<int>[4]) : null;
       final vibration = isCall
@@ -323,10 +380,16 @@ class NotificationService {
           : Int64List.fromList(<int>[0, 400, 200, 400]);
 
       final androidDetails = AndroidNotificationDetails(
-        isCall ? 'proxview_emergency_call_v4' : 'proxview_alerts_v4',
-        isCall ? 'Panggilan Darurat Insiden' : 'Notifikasi Gangguan & Insiden',
+        isCall ? callChannelId : alertChannelId,
+        subText,
         channelDescription:
             'Notifikasi insiden & panggilan darurat sistem ProxView',
+        subText: subText,
+        styleInformation: BigTextStyleInformation(
+          cleanBody,
+          contentTitle: title,
+          summaryText: subText,
+        ),
         importance: Importance.max,
         priority: Priority.max,
         category: isCall
@@ -344,7 +407,8 @@ class NotificationService {
         visibility: NotificationVisibility.public,
         additionalFlags: insistentFlags,
       );
-      const darwinDetails = DarwinNotificationDetails(
+      final darwinDetails = DarwinNotificationDetails(
+        subtitle: subText,
         presentAlert: true,
         presentBadge: true,
         presentSound: true,
@@ -356,10 +420,8 @@ class NotificationService {
       );
       await _plugin.show(
         alert.id,
-        isCall
-            ? 'PANGGILAN DARURAT: [${alert.severity}] ${alert.targetName}'
-            : '[${alert.severity}] ${alert.targetName}',
-        alert.message,
+        title,
+        cleanBody,
         details,
       );
     } catch (_) {}

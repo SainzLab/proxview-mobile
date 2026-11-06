@@ -34,6 +34,7 @@ class ProxViewThemeColors extends ThemeExtension<ProxViewThemeColors> {
   final Color bgCard;
   final Color bgSurface;
   final Color borderColor;
+  final Color inputFocusBorder;
   final Color textMain;
   final Color textSecondary;
   final Color textMuted;
@@ -46,6 +47,7 @@ class ProxViewThemeColors extends ThemeExtension<ProxViewThemeColors> {
     required this.bgCard,
     required this.bgSurface,
     required this.borderColor,
+    required this.inputFocusBorder,
     required this.textMain,
     required this.textSecondary,
     required this.textMuted,
@@ -59,6 +61,7 @@ class ProxViewThemeColors extends ThemeExtension<ProxViewThemeColors> {
     bgCard: AppTheme.lightCard,
     bgSurface: AppTheme.lightSurface,
     borderColor: AppTheme.lightBorder,
+    inputFocusBorder: AppTheme.lightInputFocusBorder,
     textMain: AppTheme.lightText,
     textSecondary: AppTheme.lightTextSecondary,
     textMuted: AppTheme.lightTextMuted,
@@ -72,6 +75,7 @@ class ProxViewThemeColors extends ThemeExtension<ProxViewThemeColors> {
     bgCard: AppTheme.cardBackground,
     bgSurface: AppTheme.surfaceBackground,
     borderColor: AppTheme.borderSubtle,
+    inputFocusBorder: AppTheme.darkInputFocusBorder,
     textMain: AppTheme.darkTextMain,
     textSecondary: AppTheme.darkTextSecondary,
     textMuted: AppTheme.darkTextMuted,
@@ -86,6 +90,7 @@ class ProxViewThemeColors extends ThemeExtension<ProxViewThemeColors> {
     Color? bgCard,
     Color? bgSurface,
     Color? borderColor,
+    Color? inputFocusBorder,
     Color? textMain,
     Color? textSecondary,
     Color? textMuted,
@@ -98,6 +103,7 @@ class ProxViewThemeColors extends ThemeExtension<ProxViewThemeColors> {
       bgCard: bgCard ?? this.bgCard,
       bgSurface: bgSurface ?? this.bgSurface,
       borderColor: borderColor ?? this.borderColor,
+      inputFocusBorder: inputFocusBorder ?? this.inputFocusBorder,
       textMain: textMain ?? this.textMain,
       textSecondary: textSecondary ?? this.textSecondary,
       textMuted: textMuted ?? this.textMuted,
@@ -115,6 +121,9 @@ class ProxViewThemeColors extends ThemeExtension<ProxViewThemeColors> {
       bgCard: Color.lerp(bgCard, other.bgCard, t) ?? bgCard,
       bgSurface: Color.lerp(bgSurface, other.bgSurface, t) ?? bgSurface,
       borderColor: Color.lerp(borderColor, other.borderColor, t) ?? borderColor,
+      inputFocusBorder:
+          Color.lerp(inputFocusBorder, other.inputFocusBorder, t) ??
+              inputFocusBorder,
       textMain: Color.lerp(textMain, other.textMain, t) ?? textMain,
       textSecondary:
           Color.lerp(textSecondary, other.textSecondary, t) ?? textSecondary,
@@ -145,6 +154,7 @@ class AppTheme {
   static const Color elevatedBackground = Color(0xFF26334D);
   static const Color borderSubtle = Color(0xFF26334D); // Subtle Dark Border
   static const Color borderHighlight = Color(0xFF334155); // Slate 700
+  static const Color darkInputFocusBorder = Color(0xFF475569); // Slate 600 (Soft Gray Focus)
   static const Color darkTextMain = Color(0xFFF8FAFC); // Slate 50
   static const Color darkTextSecondary = Color(0xFFCBD5E1); // Slate 300
   static const Color darkTextMuted = Color(0xFF94A3B8); // Slate 400
@@ -155,6 +165,7 @@ class AppTheme {
   static const Color lightCard = Colors.white;
   static const Color lightSurface = Color(0xFFF1F5F9); // slate-100
   static const Color lightBorder = Color(0xFFE2E8F0); // slate-200
+  static const Color lightInputFocusBorder = Color(0xFFCBD5E1); // slate-300 (Soft Gray Focus)
   static const Color lightText = Color(0xFF0F172A); // slate-900
   static const Color lightTextSecondary = Color(0xFF475569); // slate-600
   static const Color lightTextMuted = Color(0xFF64748B); // slate-500
@@ -165,6 +176,8 @@ class AppTheme {
   static Color get bgCard => isDark ? cardBackground : lightCard;
   static Color get bgSurface => isDark ? surfaceBackground : lightSurface;
   static Color get borderColor => isDark ? borderSubtle : lightBorder;
+  static Color get inputFocusBorder =>
+      isDark ? darkInputFocusBorder : lightInputFocusBorder;
   static Color get textMain => isDark ? darkTextMain : lightText;
   static Color get textSecondary => isDark ? darkTextSecondary : lightTextSecondary;
   static Color get textMuted => isDark ? darkTextMuted : lightTextMuted;
@@ -232,7 +245,7 @@ class AppTheme {
           fontWeight: FontWeight.w600,
         ),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(16),
           side: const BorderSide(color: lightBorder),
         ),
       ),
@@ -240,6 +253,37 @@ class AppTheme {
         color: lightBorder,
         thickness: 1,
         space: 1,
+      ),
+      textSelectionTheme: TextSelectionThemeData(
+        cursorColor: lightTextSecondary,
+        selectionColor: lightTextHint.withValues(alpha: 0.25),
+        selectionHandleColor: lightTextSecondary,
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: lightBorder),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: lightBorder),
+        ),
+        disabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: lightBorder),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: lightInputFocusBorder, width: 1.2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: lightInputFocusBorder),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: lightInputFocusBorder, width: 1.2),
+        ),
       ),
       extensions: <ThemeExtension<dynamic>>[
         ProxViewThemeColors.light,
@@ -291,19 +335,53 @@ class AppTheme {
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: surfaceBackground,
+        backgroundColor: cardBackground,
         contentTextStyle: const TextStyle(
           fontFamily: 'Inter',
-          color: Colors.white,
+          color: darkTextMain,
           fontSize: 13,
           fontWeight: FontWeight.w600,
         ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: borderSubtle),
+        ),
       ),
       dividerTheme: const DividerThemeData(
         color: borderSubtle,
         thickness: 1,
         space: 1,
+      ),
+      textSelectionTheme: TextSelectionThemeData(
+        cursorColor: darkTextSecondary,
+        selectionColor: darkTextMuted.withValues(alpha: 0.25),
+        selectionHandleColor: darkTextSecondary,
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: borderSubtle),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: borderSubtle),
+        ),
+        disabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: borderSubtle),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: darkInputFocusBorder, width: 1.2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: darkInputFocusBorder),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: darkInputFocusBorder, width: 1.2),
+        ),
       ),
       extensions: <ThemeExtension<dynamic>>[
         ProxViewThemeColors.dark,

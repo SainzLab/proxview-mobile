@@ -336,11 +336,17 @@ object CallRingtoneManager {
             true
         }
 
+        val cleanSeverity = severity.trim().ifEmpty { "WARNING" }.uppercase()
+        val cleanTarget = targetName.trim().ifEmpty { "Monitoring Alert" }
+        val cleanMessage = message.trim().ifEmpty { "Terdeteksi gangguan pada sistem." }
+        val callTitle = "PANGGILAN DARURAT: [$cleanSeverity] $cleanTarget"
+        val callSubText = "Panggilan Darurat Insiden"
+
         var postedCallStyle = false
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && canUseFsi) {
             try {
                 val caller = Person.Builder()
-                    .setName("[$severity] $targetName")
+                    .setName("[$cleanSeverity] $cleanTarget")
                     .setImportant(true)
                     .build()
 
@@ -352,8 +358,9 @@ object CallRingtoneManager {
 
                 val callNotif = Notification.Builder(context, CALL_CHANNEL_ID)
                     .setSmallIcon(R.mipmap.launcher_icon)
-                    .setContentTitle("PANGGILAN DARURAT: [$severity] $targetName")
-                    .setContentText("$targetType • $message")
+                    .setSubText(callSubText)
+                    .setContentTitle(callTitle)
+                    .setContentText(cleanMessage)
                     .setStyle(callStyle)
                     .setCategory(Notification.CATEGORY_CALL)
                     .setVisibility(Notification.VISIBILITY_PUBLIC)
@@ -381,7 +388,7 @@ object CallRingtoneManager {
 
             val answerAction = Notification.Action.Builder(
                 android.R.drawable.sym_action_call,
-                "BUKA & TANGANI",
+                "TANGANI",
                 answerPendingIntent
             ).build()
 
@@ -392,9 +399,15 @@ object CallRingtoneManager {
             ).build()
 
             builder.setSmallIcon(R.mipmap.launcher_icon)
-                .setContentTitle("PANGGILAN DARURAT: [$severity] $targetName")
-                .setContentText(message)
-                .setStyle(Notification.BigTextStyle().bigText("$targetType • $message"))
+                .setSubText(callSubText)
+                .setContentTitle(callTitle)
+                .setContentText(cleanMessage)
+                .setStyle(
+                    Notification.BigTextStyle()
+                        .bigText(cleanMessage)
+                        .setBigContentTitle(callTitle)
+                        .setSummaryText(callSubText)
+                )
                 .setCategory(Notification.CATEGORY_CALL)
                 .setVisibility(Notification.VISIBILITY_PUBLIC)
                 .setOngoing(true)
@@ -459,10 +472,22 @@ object CallRingtoneManager {
             Notification.Builder(context)
         }
 
+        val cleanSeverity = severity.trim().ifEmpty { "WARNING" }.uppercase()
+        val cleanTarget = targetName.trim().ifEmpty { "Monitoring Alert" }
+        val cleanMessage = message.trim().ifEmpty { "Terdeteksi gangguan pada sistem." }
+        val alertTitle = "[$cleanSeverity] $cleanTarget"
+        val alertSubText = "Notifikasi Gangguan & Insiden"
+
         builder.setSmallIcon(R.mipmap.launcher_icon)
-            .setContentTitle("[$severity] $targetName")
-            .setContentText(message)
-            .setStyle(Notification.BigTextStyle().bigText(message))
+            .setSubText(alertSubText)
+            .setContentTitle(alertTitle)
+            .setContentText(cleanMessage)
+            .setStyle(
+                Notification.BigTextStyle()
+                    .bigText(cleanMessage)
+                    .setBigContentTitle(alertTitle)
+                    .setSummaryText(alertSubText)
+            )
             .setCategory(Notification.CATEGORY_ALARM)
             .setVisibility(Notification.VISIBILITY_PUBLIC)
             .setAutoCancel(true)

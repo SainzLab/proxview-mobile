@@ -245,11 +245,9 @@ class _PdfExportSheetState extends State<PdfExportSheet> {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: AppTheme.statusTeal.withValues(alpha: 0.14),
+                      color: AppTheme.statusTeal.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: AppTheme.statusTeal.withValues(alpha: 0.3),
-                      ),
+                      border: Border.all(color: colors.borderColor),
                     ),
                     child: const Icon(
                       Icons.picture_as_pdf_rounded,

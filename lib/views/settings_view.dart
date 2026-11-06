@@ -155,7 +155,7 @@ class _SettingsViewState extends State<SettingsView> {
                       padding: const EdgeInsets.all(2),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        border: Border.all(color: AppTheme.statusTeal.withValues(alpha: 0.3), width: 2),
+                        border: Border.all(color: _borderSubtle, width: 2),
                       ),
                       child: CircleAvatar(
                         radius: 24,
@@ -498,7 +498,7 @@ class _SettingsViewState extends State<SettingsView> {
                     color: AppTheme.statusTeal.withValues(alpha: 0.06),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: AppTheme.statusTeal.withValues(alpha: 0.2),
+                      color: _borderSubtle,
                     ),
                   ),
                   child: Row(

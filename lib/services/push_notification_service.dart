@@ -273,22 +273,26 @@ class PushNotificationService {
     } else {
       await NotificationService().showDataNotification(
         id: payload.notificationId,
-        title: '[${payload.severity}] ${payload.targetName}',
-        body: payload.message,
+        title: NotificationService.formatNotificationTitle(
+          severity: payload.severity,
+          targetName: payload.targetName,
+          isCall: false,
+        ),
+        body: NotificationService.formatNotificationBody(payload.message),
       );
     }
   }
 
   static Future<void> _showCallKit(AlertPushPayload payload) async {
-    final handle = payload.message.isNotEmpty
-        ? '[${payload.severity}] ${payload.message}'
-        : 'Severity: ${payload.severity}';
+    final cleanMessage =
+        NotificationService.formatNotificationBody(payload.message);
+    final callerTitle = '[${payload.severity}] ${payload.targetName}';
 
     final params = CallKitParams(
       id: payload.callId,
-      nameCaller: payload.targetName,
+      nameCaller: callerTitle,
       appName: 'ProxView',
-      handle: handle,
+      handle: cleanMessage,
       type: 0,
       duration: 30000,
       extra: payload.toExtra(),
@@ -297,22 +301,23 @@ class PushNotificationService {
         isShowLogo: false,
         isShowFullLockedScreen: true,
         isImportant: true,
-        backgroundColor: '#0B0F14',
+        backgroundColor: '#0B0F19',
         actionColor: '#10B981',
-        textAccept: 'Tangani',
-        textDecline: 'Tolak',
-        incomingCallNotificationChannelName: 'Panggilan Darurat Insiden',
+        textAccept: 'TANGANI',
+        textDecline: 'TUTUP ALARM',
+        incomingCallNotificationChannelName:
+            NotificationService.callChannelName,
         missedCallNotificationChannelName: 'Panggilan Insiden Terlewat',
       ),
       missedCallNotification: const NotificationParams(
         showNotification: true,
         isShowCallback: false,
-        subtitle: 'Panggilan insiden terlewat',
+        subtitle: 'Panggilan darurat insiden terlewat',
       ),
       callingNotification: const NotificationParams(
         showNotification: true,
         isShowCallback: false,
-        subtitle: 'Panggilan insiden masuk',
+        subtitle: NotificationService.callChannelName,
       ),
     );
 
@@ -320,11 +325,16 @@ class PushNotificationService {
       await FlutterCallkitIncoming.showCallkitIncoming(params);
     } catch (e) {
       debugPrint('[CALLKIT] Gagal menampilkan panggilan: $e');
-      // Fallback: tetap beri tahu teknisi melalui notifikasi biasa.
+      // Fallback: tetap beri tahu teknisi melalui notifikasi terpadu.
       await NotificationService().showDataNotification(
         id: payload.notificationId,
-        title: 'PANGGILAN DARURAT: [${payload.severity}] ${payload.targetName}',
-        body: payload.message,
+        title: NotificationService.formatNotificationTitle(
+          severity: payload.severity,
+          targetName: payload.targetName,
+          isCall: true,
+        ),
+        body: cleanMessage,
+        isCall: true,
       );
     }
   }

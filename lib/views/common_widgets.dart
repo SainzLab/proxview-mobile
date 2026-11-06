@@ -48,22 +48,32 @@ class AppFeedback {
   static void showSnackBar(
     BuildContext context, {
     required String message,
+    String? title,
     bool isError = false,
     bool isWarning = false,
   }) {
     if (!context.mounted) return;
 
+    final colors = AppTheme.of(context);
     final Color accentColor = isError
         ? AppTheme.statusDown
         : (isWarning ? AppTheme.statusWarning : AppTheme.statusTeal);
     final IconData icon = isError
         ? Icons.error_outline_rounded
-        : (isWarning ? Icons.warning_amber_rounded : Icons.check_circle_outline_rounded);
+        : (isWarning
+            ? Icons.warning_amber_rounded
+            : Icons.check_circle_outline_rounded);
 
     final messenger = ScaffoldMessenger.of(context);
     messenger.hideCurrentSnackBar();
 
     final parsed = ApiException.parse(message);
+    final String resolvedTitle = title ??
+        (parsed.code != null
+            ? parsed.title
+            : (isError
+                ? 'Terjadi Kesalahan'
+                : (isWarning ? 'Perhatian' : 'Pemberitahuan')));
 
     messenger.showSnackBar(
       SnackBar(
@@ -76,95 +86,99 @@ class AppFeedback {
         content: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            color: AppTheme.bgCard,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: accentColor.withValues(alpha: 0.5), width: 1.2),
+            color: colors.bgCard,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: colors.borderColor),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.08),
-                blurRadius: 12,
+                color: Colors.black.withValues(alpha: colors.isDark ? 0.24 : 0.06),
+                blurRadius: 14,
                 offset: const Offset(0, 4),
               ),
             ],
           ),
           child: Row(
-            crossAxisAlignment: parsed.code != null
-                ? CrossAxisAlignment.start
-                : CrossAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                padding: const EdgeInsets.all(6),
+                padding: const EdgeInsets.all(9),
                 decoration: BoxDecoration(
-                  color: accentColor.withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
+                  color: accentColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(11),
+                  border: Border.all(color: colors.borderColor),
                 ),
-                child: Icon(icon, color: accentColor, size: 18),
+                child: Icon(icon, color: accentColor, size: 19),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: parsed.code != null
-                    ? Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  parsed.title,
-                                  style: TextStyle(
-                                    color: AppTheme.textMain,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: accentColor.withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(
-                                    color: accentColor.withValues(alpha: 0.35),
-                                  ),
-                                ),
-                                child: Text(
-                                  parsed.code!,
-                                  style: TextStyle(
-                                    color: accentColor,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w800,
-                                    fontFamily: 'monospace',
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            parsed.message,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            resolvedTitle,
                             style: TextStyle(
-                              color: AppTheme.textSecondary,
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w500,
-                              height: 1.35,
+                              color: colors.textMain,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (parsed.code != null) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: colors.bgSurface,
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: colors.borderColor),
+                            ),
+                            child: Text(
+                              parsed.code!,
+                              style: TextStyle(
+                                color: colors.textMuted,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                fontFamily: 'monospace',
+                              ),
                             ),
                           ),
                         ],
-                      )
-                    : Text(
-                        parsed.message,
-                        style: TextStyle(
-                          color: AppTheme.textMain,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          height: 1.35,
-                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      parsed.message,
+                      style: TextStyle(
+                        color: colors.textSecondary,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w500,
+                        height: 1.4,
                       ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap: () => messenger.hideCurrentSnackBar(),
+                child: Padding(
+                  padding: const EdgeInsets.all(2),
+                  child: Icon(
+                    Icons.close_rounded,
+                    size: 16,
+                    color: colors.textHint,
+                  ),
+                ),
               ),
             ],
           ),
@@ -182,16 +196,18 @@ class AppFeedback {
     Color accentColor = AppTheme.statusTeal,
     IconData icon = Icons.help_outline_rounded,
   }) async {
+    final outerColors = AppTheme.of(context);
     final result = await showDialog<bool>(
       context: context,
-      barrierColor: Colors.black.withValues(alpha: AppTheme.isDark ? 0.65 : 0.4),
+      barrierColor: Colors.black.withValues(alpha: outerColors.isDark ? 0.65 : 0.4),
       builder: (dialogContext) {
+        final colors = AppTheme.of(dialogContext);
         return Dialog(
-          backgroundColor: AppTheme.bgCard,
+          backgroundColor: colors.bgCard,
           surfaceTintColor: Colors.transparent,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
-            side: BorderSide(color: accentColor.withValues(alpha: 0.35)),
+            side: BorderSide(color: colors.borderColor),
           ),
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -204,9 +220,9 @@ class AppFeedback {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: accentColor.withValues(alpha: 0.15),
+                        color: accentColor.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: accentColor.withValues(alpha: 0.3)),
+                        border: Border.all(color: colors.borderColor),
                       ),
                       child: Icon(icon, color: accentColor, size: 22),
                     ),
@@ -215,7 +231,7 @@ class AppFeedback {
                       child: Text(
                         title,
                         style: TextStyle(
-                          color: AppTheme.textMain,
+                          color: colors.textMain,
                           fontSize: 17,
                           fontWeight: FontWeight.bold,
                         ),
@@ -227,7 +243,7 @@ class AppFeedback {
                 Text(
                   message,
                   style: TextStyle(
-                    color: AppTheme.textSecondary,
+                    color: colors.textSecondary,
                     fontSize: 13,
                     height: 1.5,
                   ),
@@ -239,8 +255,8 @@ class AppFeedback {
                       child: OutlinedButton(
                         onPressed: () => Navigator.of(dialogContext).pop(false),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: AppTheme.textMuted,
-                          side: BorderSide(color: AppTheme.borderColor),
+                          foregroundColor: colors.textMuted,
+                          side: BorderSide(color: colors.borderColor),
                           padding: const EdgeInsets.symmetric(vertical: 13),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -789,7 +805,7 @@ class CustomTextField extends StatelessWidget {
           autocorrect: autocorrect,
           enableSuggestions: !obscureText && autocorrect,
           style: TextStyle(color: colors.textMain, fontSize: 14),
-          cursorColor: AppTheme.statusTeal,
+          cursorColor: colors.textSecondary,
           decoration: InputDecoration(
             counterText: '',
             hintText: hint,
@@ -799,13 +815,21 @@ class CustomTextField extends StatelessWidget {
             filled: true,
             fillColor: colors.isDark ? colors.bgSurface : colors.bgCard,
             contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 16),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: colors.borderColor),
+            ),
             enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: colors.borderColor),
+            ),
+            disabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(color: colors.borderColor),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppTheme.statusTeal, width: 1.2),
+              borderSide: BorderSide(color: colors.inputFocusBorder, width: 1.2),
             ),
           ),
         ),
@@ -839,7 +863,7 @@ class AppSearchField extends StatelessWidget {
         controller: controller,
         onChanged: onChanged,
         style: TextStyle(color: colors.textMain, fontSize: 13),
-        cursorColor: AppTheme.statusTeal,
+        cursorColor: colors.textSecondary,
         decoration: InputDecoration(
           hintText: hintText,
           hintStyle: TextStyle(color: colors.textHint, fontSize: 13),
@@ -855,13 +879,21 @@ class AppSearchField extends StatelessWidget {
           fillColor: colors.bgCard,
           isDense: true,
           contentPadding: const EdgeInsets.symmetric(vertical: 11, horizontal: 14),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: colors.borderColor),
+          ),
           enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: colors.borderColor),
+          ),
+          disabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(color: colors.borderColor),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppTheme.statusTeal, width: 1.2),
+            borderSide: BorderSide(color: colors.inputFocusBorder, width: 1.2),
           ),
         ),
       ),
